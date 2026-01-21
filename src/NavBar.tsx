@@ -1,6 +1,6 @@
 import Clock from "./clock";
 
-export default function TopBar() {
+export default function NavBar() {
   return (
     <div className="top-bar">
       <p className="title">Calendar App</p>

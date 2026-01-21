@@ -1,13 +1,13 @@
 import "./App.css";
-import TopBar from "./topbar";
+import CalendarView from "./CalendarView";
 import Footer from "./footer";
-import Cal from "./cal";
+import NavBar from "./navbar";
 
 function App() {
   return (
     <>
-      <TopBar />
-      <Cal />
+      <NavBar />
+      <CalendarView />
       <Footer />
     </>
   );
