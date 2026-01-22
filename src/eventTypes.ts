@@ -1,14 +1,14 @@
-export type EventDB = {
+export type TEventDB = {
   id: string;
   date: string;
   title: string;
   status: string;
 };
 
-export type Event = {
+export type TEvent = {
   id: string;
   title: string;
   status: string;
 };
 
-export type EventMap = Map<string, Event[]>;
+export type TEventMap = Map<string, TEvent[]>;

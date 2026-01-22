@@ -52,3 +52,47 @@
 .delete-event {
   width: 100%;
 }
+
+.alert-box {
+  right: 0;
+  margin: 10px;
+  position: absolute;
+  padding: 0px 10px 0px 10px;
+  border-radius: 10px;
+  background-color: #1e1e1e;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  max-width: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.alert-box-title {
+  font-weight: bold;
+}
+
+.alert-box-desc {
+  font-size: medium;
+}
+
+.alert-icon {
+  font-weight: bold;
+  padding: 0 10px 0 0px;
+  width: 60px;
+}
+
+.alert-button-box {
+  padding: 10px;
+}
+
+.alert-error {
+  border-left: 5px solid rgb(145, 0, 0);
+}
+
+.alert-warning {
+  border-left: 5px solid rgb(191, 191, 0);
+}
+
+.alert-info {
+  border-left: 5px solid rgb(0, 134, 191);
+}

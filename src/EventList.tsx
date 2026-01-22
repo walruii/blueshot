@@ -1,4 +1,5 @@
-import { Event, EventMap } from "./eventTypes";
+import { useAlert } from "./AlertProvider";
+import { TEventMap } from "./eventTypes";
 
 export default function EventList({
   selectedDate,
@@ -6,15 +7,24 @@ export default function EventList({
   setEvents,
 }: {
   selectedDate: Date;
-  events: EventMap;
-  setEvents: React.Dispatch<React.SetStateAction<EventMap>>;
+  events: TEventMap;
+  setEvents: React.Dispatch<React.SetStateAction<TEventMap>>;
 }) {
+  const { showAlert } = useAlert();
   const handledelete = async (id: string) => {
-    const response = await fetch(`http://localhost:5001/events/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const response = await fetch(`http://localhost:5001/events/${id}`, {
+        method: "DELETE",
+      });
 
-    if (response.ok)
+      if (!response.ok) {
+        showAlert({
+          title: "Something went wrong",
+          type: "error",
+          description: "",
+        });
+        return;
+      }
       setEvents((prevMap) => {
         let newMap = new Map(prevMap);
 
@@ -27,6 +37,14 @@ export default function EventList({
         console.log(newMap.get(dateString));
         return newMap;
       });
+      showAlert({
+        title: "Event Deleted Successfully",
+        type: "info",
+        description: "",
+      });
+    } catch (err) {
+      console.error(err);
+    }
   };
   const hasEvents = events.has(selectedDate.toDateString());
   const eves = events.get(selectedDate.toDateString()) || [];
@@ -40,6 +58,7 @@ export default function EventList({
             return (
               <div key={e.id} className="event-listitem">
                 <p>{e.title}</p>
+                <p>{e.status}</p>
                 <button
                   className="delete-event"
                   onClick={() => handledelete(e.id)}
