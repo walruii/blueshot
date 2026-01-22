@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useAlert } from "../alert/AlertProvider";
 import { TEvent, TEventMap } from "../types/eventTypes";
 import EventListFilter from "./EventListFilter";
+import Event from "./Event";
 
 export default function EventList({
   selectedDate,
@@ -15,7 +16,16 @@ export default function EventList({
   const { showAlert } = useAlert();
   const [statusFilter, setStatusFilter] =
     useState<TEvent["status"]>("Not Started");
-  const handledelete = async (id: string) => {
+
+  const handleStatusChange = (
+    e: React.ChangeEvent<HTMLSelectElement>,
+    id: string,
+  ) => {
+    console.log(e.target.value, id);
+    // TODO: ^^^^^^^^^^^^^^^^
+  };
+
+  const handleDelete = async (id: string) => {
     try {
       const response = await fetch(`http://localhost:5001/events/${id}`, {
         method: "DELETE",
@@ -36,9 +46,7 @@ export default function EventList({
 
         let events = newMap.get(dateString) || [];
 
-        events = events.filter(
-          (e) => String(e.id) !== String(id) && e.status === statusFilter,
-        );
+        events = events.filter((e) => String(e.id) !== String(id));
         newMap.set(dateString, events);
         console.log(newMap.get(dateString));
         return newMap;
@@ -53,7 +61,8 @@ export default function EventList({
     }
   };
   const hasEvents = events.has(selectedDate.toDateString());
-  const eves = events.get(selectedDate.toDateString()) || [];
+  let eves = events.get(selectedDate.toDateString()) || [];
+  eves = eves.filter((e) => e.status === statusFilter);
   return (
     <div className="event-cluster">
       <p>{selectedDate.toDateString()}</p>
@@ -65,16 +74,12 @@ export default function EventList({
         {hasEvents &&
           eves.map((e) => {
             return (
-              <div key={e.id} className="event-listitem">
-                <p>{e.title}</p>
-                <p>{e.status}</p>
-                <button
-                  className="delete-event"
-                  onClick={() => handledelete(e.id)}
-                >
-                  Delete
-                </button>
-              </div>
+              <Event
+                key={e.id}
+                e={e}
+                handleDelete={handleDelete}
+                handleStatusChange={handleStatusChange}
+              />
             );
           })}
       </div>

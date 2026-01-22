@@ -105,3 +105,28 @@
 .alert-info {
   border-left: 5px solid rgb(0, 134, 191);
 }
+
+.event-filter {
+  display: flex;
+  gap: 5px;
+  justify-content: center;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #181818;
+}
+
+.filter-button {
+  height: 100%;
+}
+
+.active-filter {
+  background-color: black;
+}
+
+#status {
+  background-color: #181818;
+  border: 1px solid #333333;
+  border-radius: 10px;
+  padding: 10px 20px 10px 20px;
+}
