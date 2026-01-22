@@ -1,5 +1,7 @@
-import { useAlert } from "./AlertProvider";
-import { TEventMap } from "./eventTypes";
+import { useState } from "react";
+import { useAlert } from "../alert/AlertProvider";
+import { TEvent, TEventMap } from "../types/eventTypes";
+import EventListFilter from "./EventListFilter";
 
 export default function EventList({
   selectedDate,
@@ -11,6 +13,8 @@ export default function EventList({
   setEvents: React.Dispatch<React.SetStateAction<TEventMap>>;
 }) {
   const { showAlert } = useAlert();
+  const [statusFilter, setStatusFilter] =
+    useState<TEvent["status"]>("Not Started");
   const handledelete = async (id: string) => {
     try {
       const response = await fetch(`http://localhost:5001/events/${id}`, {
@@ -32,7 +36,9 @@ export default function EventList({
 
         let events = newMap.get(dateString) || [];
 
-        events = events.filter((e) => String(e.id) !== String(id));
+        events = events.filter(
+          (e) => String(e.id) !== String(id) && e.status === statusFilter,
+        );
         newMap.set(dateString, events);
         console.log(newMap.get(dateString));
         return newMap;
@@ -51,7 +57,10 @@ export default function EventList({
   return (
     <div className="event-cluster">
       <p>{selectedDate.toDateString()}</p>
-      <hr />
+      <EventListFilter
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+      />
       <div className="events-box">
         {hasEvents &&
           eves.map((e) => {
@@ -63,7 +72,7 @@ export default function EventList({
                   className="delete-event"
                   onClick={() => handledelete(e.id)}
                 >
-                  delete
+                  Delete
                 </button>
               </div>
             );

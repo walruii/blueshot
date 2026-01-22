@@ -1,26 +1,7 @@
 import { useState } from "react";
-import { TEventMap } from "./eventTypes";
-import { useAlert } from "./AlertProvider";
-
-const formatLocalDate = (dateObj: Date) => {
-  const year = dateObj.getFullYear();
-  const month = String(dateObj.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
-  const day = String(dateObj.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const uid = function () {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-};
-
-const compareDates = (date1: Date, date2: Date) => {
-  date1.setHours(0, 0, 0, 0);
-  date2.setHours(0, 0, 0, 0);
-
-  if (date1 < date2) return -1;
-  if (date1 > date2) return 1;
-  else return 0;
-};
+import { TEventDB, TEventMap } from "../types/eventTypes";
+import { useAlert } from "../alert/AlertProvider";
+import { compareDates, formatLocalDate, uid } from "../utils/util";
 
 export default function AddEvent({
   selectedDate,
@@ -54,7 +35,7 @@ export default function AddEvent({
       });
       return;
     }
-    const newEvent = {
+    const newEvent: TEventDB = {
       date: selectedDate.toDateString(),
       id: uid(),
       title,
@@ -87,7 +68,7 @@ export default function AddEvent({
         return newMap;
       });
       showAlert({
-        title: "Your Event added Successfully",
+        title: "Event added Successfully",
         type: "info",
         description: "",
       });

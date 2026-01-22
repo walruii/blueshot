@@ -4,7 +4,7 @@
   width: 100%;
   background-color: #1e1e1e; /* Dark background */
   color: #ffffff; /* White text */
-  border: 1px solid #333333;
+  border: 0px;
   border-radius: 12px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);

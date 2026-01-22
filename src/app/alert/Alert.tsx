@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { TAlert } from "./alertType";
+import { TAlert } from "../types/alertType";
 
 const icons = {
   warning: (

@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "./calendar.css";
-import { TEventDB, TEventMap } from "./eventTypes";
-import AddEvent from "./addEvent";
-import EventList from "./eventlist";
+import { TEventDB, TEventMap } from "../types/eventTypes";
+import AddEvent from "./AddEvent";
+import EventList from "./EventList";
 
 export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
