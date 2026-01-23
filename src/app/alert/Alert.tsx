@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { TAlert } from "../types/alertType";
+import ErrorIcon from "../svgs/ErrorIcon";
+import InfoIcon from "../svgs/infoIcon";
+import WarningIcon from "../svgs/AlertIcon";
 
 const icons = {
-  warning: (
-    <img className="alert-icon" src="/warning-circle-svg.svg" alt="WARNING" />
-  ),
-  info: <img className="alert-icon" src="/info-svg.svg" alt="INFO" />,
-  error: <img className="alert-icon" src="/error-box-svg.svg" alt="ERROR" />,
+  warning: <WarningIcon />,
+  info: <InfoIcon />,
+  error: <ErrorIcon />,
 };
 
 const classes = {
@@ -50,7 +51,7 @@ export default function Alert({
       onMouseLeave={handleMouseLeave}
       className={`alert-box ${classes[alert.type]}`}
     >
-      <div className="alert-icon">{icon}</div>
+      {icon}
       <div className="alert-center-box">
         <p className="alert-box-title">{alert.title}</p>
         <p className="alert-box-desc">{alert.description}</p>

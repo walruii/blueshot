@@ -17,12 +17,46 @@ export default function EventList({
   const [statusFilter, setStatusFilter] =
     useState<TEvent["status"]>("Not Started");
 
-  const handleStatusChange = (
+  const handleStatusChange = async (
     e: React.ChangeEvent<HTMLSelectElement>,
     id: string,
   ) => {
-    console.log(e.target.value, id);
-    // TODO: ^^^^^^^^^^^^^^^^
+    const st = e.target.value;
+    try {
+      const res = await fetch(`http://localhost:5001/events/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status: e.target.value }),
+      });
+
+      if (!res.ok) {
+        showAlert({
+          title: "Status Could not be changed",
+          type: "warning",
+          description: "",
+        });
+        return;
+      }
+      setEvents((prevMap: TEventMap) => {
+        let newMap = new Map(prevMap);
+
+        const dateString = selectedDate.toDateString();
+        let prevEves = newMap.get(dateString) || [];
+
+        const updatedEves = prevEves.map((ev) => {
+          if (ev.id === id) {
+            return { ...ev, status: st as TEvent["status"] };
+          }
+          return ev;
+        });
+        newMap.set(dateString, updatedEves);
+        return newMap;
+      });
+      console.log(events);
+      return;
+    } catch (err) {}
   };
 
   const handleDelete = async (id: string) => {

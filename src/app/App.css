@@ -2,7 +2,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px;
+  padding: 10px 30px 10px 30px;
+
   background-color: black;
 }
 
@@ -15,7 +16,6 @@
   display: flex;
   justify-content: center;
   gap: 10px;
-  height: 80vh;
 }
 
 .footer {
@@ -50,6 +50,7 @@
   align-items: center;
   gap: 1px;
   flex-wrap: wrap;
+  height: 50px;
 }
 
 .event-listitem {
@@ -65,7 +66,7 @@
 .alert-box {
   right: 0;
   margin: 10px;
-  position: absolute;
+  position: fixed;
   padding: 0px 10px 0px 10px;
   border-radius: 10px;
   background-color: #1e1e1e;
@@ -86,7 +87,7 @@
 
 .alert-icon {
   font-weight: bold;
-  padding: 0 10px 0 0px;
+  padding: 0px 0px 0px 0px;
   width: 60px;
 }
 
@@ -129,4 +130,13 @@
   border: 1px solid #333333;
   border-radius: 10px;
   padding: 10px 20px 10px 20px;
+}
+
+.main-calendar-cluster {
+  display: flex;
+  flex-direction: column;
+}
+
+.event-dot {
+  height: 30px;
 }

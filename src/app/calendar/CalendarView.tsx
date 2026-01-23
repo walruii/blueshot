@@ -4,7 +4,19 @@ import "./calendar.css";
 import { TEventDB, TEventMap } from "../types/eventTypes";
 import AddEvent from "./AddEvent";
 import EventList from "./EventList";
+import DotIcon from "../svgs/DotIcon";
 
+// const dotColor = {
+//   "Not Started": "#ef4444", // Soft Red (implies "waiting to start")
+//   "On Going": "#eab308", // Yellow (implies "caution/active")
+//   Done: "#22c55e", // Green (implies "go/finished")
+// };
+
+const dotColor = {
+  "Not Started": "#ff6b6b", // Soft Coral Red (visible but not an "alert" error)
+  "On Going": "#ffd93d", // Golden Yellow (bright and distinct)
+  Done: "#6bc17d", // Pastel Mint Green (clean and soothing)
+};
 export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [events, setEvents] = useState<TEventMap>(new Map());
@@ -37,18 +49,24 @@ export default function CalendarView() {
   const renderTileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view !== "month") return null;
 
-    if (!events.has(date.toDateString())) return null;
+    if (!events.has(date.toDateString()))
+      return <div className="cal-tilecontent"></div>;
 
     const eves = events.get(date.toDateString());
 
-    if (!eves) return null;
+    if (!eves) return;
+    <div className="cal-tilecontent"></div>;
 
     return (
       <div className="cal-tilecontent">
-        {eves.length <= 3 ? (
-          eves.map((e) => <div key={e.id}>.</div>)
-        ) : (
-          <div>...+{eves.length - 3}</div>
+        {eves.slice(0, 3).map((e) => (
+          <div key={e.id}>
+            <DotIcon size={10} color={dotColor[e.status]} />
+          </div>
+        ))}
+
+        {eves.length > 3 && (
+          <div className="cal-more-count">+{eves.length - 3}</div>
         )}
       </div>
     );
@@ -61,7 +79,7 @@ export default function CalendarView() {
   };
   return (
     <div className="main">
-      <div>
+      <div className="main-calendar-cluster">
         <Calendar
           tileContent={renderTileContent}
           className="cal"
