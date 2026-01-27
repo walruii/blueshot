@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
 import "./calendar.css";
-import { TEventDB, TEventMap } from "../types/eventTypes";
+import { TEvent, TEventDB, TEventMap } from "../types/eventTypes";
 import AddEvent from "./AddEvent";
 import EventList from "./EventList";
 import DotIcon from "../svgs/DotIcon";
 import { dotColor } from "../utils/util";
+import supabase from "../../utils/supabase";
+import { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -15,17 +17,23 @@ export default function CalendarView() {
   useEffect(() => {
     const loadEvents = async () => {
       try {
-        const response = await fetch("http://localhost:5001/events");
-        const data: TEventDB[] = await response.json();
+        const { data: events }: PostgrestSingleResponse<TEventDB[]> =
+          await supabase.from("events").select();
+
+        if (!events) {
+          return;
+        }
 
         const newMap: TEventMap = new Map();
 
-        data.forEach((item: TEventDB) => {
+        events.forEach((item: TEventDB) => {
+          console.log(item);
           const existing = newMap.get(item.date) || [];
           newMap.set(item.date, [
             ...existing,
             { id: item.id, title: item.title, status: item.status },
           ]);
+          console.log(newMap);
         });
 
         setEvents(newMap);

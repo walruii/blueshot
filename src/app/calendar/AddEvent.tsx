@@ -2,6 +2,7 @@ import { useState } from "react";
 import { TEventDB, TEventMap } from "../types/eventTypes";
 import { useAlert } from "../alert/AlertProvider";
 import { compareDates, formatLocalDate, uid } from "../utils/util";
+import supabase from "../../utils/supabase";
 
 export default function AddEvent({
   selectedDate,
@@ -35,20 +36,19 @@ export default function AddEvent({
       });
       return;
     }
-    const newEvent: TEventDB = {
-      date: selectedDate.toDateString(),
-      id: uid(),
-      title,
-      status: "Not Started",
-    };
 
     try {
-      const res = await fetch("http://localhost:5001/events", {
-        method: "POST",
-        body: JSON.stringify(newEvent),
-      });
+      const { data, error } = await supabase
+        .from("events")
+        .insert({
+          title,
+          status: "Not Started",
+          date: selectedDate.toDateString(),
+        })
+        .select("id")
+        .single();
 
-      if (!res.ok) {
+      if (error || !data.id) {
         console.log("heel");
         showAlert({
           title: "Something went Wrong",
@@ -57,6 +57,14 @@ export default function AddEvent({
         });
         return;
       }
+
+      const newEvent: TEventDB = {
+        date: selectedDate.toDateString(),
+        id: data.id,
+        title,
+        status: "Not Started",
+      };
+
       setEvents((prevMap: TEventMap) => {
         let newMap = new Map(prevMap);
 

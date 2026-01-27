@@ -3,6 +3,7 @@ import { useAlert } from "../alert/AlertProvider";
 import { TEvent, TEventMap } from "../types/eventTypes";
 import EventListFilter from "./EventListFilter";
 import Event from "./Event";
+import supabase from "../../utils/supabase";
 
 export default function EventList({
   selectedDate,
@@ -23,22 +24,19 @@ export default function EventList({
   ) => {
     const st = e.target.value;
     try {
-      const res = await fetch(`http://localhost:5001/events/${id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ status: e.target.value }),
-      });
+      const { data, error } = await supabase
+        .from("events")
+        .update({ status: st })
+        .eq("id", id);
 
-      if (!res.ok) {
+      if (error) {
         showAlert({
           title: "Status Could not be changed",
           type: "warning",
           description: "",
         });
-        return;
       }
+
       setEvents((prevMap: TEventMap) => {
         let newMap = new Map(prevMap);
 
@@ -56,16 +54,23 @@ export default function EventList({
       });
       console.log(events);
       return;
-    } catch (err) {}
+    } catch (err) {
+      showAlert({
+        title: "Status Could not be changed",
+        type: "warning",
+        description: "",
+      });
+    }
   };
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:5001/events/${id}`, {
-        method: "DELETE",
-      });
+      const { data, error } = await supabase
+        .from("events")
+        .delete()
+        .eq("id", id);
 
-      if (!response.ok) {
+      if (error) {
         showAlert({
           title: "Something went wrong",
           type: "error",
