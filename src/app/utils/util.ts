@@ -17,3 +17,9 @@ export const compareDates = (date1: Date, date2: Date) => {
   if (date1 > date2) return 1;
   else return 0;
 };
+
+export const dotColor = {
+  "Not Started": "#ff6b6b", // Soft Coral Red (visible but not an "alert" error)
+  "On Going": "#ffd93d", // Golden Yellow (bright and distinct)
+  Done: "#6bc17d", // Pastel Mint Green (clean and soothing)
+};

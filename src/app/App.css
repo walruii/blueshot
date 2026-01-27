@@ -13,6 +13,7 @@
 
 .main {
   padding: 30px;
+  height: 850px;
   display: flex;
   justify-content: center;
   gap: 10px;
@@ -45,6 +46,7 @@
 }
 
 .cal-tilecontent {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -139,4 +141,22 @@
 
 .event-dot {
   height: 30px;
+}
+
+.cal-tooltip {
+  font-weight: normal;
+  width: 200px;
+  overflow: hidden;
+  position: absolute;
+  background-color: #1e1e1e;
+  border: 1px solid #181818;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 10px;
+}
+
+.tooltip-listitem {
+  display: flex;
+  gap: 5px;
+  align-items: center;
 }
