@@ -1,18 +1,21 @@
 import { useEffect, useState } from "react";
 import Calendar from "react-calendar";
-import "./calendar.css";
-import { TEvent, TEventDB, TEventMap } from "../types/eventTypes";
+import { TEventDB, TEventMap } from "../types/eventTypes";
 import AddEvent from "./AddEvent";
 import EventList from "./EventList";
 import DotIcon from "../svgs/DotIcon";
 import { dotColor } from "../utils/util";
 import supabase from "../../utils/supabase";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
+import Loading from "../header-footer/Loading";
+import CalendarToolTip from "./CalendarToolTip";
+import { useCalendarTooltip } from "../../hooks/useCalendarToolTip";
 
 export default function CalendarView() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [events, setEvents] = useState<TEventMap>(new Map());
-  const [hoverDate, setHoverDate] = useState<string | null>();
+  const [events, setEvents] = useState<TEventMap | null>(null);
+  const { hoverData, handleMouseEnter, handleMouseLeave } =
+    useCalendarTooltip();
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -21,19 +24,18 @@ export default function CalendarView() {
           await supabase.from("events").select();
 
         if (!events) {
+          setEvents(new Map());
           return;
         }
 
         const newMap: TEventMap = new Map();
 
         events.forEach((item: TEventDB) => {
-          console.log(item);
           const existing = newMap.get(item.date) || [];
           newMap.set(item.date, [
             ...existing,
             { id: item.id, title: item.title, status: item.status },
           ]);
-          console.log(newMap);
         });
 
         setEvents(newMap);
@@ -45,7 +47,7 @@ export default function CalendarView() {
     loadEvents();
   }, []);
 
-  const handleMouseOnTile = (date: Date) => {};
+  if (!events) return <Loading />;
 
   const renderTileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view !== "month") return null;
@@ -55,14 +57,14 @@ export default function CalendarView() {
 
     const eves = events.get(date.toDateString());
 
-    if (!eves) return;
-    <div className="cal-tilecontent"></div>;
+    if (!eves) return <div className="cal-tilecontent"></div>;
 
     return (
       <div>
         <div
           className="cal-tilecontent"
-          onMouseEnter={() => handleMouseOnTile(date)}
+          onMouseEnter={(e) => handleMouseEnter(e, eves)}
+          onMouseLeave={() => handleMouseLeave()}
         >
           {eves.slice(0, 3).map((e) => (
             <div key={e.id}>
@@ -86,6 +88,12 @@ export default function CalendarView() {
   return (
     <div className="main">
       <div className="main-calendar-cluster">
+        {hoverData && (
+          <CalendarToolTip
+            events={hoverData.events}
+            mouseLocation={hoverData.mouse}
+          />
+        )}
         <Calendar
           tileContent={renderTileContent}
           className="cal"

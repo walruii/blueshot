@@ -12,7 +12,7 @@ export default function EventList({
 }: {
   selectedDate: Date;
   events: TEventMap;
-  setEvents: React.Dispatch<React.SetStateAction<TEventMap>>;
+  setEvents: React.Dispatch<React.SetStateAction<TEventMap | null>>;
 }) {
   const { showAlert } = useAlert();
   const [statusFilter, setStatusFilter] =
@@ -37,7 +37,7 @@ export default function EventList({
         });
       }
 
-      setEvents((prevMap: TEventMap) => {
+      setEvents((prevMap: TEventMap | null) => {
         let newMap = new Map(prevMap);
 
         const dateString = selectedDate.toDateString();

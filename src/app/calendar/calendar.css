@@ -2,8 +2,8 @@
 
 .react-calendar {
   width: 100%;
-  background-color: #1e1e1e; /* Dark background */
-  color: #ffffff; /* White text */
+  background-color: #1e1e1e;
+  color: #ffffff;
   border: 0px;
   border-radius: 12px;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
@@ -88,4 +88,18 @@
   border-radius: 10px;
   border: 0;
   padding: 5px;
+}
+
+.cal-tilecontent {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1px;
+  flex-wrap: wrap;
+  height: 50px;
+}
+
+.cal {
+  width: 100%;
 }
