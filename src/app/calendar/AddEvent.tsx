@@ -11,7 +11,7 @@ export default function AddEvent({
 }: {
   selectedDate: Date;
   setSelectedDate: (value: any) => void;
-  setEvents: React.Dispatch<React.SetStateAction<TEventMap>>;
+  setEvents: React.Dispatch<React.SetStateAction<TEventMap | null>>;
 }) {
   const [title, setTitle] = useState("");
 
@@ -65,7 +65,7 @@ export default function AddEvent({
         status: "Not Started",
       };
 
-      setEvents((prevMap: TEventMap) => {
+      setEvents((prevMap: TEventMap | null) => {
         let newMap = new Map(prevMap);
 
         const dateKey = selectedDate.toDateString();
@@ -93,14 +93,21 @@ export default function AddEvent({
     <form className="add-event">
       <p>Add Event</p>
       <label>title</label>
-      <input value={title} onChange={(e) => setTitle(e.target.value)}></input>
+      <input
+        className="add-event__input"
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+      ></input>
       <label>date</label>
       <input
+        className="add-event__input"
         type="date"
         value={formatLocalDate(selectedDate)}
         onChange={(e) => handleSelectDate(e)}
       ></input>
-      <button onClick={(e) => handleAdd(e)}>Add</button>
+      <button className="btn" onClick={(e) => handleAdd(e)}>
+        Add
+      </button>
     </form>
   );
 }
