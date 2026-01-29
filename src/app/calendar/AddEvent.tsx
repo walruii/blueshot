@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { TEvent, TEventDB, TEventMap } from "../types/eventTypes";
+import { TEvent, TEventMap } from "../types/eventTypes";
 import { useAlert } from "../alert/AlertProvider";
 import {
   compareDates,
   formatLocalDate,
   timeToDateTime,
   timeToTimestamp,
-  uid,
 } from "../utils/util";
 import supabase from "../../utils/supabase";
 import { TTime } from "../types/timetype";

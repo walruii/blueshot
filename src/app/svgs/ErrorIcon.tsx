@@ -1,5 +1,3 @@
-import React from "react";
-
 const ErrorIcon = ({ size = 24, color = "currentColor", ...props }) => (
   <svg
     viewBox="0 0 512 512"

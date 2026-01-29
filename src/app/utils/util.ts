@@ -1,15 +1,10 @@
 import { TEvent } from "../types/eventTypes";
-import { TTime } from "../types/timetype";
 
 export const formatLocalDate = (dateObj: Date) => {
   const year = dateObj.getFullYear();
   const month = String(dateObj.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
   const day = String(dateObj.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-};
-
-export const uid = function () {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
 export const compareDates = (date1: Date, date2: Date) => {
