@@ -100,7 +100,6 @@
 }
 
 .delete-event {
-  width: 100%;
   padding: 8px;
   background-color: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -494,4 +493,23 @@
     font-size: 0.8rem;
     gap: 6px;
   }
+}
+
+.event-time {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.event-time-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+}
+
+.event-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
