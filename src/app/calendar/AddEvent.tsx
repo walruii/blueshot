@@ -1,8 +1,15 @@
 import { useState } from "react";
-import { TEventDB, TEventMap } from "../types/eventTypes";
+import { TEvent, TEventDB, TEventMap } from "../types/eventTypes";
 import { useAlert } from "../alert/AlertProvider";
-import { compareDates, formatLocalDate, uid } from "../utils/util";
+import {
+  compareDates,
+  formatLocalDate,
+  timeToDateTime,
+  timeToTimestamp,
+  uid,
+} from "../utils/util";
 import supabase from "../../utils/supabase";
+import { TTime } from "../types/timetype";
 
 export default function AddEvent({
   selectedDate,
@@ -13,7 +20,8 @@ export default function AddEvent({
   setSelectedDate: (value: any) => void;
   setEvents: React.Dispatch<React.SetStateAction<TEventMap | null>>;
 }) {
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState<string>("");
+  const [time, setTime] = useState<TTime>({ startTime: "", endTime: "" });
 
   const { showAlert } = useAlert();
 
@@ -44,6 +52,12 @@ export default function AddEvent({
           title,
           status: "Not Started",
           date: selectedDate.toDateString(),
+          start_time: time.startTime
+            ? timeToTimestamp(selectedDate, time.startTime)
+            : null,
+          end_time: time.endTime
+            ? timeToTimestamp(selectedDate, time.endTime)
+            : null,
         })
         .select("id")
         .single();
@@ -58,11 +72,16 @@ export default function AddEvent({
         return;
       }
 
-      const newEvent: TEventDB = {
-        date: selectedDate.toDateString(),
+      const newEvent: TEvent = {
         id: data.id,
         title,
         status: "Not Started",
+        startTime: time.startTime
+          ? timeToDateTime(selectedDate, time.startTime)
+          : null,
+        endTime: time.endTime
+          ? timeToDateTime(selectedDate, time.endTime)
+          : null,
       };
 
       setEvents((prevMap: TEventMap | null) => {
@@ -89,22 +108,53 @@ export default function AddEvent({
     setSelectedDate(new Date(e.target.value));
   };
 
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTime((prev) => {
+      return {
+        ...prev,
+        [e.target.name]: e.target.value,
+      };
+    });
+  };
+
   return (
     <form className="add-event">
       <p>Add Event</p>
       <label>title</label>
       <input
+        name="title"
         className="add-event__input"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-      ></input>
+      />
       <label>date</label>
       <input
+        name="date"
         className="add-event__input"
         type="date"
         value={formatLocalDate(selectedDate)}
         onChange={(e) => handleSelectDate(e)}
-      ></input>
+      />
+      <label>start time</label>
+      <input
+        name="startTime"
+        className="add-event_input"
+        type="time"
+        value={time.startTime}
+        onChange={(e) => handleTimeChange(e)}
+      />
+      {time.startTime && (
+        <>
+          <label>end time</label>
+          <input
+            name="endTime"
+            className="add-event_input"
+            type="time"
+            value={time.endTime}
+            onChange={(e) => handleTimeChange(e)}
+          />
+        </>
+      )}
       <button className="btn" onClick={(e) => handleAdd(e)}>
         Add
       </button>

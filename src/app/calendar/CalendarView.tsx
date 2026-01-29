@@ -4,7 +4,7 @@ import { TEventDB, TEventMap } from "../types/eventTypes";
 import AddEvent from "./AddEvent";
 import EventList from "./EventList";
 import DotIcon from "../svgs/DotIcon";
-import { dotColor } from "../utils/util";
+import { dotColor, sortEvents } from "../utils/util";
 import supabase from "../../utils/supabase";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import Loading from "../header-footer/Loading";
@@ -34,7 +34,13 @@ export default function CalendarView() {
           const existing = newMap.get(item.date) || [];
           newMap.set(item.date, [
             ...existing,
-            { id: item.id, title: item.title, status: item.status },
+            {
+              id: item.id,
+              title: item.title,
+              status: item.status,
+              startTime: item.start_time ? new Date(item.start_time) : null,
+              endTime: item.end_time ? new Date(item.end_time) : null,
+            },
           ]);
         });
 
@@ -55,7 +61,9 @@ export default function CalendarView() {
     if (!events.has(date.toDateString()))
       return <div className="cal-tilecontent"></div>;
 
-    const eves = events.get(date.toDateString());
+    const eves = events
+      .get(date.toDateString())
+      ?.sort((a, b) => sortEvents(a, b));
 
     if (!eves) return <div className="cal-tilecontent"></div>;
 

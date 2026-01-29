@@ -11,6 +11,10 @@ export default function CalendarToolTip({
   mouseLocation: TMouse;
   events: TEvent[];
 }) {
+  const eves = events.sort((a, b) => {
+    if (!a.startTime || !b.startTime) return 0; // Or your custom null logic
+    return a.startTime.getTime() - b.startTime.getTime();
+  });
   return (
     <div
       className="cal-tooltip"
@@ -23,7 +27,7 @@ export default function CalendarToolTip({
         zIndex: 1000,
       }}
     >
-      {events.slice(0, 3).map((e) => (
+      {eves.slice(0, 3).map((e) => (
         <div key={e.id} className="tooltip-listitem">
           <DotIcon size={10} color={dotColor[e.status]} /> <p>{e.title}</p>
         </div>

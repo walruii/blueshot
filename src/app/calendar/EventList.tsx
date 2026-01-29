@@ -4,6 +4,7 @@ import { TEvent, TEventMap } from "../types/eventTypes";
 import EventListFilter from "./EventListFilter";
 import Event from "./Event";
 import supabase from "../../utils/supabase";
+import { sortEvents } from "../utils/util";
 
 export default function EventList({
   selectedDate,
@@ -100,8 +101,9 @@ export default function EventList({
     }
   };
   const hasEvents = events.has(selectedDate.toDateString());
-  let eves = events.get(selectedDate.toDateString()) || [];
-  eves = eves.filter((e) => e.status === statusFilter);
+  let eves = (events.get(selectedDate.toDateString()) || [])
+    .sort((a, b) => sortEvents(a, b))
+    .filter((e) => e.status === statusFilter);
   return (
     <div className="event-cluster">
       <p>{selectedDate.toDateString()}</p>
