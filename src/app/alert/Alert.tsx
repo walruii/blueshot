@@ -1,3 +1,4 @@
+"use client";
 import { useEffect } from "react";
 import { TAlert } from "../types/alertType";
 import ErrorIcon from "../svgs/ErrorIcon";
@@ -27,7 +28,7 @@ export default function Alert({
     onClose();
   };
 
-  let timer: number | undefined = undefined;
+  let timer: number | undefined | NodeJS.Timeout;
 
   const handleMouseEnter = () => {
     clearTimeout(timer);

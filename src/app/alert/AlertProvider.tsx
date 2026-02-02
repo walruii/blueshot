@@ -1,3 +1,4 @@
+"use client";
 import { createContext, useContext, useState } from "react";
 import { TAlert } from "../types/alertType";
 import Alert from "./Alert";

@@ -2,9 +2,9 @@ import Clock from "./Clock";
 
 export default function NavBar() {
   return (
-    <div className="top-bar">
-      <p className="title">Calendar App</p>
+    <nav className="flex justify-between items-center p-5 ">
+      <h1 className="text-4xl font-extrabold">Blueshot</h1>
       <Clock />
-    </div>
+    </nav>
   );
 }
