@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Fira_Mono } from "next/font/google";
 import "./globals.css";
-import AlertProvider from "./alert/AlertProvider";
+import AlertProvider from "./(alert)/AlertProvider";
 
 const mont = Montserrat({
   variable: "--font-mont",

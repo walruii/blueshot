@@ -4,7 +4,7 @@ export default function LoadingCircle() {
       viewBox="0 0 16 16"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
-      className="hds-flight-icon--animation-loading"
+      className="animate-spin dark:invert"
       style={{ width: "100px", height: "100px" }} // Optional: adjust size as needed
     >
       <g id="SVGRepo_bgCarrier" strokeWidth="0" />

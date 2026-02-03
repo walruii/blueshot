@@ -1,9 +1,9 @@
 "use client";
 import { useEffect } from "react";
-import { TAlert } from "../types/alertType";
-import ErrorIcon from "../svgs/ErrorIcon";
-import InfoIcon from "../svgs/infoIcon";
-import WarningIcon from "../svgs/AlertIcon";
+import { TAlert } from "../../types/alertType";
+import ErrorIcon from "../../svgs/ErrorIcon";
+import InfoIcon from "../../svgs/infoIcon";
+import WarningIcon from "../../svgs/AlertIcon";
 
 const icons = {
   warning: <WarningIcon />,
