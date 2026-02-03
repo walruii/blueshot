@@ -1,20 +1,15 @@
 "use client";
-import { useEffect } from "react";
 import { TAlert } from "../../types/alertType";
 import ErrorIcon from "../../svgs/ErrorIcon";
 import InfoIcon from "../../svgs/infoIcon";
 import WarningIcon from "../../svgs/AlertIcon";
+import CrossIcon from "@/svgs/CrossIcon";
+import useAlertTimer from "@/hooks/useAlertTimer";
 
-const icons = {
-  warning: <WarningIcon />,
-  info: <InfoIcon />,
-  error: <ErrorIcon />,
-};
-
-const classes = {
-  warning: "alert-warning",
-  info: "alert-info",
-  error: "alert-error",
+const ALERT_CONFIG = {
+  warning: { icon: <WarningIcon />, color: "border-l-yellow-500" },
+  info: { icon: <InfoIcon />, color: "border-l-blue-500" },
+  error: { icon: <ErrorIcon />, color: "border-l-red-500" },
 };
 
 export default function Alert({
@@ -24,42 +19,29 @@ export default function Alert({
   alert: TAlert;
   onClose: () => void;
 }) {
-  const handleClose = () => {
-    onClose();
-  };
+  const { handleMouseEnter, handleMouseLeave, timeLeft } =
+    useAlertTimer(onClose);
 
-  let timer: number | undefined | NodeJS.Timeout;
-
-  const handleMouseEnter = () => {
-    clearTimeout(timer);
-  };
-  const handleMouseLeave = () => {
-    timer = setTimeout(() => {
-      onClose();
-    }, 4000);
-  };
-  useEffect(() => {
-    timer = setTimeout(() => {
-      onClose();
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const icon = icons[alert.type];
+  const { icon, color } = ALERT_CONFIG[alert.type];
   return (
     <div
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className={`alert-box ${classes[alert.type]}`}
+      className={`flex items-center fixed right-2 top-2 rounded-xl border
+        border-zinc-800 p-4 bg-zinc-900 min-w-80 max-w-130 ${color} border-l-6 transition-all ease-in-out`}
     >
-      {icon}
-      <div className="alert-center-box">
-        <p className="alert-box-title">{alert.title}</p>
-        <p className="alert-box-desc">{alert.description}</p>
+      <div className="shrink-0 mr-2">{icon}</div>
+      <div className="flex-1 min-w-0">
+        <p className="font-bold">{alert.title}</p>
+        <p className="text-sm opacity-80">{alert.description}</p>
+        <p className="text-sm opacity-80 mt-2">Going away in {timeLeft}</p>
       </div>
-      <div className="alert-button-box">
-        <button className="alert-button" onClick={handleClose}>
-          X
+      <div className="shrink-0">
+        <button
+          className="p-3 hover:bg-zinc-800 rounded bg-zinc-800 ml-2"
+          onClick={() => onClose()}
+        >
+          <CrossIcon className="h-4 w-4" />
         </button>
       </div>
     </div>

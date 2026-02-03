@@ -1,7 +1,7 @@
 const InfoIcon = ({ size = 24, color = "currentColor", ...props }) => (
   <svg
     viewBox="0 0 24 24"
-    className="alert-icon"
+    className="w-10 h-10"
     width={size}
     height={size}
     fill="none"

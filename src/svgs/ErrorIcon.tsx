@@ -1,7 +1,7 @@
 const ErrorIcon = ({ size = 24, color = "currentColor", ...props }) => (
   <svg
     viewBox="0 0 512 512"
-    className="alert-icon"
+    className="w-10 h-10"
     width={size}
     height={size}
     fill={color}

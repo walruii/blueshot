@@ -6,8 +6,10 @@ import { sortEvents } from "../../utils/util";
 export default function EventList({
   selectedDate,
   events,
+  className,
 }: {
   selectedDate: Date;
+  className?: string;
   events: TEventMap;
 }) {
   const hasEvents = events.has(selectedDate.toDateString());
@@ -15,9 +17,9 @@ export default function EventList({
     sortEvents(a, b),
   );
   return (
-    <div className="flex-1/3 py-7 bg-zinc-900 rounded-xl">
+    <div className={`py-7 bg-zinc-900 rounded-xl h-full ${className}`}>
       <p className="font-bold pb-3 px-5">{selectedDate.toDateString()}</p>
-      <div className="overflow-scroll border-t md:max-h-[500px] border-zinc-600">
+      <div className="overflow-scroll border-t md:max-h-200 border-zinc-600">
         {hasEvents &&
           eves.map((e) => {
             return <Event key={e.id} e={e} />;
