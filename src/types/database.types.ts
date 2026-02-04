@@ -34,49 +34,63 @@ export type Database = {
   }
   public: {
     Tables: {
-      event_participants: {
+      account: {
         Row: {
-          acknowledgement: boolean
-          created_at: string
-          event_id: string
+          accessToken: string | null
+          accessTokenExpiresAt: string | null
+          accountId: string
+          createdAt: string
           id: string
-          mail_sent: boolean
-          user_id: string
+          idToken: string | null
+          password: string | null
+          providerId: string
+          refreshToken: string | null
+          refreshTokenExpiresAt: string | null
+          scope: string | null
+          updatedAt: string
+          userId: string
         }
         Insert: {
-          acknowledgement: boolean
-          created_at?: string
-          event_id: string
-          id?: string
-          mail_sent: boolean
-          user_id: string
+          accessToken?: string | null
+          accessTokenExpiresAt?: string | null
+          accountId: string
+          createdAt?: string
+          id: string
+          idToken?: string | null
+          password?: string | null
+          providerId: string
+          refreshToken?: string | null
+          refreshTokenExpiresAt?: string | null
+          scope?: string | null
+          updatedAt: string
+          userId: string
         }
         Update: {
-          acknowledgement?: boolean
-          created_at?: string
-          event_id?: string
+          accessToken?: string | null
+          accessTokenExpiresAt?: string | null
+          accountId?: string
+          createdAt?: string
           id?: string
-          mail_sent?: boolean
-          user_id?: string
+          idToken?: string | null
+          password?: string | null
+          providerId?: string
+          refreshToken?: string | null
+          refreshTokenExpiresAt?: string | null
+          scope?: string | null
+          updatedAt?: string
+          userId?: string
         }
         Relationships: [
           {
-            foreignKeyName: "event_participants_event_id_fkey"
-            columns: ["event_id"]
+            foreignKeyName: "account_userId_fkey"
+            columns: ["userId"]
             isOneToOne: false
-            referencedRelation: "events"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "event_participants_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "user"
             referencedColumns: ["id"]
           },
         ]
       }
-      events: {
+      event: {
         Row: {
           created_at: string
           date: string
@@ -107,34 +121,138 @@ export type Database = {
           to?: string
           user_id?: string
         }
+        Relationships: []
+      }
+      event_participant: {
+        Row: {
+          acknowledgement: boolean
+          created_at: string
+          event_id: string
+          id: string
+          mail_sent: boolean
+          user_id: string
+        }
+        Insert: {
+          acknowledgement: boolean
+          created_at?: string
+          event_id: string
+          id?: string
+          mail_sent: boolean
+          user_id: string
+        }
+        Update: {
+          acknowledgement?: boolean
+          created_at?: string
+          event_id?: string
+          id?: string
+          mail_sent?: boolean
+          user_id?: string
+        }
         Relationships: [
           {
-            foreignKeyName: "events_user_id_fkey"
-            columns: ["user_id"]
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "event"
             referencedColumns: ["id"]
           },
         ]
       }
-      users: {
+      session: {
         Row: {
-          created_at: string
-          email: string
+          createdAt: string
+          expiresAt: string
           id: string
-          name: string
+          ipAddress: string | null
+          token: string
+          updatedAt: string
+          userAgent: string | null
+          userId: string
         }
         Insert: {
-          created_at?: string
-          email: string
-          id?: string
-          name: string
+          createdAt?: string
+          expiresAt: string
+          id: string
+          ipAddress?: string | null
+          token: string
+          updatedAt: string
+          userAgent?: string | null
+          userId: string
         }
         Update: {
-          created_at?: string
-          email?: string
+          createdAt?: string
+          expiresAt?: string
           id?: string
+          ipAddress?: string | null
+          token?: string
+          updatedAt?: string
+          userAgent?: string | null
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user: {
+        Row: {
+          createdAt: string
+          email: string
+          emailVerified: boolean
+          id: string
+          image: string | null
+          name: string
+          updatedAt: string
+        }
+        Insert: {
+          createdAt?: string
+          email: string
+          emailVerified: boolean
+          id: string
+          image?: string | null
+          name: string
+          updatedAt?: string
+        }
+        Update: {
+          createdAt?: string
+          email?: string
+          emailVerified?: boolean
+          id?: string
+          image?: string | null
           name?: string
+          updatedAt?: string
+        }
+        Relationships: []
+      }
+      verification: {
+        Row: {
+          createdAt: string
+          expiresAt: string
+          id: string
+          identifier: string
+          updatedAt: string
+          value: string
+        }
+        Insert: {
+          createdAt?: string
+          expiresAt: string
+          id: string
+          identifier: string
+          updatedAt?: string
+          value: string
+        }
+        Update: {
+          createdAt?: string
+          expiresAt?: string
+          id?: string
+          identifier?: string
+          updatedAt?: string
+          value?: string
         }
         Relationships: []
       }
