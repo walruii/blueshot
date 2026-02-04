@@ -1,4 +1,4 @@
-type ResultObject<T> =
+export type ResultObject<T> =
   | {
       success: true;
       data?: T;
@@ -7,3 +7,8 @@ type ResultObject<T> =
       success: false;
       error: string;
     };
+
+export type TEmailResult = {
+  email: string;
+  exist: boolean;
+};

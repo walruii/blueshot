@@ -9,28 +9,31 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.93.3",
+    "@supabase/supabase-js": "^2.94.0",
     "@types/pg": "^8.16.0",
-    "@types/react-calendar": "^3.9.0",
+    "@types/react-calendar": "^4.1.0",
     "better-auth": "^1.4.18",
-    "kysely": "^0.28.11",
+    "drizzle-orm": "^0.45.1",
     "next": "16.1.6",
     "pg": "^8.18.0",
-    "react": "19.2.3",
+    "react": "19.2.4",
     "react-calendar": "^6.0.0",
-    "react-dom": "19.2.3",
+    "react-dom": "19.2.4",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^25",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.8",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "kysely-supabase": "^0.2.1",
-    "supabase": "^2.75.1",
+    "supabase": "^2.75.2",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "esbuild": "^0.25.0"
   }
 }

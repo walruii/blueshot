@@ -1,17 +1,59 @@
 "use server";
 import { TEventDB, TEventMap } from "@/types/eventTypes";
-import supabase from "@/supabase";
+import supabase from "@/lib/supabase";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { ResultObject, TEmailResult } from "@/types/returnType";
+
+const checkEmailExist = async (email: string): Promise<TEmailResult> => {
+  try {
+    const { data, error } = await supabase
+      .from("user")
+      .select()
+      .eq("email", email)
+      .maybeSingle();
+    if (error || !data) {
+      return {
+        email,
+        exist: false,
+      };
+    }
+    return {
+      email,
+      exist: true,
+    };
+  } catch (err) {
+    console.error(err);
+    return {
+      email,
+      exist: false,
+    };
+  }
+};
+
+export const checkEmailListExist = async (
+  emails: string[],
+): Promise<ResultObject<TEmailResult[]>> => {
+  try {
+    emails.forEach((e) => {});
+    return [];
+  } catch (err) {
+    return [];
+  }
+};
 
 export const getEvents = async (): Promise<TEventMap> => {
-  const { data: events }: PostgrestSingleResponse<TEventDB[]> = await supabase
-    .from("events")
-    .select();
-  if (!events) {
+  try {
+    const { data: events }: PostgrestSingleResponse<TEventDB[]> = await supabase
+      .from("events")
+      .select();
+    if (!events) {
+      return new Map();
+    }
+    const eveMap = eventsToMap(events);
+    return eveMap;
+  } catch (err) {
     return new Map();
   }
-  const eveMap = eventsToMap(events);
-  return eveMap;
 };
 
 const eventsToMap = (events: TEventDB[]): TEventMap => {

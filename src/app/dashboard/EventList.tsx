@@ -1,7 +1,8 @@
 "use client";
 import { TEventMap } from "../../types/eventTypes";
 import Event from "./Event";
-import { sortEvents } from "../../utils/util";
+import { formatLocalDate, sortEvents } from "../../utils/util";
+import Link from "next/link";
 
 export default function EventList({
   selectedDate,
@@ -18,7 +19,15 @@ export default function EventList({
   );
   return (
     <div className={`py-7 bg-zinc-900 rounded-xl h-full ${className}`}>
-      <p className="font-bold pb-3 px-5">{selectedDate.toDateString()}</p>
+      <div className="font-bold pb-3 px-5 flex justify-between items-center">
+        <p>{selectedDate.toDateString()}</p>
+        <Link
+          href={`/dashboard/add-event?prefillDate=${formatLocalDate(selectedDate)}`}
+          className="bg-zinc-800 p-2 rounded-lg px-5 hover:bg-zinc-700 active:bg-blue-700"
+        >
+          Add Event
+        </Link>
+      </div>
       <div className="overflow-scroll border-t md:max-h-200 border-zinc-600">
         {hasEvents &&
           eves.map((e) => {
