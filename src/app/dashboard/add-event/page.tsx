@@ -1,14 +1,17 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { formatLocalDate } from "@/utils/util";
+import { formatLocalDate, timeToDateTime } from "@/utils/util";
+import { addEvent, checkEmailListExist } from "@/server-actions/supa";
+import { useAlert } from "@/app/(alert)/AlertProvider";
+import { TEventDTO } from "@/types/eventTypes";
+import { success } from "zod";
 
 export default function Page() {
   const params = useSearchParams();
-  console.log(params);
   const router = useRouter();
-  const { data: session, isPending: sessionLoading } = authClient.useSession();
+  const { data: session } = authClient.useSession();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -22,13 +25,7 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [validatingEmails, setValidatingEmails] = useState(false);
-
-  // Initialize members with session user's email
-  useEffect(() => {
-    if (session?.user?.email && members.length === 0) {
-      setMembers([session.user.email]);
-    }
-  }, [session, members.length]);
+  const { showAlert } = useAlert();
 
   const validateAndAddEmails = async () => {
     if (!emailInput.trim()) return;
@@ -39,48 +36,112 @@ export default function Page() {
       .map((email) => email.trim())
       .filter((email) => email && !members.includes(email));
 
-    // TODO: Call backend to validate emails exist in system
-    // For now, we'll just add them directly
-    // const validEmails = await checkEmailsExist(emailList);
+    if (emailList.length === 0) {
+      setValidatingEmails(false);
+      return;
+    }
+    const res = await checkEmailListExist(emailList);
 
-    setMembers([...members, ...emailList]);
-    setEmailInput("");
+    if (!res || !res.success || !res.data) {
+      showAlert({
+        title: "Error Validating Emails",
+        description: "Try again after some time",
+        type: "warning",
+      });
+      setValidatingEmails(false);
+      return;
+    }
+
+    const validEmailList: string[] = [];
+    const invalidEmailList: string[] = [];
+    res.data.forEach((e) => {
+      if (e.exist) validEmailList.push(e.email);
+      else invalidEmailList.push(e.email);
+    });
+
+    if (validEmailList.length > 0) {
+      setMembers([...members, ...validEmailList]);
+      setEmailInput("");
+    }
+
+    if (invalidEmailList.length > 0) {
+      showAlert({
+        title: "Some Emails Not Found",
+        description: `The following emails don't exist: ${invalidEmailList.join(", ")}`,
+        type: "warning",
+      });
+    }
+
     setValidatingEmails(false);
   };
 
   const removeMember = (email: string) => {
-    // Don't remove the session user's email
     if (email === session?.user?.email) return;
     setMembers(members.filter((m) => m !== email));
   };
 
-  const handleAddEvent = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  const handleAddEvent = async (
+    e: React.SubmitEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>,
+  ) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    // TODO: Submit event to backend with all the data
-    // Including title, description, date, fromTime, toTime, and members array
-    console.log({
-      title,
-      description,
-      date,
-      fromTime,
-      toTime,
-      members,
-    });
+      if (!session || !session.user || !session.user.email) {
+        showAlert({
+          title: "Invalid Session",
+          type: "error",
+          description: "Your browser session is invaild remove cache",
+        });
+        setLoading(false);
+        return;
+      }
 
-    setLoading(false);
-    // router.push("/");
+      const mems = [...members, session.user.email];
+
+      // TODO: Submit event to backend with all the data
+      // Including title, description, date, fromTime, toTime, and members array
+      const selectedDate = new Date(date);
+      const sendEvent: TEventDTO = {
+        title: title,
+        description: description,
+        date: selectedDate,
+        to: timeToDateTime(selectedDate, toTime),
+        from: timeToDateTime(selectedDate, fromTime),
+        userId: session.user.id,
+      };
+      const response = await addEvent(sendEvent, mems);
+      if (!response.success || !response.data) {
+        showAlert({
+          title: "Unable to Add Event",
+          type: "error",
+          description: "Try Again Later",
+        });
+        setLoading(false);
+        return;
+      }
+      setLoading(false);
+      showAlert({
+        title: "Event Added Successfully",
+        type: "info",
+        description: "",
+      });
+      router.push(`/dashboard/events/${response.data.id}`);
+    } catch (err) {
+      console.error(err);
+      return {
+        success: false,
+        error: "Internal Server Error",
+      };
+    }
   };
 
   const isFormValid =
     title.trim() !== "" &&
     description.trim() !== "" &&
     date !== "" &&
-    fromTime !== "" &&
-    toTime !== "" &&
-    members.length > 0;
+    fromTime !== "";
 
   return (
     <div className="min-h-screen bg-zinc-950 p-4">
@@ -96,7 +157,7 @@ export default function Page() {
           <button
             onClick={handleAddEvent}
             disabled={!isFormValid || loading}
-            className="bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-semibold py-2 px-6 rounded-lg transition"
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 text-white disabled:text-zinc-300 font-semibold py-2 px-6 rounded-lg transition"
           >
             {loading ? "Adding Event..." : "Add Event"}
           </button>
@@ -169,7 +230,7 @@ export default function Page() {
               </div>
               <div>
                 <label className="text-white text-sm block mb-2 font-medium">
-                  To (Time) *
+                  To (Time)
                 </label>
                 <input
                   type="time"
@@ -206,9 +267,12 @@ export default function Page() {
               {/* Members List */}
               <div className="bg-zinc-800 rounded-lg p-4 border border-zinc-700">
                 <p className="text-zinc-400 text-sm mb-3">
-                  Members ({members.length})
+                  Members ({members.length + 1})
                 </p>
                 <div className="flex flex-wrap gap-2">
+                  <div className="bg-zinc-700 text-white px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    <span className="text-xs text-blue-400">(You)</span>
+                  </div>
                   {members.map((email) => (
                     <div
                       key={email}

@@ -1,4 +1,4 @@
-import { TEvent } from "../types/eventTypes";
+import { TEvent, TEventDB } from "../types/eventTypes";
 
 export const formatLocalDate = (dateObj: Date) => {
   const year = dateObj.getFullYear();
@@ -41,22 +41,22 @@ export const dateToTimeString = (date: Date): string => {
     hour12: false,
   });
 };
-const statusWeight: Record<string, number> = {
-  "On Going": 1,
-  "Not Started": 2,
-  Done: 3,
-};
 
 export const sortEvents = (a: TEvent, b: TEvent) => {
-  // 1. Sort by status weight first
-  const statusDiff =
-    (statusWeight[a.status] ?? 99) - (statusWeight[b.status] ?? 99);
-
-  if (statusDiff !== 0) return statusDiff;
-
-  // 2. If status is the same, sort by time
-  const timeA = a.startTime ? a.startTime.getTime() : Infinity;
-  const timeB = b.startTime ? b.startTime.getTime() : Infinity;
+  const timeA = a.from ? a.from.getTime() : Infinity;
+  const timeB = b.from ? b.from.getTime() : Infinity;
 
   return timeA - timeB;
+};
+
+export const DBEventToEvent = (item: TEventDB): TEvent => {
+  return {
+    id: item.id,
+    userId: item.user_id,
+    description: item.description,
+    title: item.title,
+    date: new Date(item.date),
+    from: new Date(item.from),
+    to: item.to ? new Date(item.to) : null,
+  };
 };
