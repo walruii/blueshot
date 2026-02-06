@@ -1,4 +1,5 @@
-export type TEvent = {
+// Domain type - normalized, consistent application type
+export type Event = {
   id: string;
   title: string;
   description: string;
@@ -8,7 +9,8 @@ export type TEvent = {
   to: Date | null;
 };
 
-export type TEventDTO = {
+// Input type - what client sends to backend
+export type EventInput = {
   title: string;
   description: string;
   userId: string;
@@ -17,15 +19,15 @@ export type TEventDTO = {
   to: Date | null;
 };
 
-export type TEventDB = {
+// Database response type - exactly matches Supabase event table
+export type EventDB = {
   id: string;
   date: string;
   title: string;
   description: string;
-  userId: string;
   user_id: string;
   from: string;
   to: string | null;
 };
 
-export type TEventMap = Map<string, TEvent[]>;
+export type EventMap = Map<string, Event[]>;

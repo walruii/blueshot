@@ -1,5 +1,5 @@
 "use client";
-import { TEventMap } from "../../types/eventTypes";
+import { EventMap } from "../../types/eventTypes";
 import Event from "./Event";
 import { formatLocalDate, sortEvents } from "../../utils/util";
 import Link from "next/link";
@@ -11,7 +11,7 @@ export default function EventList({
 }: {
   selectedDate: Date;
   className?: string;
-  events: TEventMap;
+  events: EventMap;
 }) {
   const hasEvents = events.has(selectedDate.toDateString());
   const eves = (events.get(selectedDate.toDateString()) || []).sort((a, b) =>

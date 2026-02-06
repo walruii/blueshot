@@ -1,13 +1,27 @@
 "use server";
-import { TEvent, TEventDB, TEventDTO, TEventMap } from "@/types/eventTypes";
+import { Event, EventDB, EventInput, EventMap } from "@/types/eventTypes";
 import supabase from "@/lib/supabase";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
-import { ResultObject, TEmailResult } from "@/types/returnType";
-import { DBEventToEvent } from "@/utils/util";
+import { Result, EmailCheckResult } from "@/types/returnType";
+import {
+  formatEvent,
+  formatEventParticipants,
+  formatEventNotifications,
+} from "@/utils/transformers";
+import {
+  EventParticipantWithUserDB,
+  EventParticipant,
+} from "@/types/eventParticipantType";
+import {
+  EventNotificationDB,
+  EventNotification,
+} from "@/types/notificationType";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export const checkEmailListExist = async (
   emails: string[],
-): Promise<ResultObject<TEmailResult[]>> => {
+): Promise<Result<EmailCheckResult[]>> => {
   try {
     const { data: users, error } = await supabase
       .from("user")
@@ -19,7 +33,7 @@ export const checkEmailListExist = async (
     }
 
     const foundEmails = new Set(users?.map((u) => u.email) || []);
-    const results: TEmailResult[] = emails.map((email) => ({
+    const results: EmailCheckResult[] = emails.map((email) => ({
       email,
       exist: foundEmails.has(email),
     }));
@@ -30,35 +44,50 @@ export const checkEmailListExist = async (
   }
 };
 
-const eventsToMap = (events: TEventDB[]): TEventMap => {
-  const newMap: TEventMap = new Map();
-  events.forEach((item: TEventDB) => {
-    const existing = newMap.get(item.date) || [];
-    newMap.set(item.date, [...existing, DBEventToEvent(item)]);
+const eventsToMap = (events: { event: EventDB }[]): EventMap => {
+  const newMap: EventMap = new Map();
+  events.forEach(({ event: item }: { event: EventDB }) => {
+    const existing = newMap.get(new Date(item.date).toDateString()) || [];
+    newMap.set(new Date(item.date).toDateString(), [
+      ...existing,
+      formatEvent(item),
+    ]);
   });
   return newMap;
 };
 
-export const getEvent = async (id: string): Promise<TEvent | null> => {
+export const getEvent = async (id: string): Promise<Event | null> => {
   try {
-    const { data: event, error }: PostgrestSingleResponse<TEventDB> =
+    const { data: event, error }: PostgrestSingleResponse<EventDB> =
       await supabase.from("event").select().eq("id", id).single();
     if (error) {
       console.error("Error getting getEvent", error);
       return null;
     }
-    return DBEventToEvent(event);
+    return formatEvent(event);
   } catch (err) {
     console.error(err);
     return null;
   }
 };
 
-export const getEvents = async (): Promise<TEventMap> => {
+export const getEvents = async (): Promise<EventMap> => {
   try {
-    const { data: events }: PostgrestSingleResponse<TEventDB[]> = await supabase
-      .from("event")
-      .select();
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session) return new Map();
+    const {
+      data: events,
+      error,
+    }: PostgrestSingleResponse<{ event: EventDB }[]> = await supabase
+      .from("event_participant")
+      .select(`event (*)`)
+      .eq("user_id", session?.user.id);
+    if (error) {
+      console.error("Error fetching evetns", error);
+      return new Map();
+    }
     if (!events) {
       return new Map();
     }
@@ -70,11 +99,51 @@ export const getEvents = async (): Promise<TEventMap> => {
   }
 };
 
-export const addEvent = async (
-  event: TEventDTO,
-  members: string[],
-): Promise<ResultObject<TEventDB>> => {
+export const getNotifications = async (): Promise<EventNotification[]> => {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session || !session.user) return [];
+    const {
+      data: notifs,
+      error,
+    }: PostgrestSingleResponse<EventNotificationDB[]> = await supabase
+      .from("event_participant")
+      .select(
+        `id, user (id, email, name), event!inner (id, title, user_id), mail_sent, acknowledgement`,
+      )
+      .neq("event.user_id", session.user.id)
+      .eq("user_id ", session.user.id);
+    if (error) {
+      console.error("Error fetching notifications", error);
+      return [];
+    }
+    if (!notifs || notifs.length === 0) {
+      return [];
+    }
+    return formatEventNotifications(notifs);
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+};
+
+export const addEvent = async (
+  event: EventInput,
+  members: string[],
+): Promise<Result<EventDB>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session || !session.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    if (session.user.id !== event.userId) {
+      return { success: false, error: "Invalid data provided" };
+    }
     const { data: eventDB, error: eventError } = await supabase
       .from("event")
       .insert({
@@ -134,4 +203,38 @@ export const addEvent = async (
     console.error("Unexpected Error in addEvent: ", err);
     return { success: false, error: "Internal Server Error" };
   }
+};
+
+export const getEventMembers = async (
+  eventId: string,
+): Promise<Result<EventParticipant[]>> => {
+  const {
+    data: eventMembers,
+    error: eventParticipantDBError,
+  }: PostgrestSingleResponse<EventParticipantWithUserDB[]> = await supabase
+    .from("event_participant")
+    .select(
+      `id, user!inner ( id, email ), event_id, mail_sent, acknowledgement`,
+    )
+    .eq("event_id", eventId);
+
+  if (eventParticipantDBError) {
+    console.error(
+      "Failed to fetch event Participants: ",
+      eventParticipantDBError,
+    );
+    return { success: false, error: "DB Error fetcting participants" };
+  }
+
+  if (!eventMembers || !Array.isArray(eventMembers)) {
+    console.warn("eventMembers is not an array:", eventMembers);
+    return { success: true, data: [] };
+  }
+
+  if (eventMembers.length === 0) {
+    return { success: true, data: [] };
+  }
+
+  const members: EventParticipant[] = formatEventParticipants(eventMembers);
+  return { success: true, data: members };
 };

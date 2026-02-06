@@ -1,4 +1,5 @@
-import { TEvent } from "../../types/eventTypes";
+import Link from "next/link";
+import { Event as TEvent } from "../../types/eventTypes";
 import { dateToTimeString } from "../../utils/util";
 
 export default function Event({ e }: { e: TEvent }) {
@@ -8,21 +9,24 @@ export default function Event({ e }: { e: TEvent }) {
       className="border-b flex flex-col py-3 px-7 border-zinc-600"
     >
       <p className="block">{e.title} dssfd</p>
-      <p className="text-sm">created by: someone</p>
+      <p className="text-sm">created by: </p>
       <div className="flex gap-5 w-full pt-4">
-        {e.startTime && (
+        {e.from && (
           <p className="bg-blue-800 p-1 px-2 rounded-md">
-            from: {dateToTimeString(e.startTime)}
+            from: {dateToTimeString(e.from)}
           </p>
         )}
-        {e.endTime && (
+        {e.to && (
           <p className="bg-blue-800 p-1 px-2 rounded-md">
-            to: {dateToTimeString(e.endTime)}
+            to: {dateToTimeString(e.to)}
           </p>
         )}
-        <button className="bg-blue-700 rounded-lg ml-auto w-20 p-1">
+        <Link
+          href={`/dashboard/events/${e.id}`}
+          className="bg-blue-700 rounded-lg ml-auto w-20 p-1 text-center hover:bg-blue-600 active:bg-blue-800"
+        >
           view
-        </button>
+        </Link>
       </div>
     </div>
   );

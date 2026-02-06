@@ -1,3 +1,4 @@
+import { Database } from "@/types/database.types";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl =
@@ -13,6 +14,6 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error("Database Could not connect");
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient<Database>(supabaseUrl, supabaseKey);
 
 export default supabase;

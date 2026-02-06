@@ -1,4 +1,4 @@
-import { TEvent } from "./eventTypes";
+import { Event } from "./eventTypes";
 
 export type TMouse = {
   x: number;
@@ -6,6 +6,6 @@ export type TMouse = {
 };
 
 export type THoverData = {
-  events: TEvent[];
+  events: Event[];
   mouse: TMouse;
 };

@@ -1,4 +1,4 @@
-import { TEvent, TEventDB } from "../types/eventTypes";
+import { EventDB, Event } from "../types/eventTypes";
 
 export const formatLocalDate = (dateObj: Date) => {
   const year = dateObj.getFullYear();
@@ -42,14 +42,14 @@ export const dateToTimeString = (date: Date): string => {
   });
 };
 
-export const sortEvents = (a: TEvent, b: TEvent) => {
+export const sortEvents = (a: Event, b: Event) => {
   const timeA = a.from ? a.from.getTime() : Infinity;
   const timeB = b.from ? b.from.getTime() : Infinity;
 
   return timeA - timeB;
 };
 
-export const DBEventToEvent = (item: TEventDB): TEvent => {
+export const DBEventToEvent = (item: EventDB): Event => {
   return {
     id: item.id,
     userId: item.user_id,

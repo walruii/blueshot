@@ -1,32 +1,41 @@
 "use client";
 import { useState } from "react";
 import Calendar from "react-calendar";
-import { TEventMap } from "../../types/eventTypes";
+import { EventMap } from "../../types/eventTypes";
 import DotIcon from "../../svgs/DotIcon";
-import { dotColor, sortEvents } from "../../utils/util";
+import { sortEvents } from "../../utils/util";
 import "./Calendar.css";
 import EventList from "./EventList";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
+import NotificationList from "./NotificationList";
+import { EventParticipant } from "@/types/eventParticipantType";
+import { Session } from "@/types/sessionType";
+import { EventNotification } from "@/types/notificationType";
 
-export default function CalendarView({ dbEvents }: { dbEvents: TEventMap }) {
+export default function CalendarView({
+  dbEvents,
+  notifications,
+  session,
+}: {
+  dbEvents: EventMap;
+  notifications: EventNotification[];
+  session: Session;
+}) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [events, setEvents] = useState<TEventMap>(dbEvents);
-  const {
-    data: session,
-    isPending, //loading state
-    error, //error object
-    refetch, //refetch the session
-  } = authClient.useSession();
+  const [events, setEvents] = useState<EventMap>(dbEvents);
 
   const renderTileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view !== "month") return null;
 
     if (!events.has(date.toDateString())) return <div className=""></div>;
 
+    console.log(events);
     const eves = events
       .get(date.toDateString())
       ?.sort((a, b) => sortEvents(a, b));
+
+    console.log(eves);
 
     if (!eves) return <div className=""></div>;
 
@@ -35,7 +44,7 @@ export default function CalendarView({ dbEvents }: { dbEvents: TEventMap }) {
         <div className="flex sm:flex-col items-start my-2">
           {eves.slice(0, 3).map((e) => (
             <div key={e.id} className="flex items-center gap-1">
-              <DotIcon size={10} color={dotColor[e.status]} />
+              <DotIcon size={10} color={"yellow"} />
               <p className="truncate text-xs hidden sm:block">{e.title}</p>
             </div>
           ))}
@@ -52,11 +61,12 @@ export default function CalendarView({ dbEvents }: { dbEvents: TEventMap }) {
       setSelectedDate(nextValue);
     }
   };
+
   return (
     <div className="grid grid-cols-1 gap-2 lg:grid-cols-6 lg:grid-rows-4 h-auto lg:h-260 max-w-500 mx-auto">
       <div className="pb-7 pt-4 bg-zinc-900 rounded-xl h-full col-span-1 lg:col-span-3">
         <p className="font-bold pb-3 px-5 text-3xl">
-          {session && `Welcome! ${session.user.name}`}
+          Welcome! {session.user.name}
         </p>
         <div className="p-6 flex flex-col sm:flex-row">
           <div className="flex justify-center items-center rounded-full overflow-clip h-25 w-25">
@@ -79,15 +89,7 @@ export default function CalendarView({ dbEvents }: { dbEvents: TEventMap }) {
           <p className="font-bold pb-3 px-5">Notifications</p>
           <p className="font-bold pb-3 px-5">Upcoming</p>
         </div>
-        <div className="border-b flex py-3 px-7 border-zinc-600 w-full justify-between items-center">
-          <p>
-            some info askfh as;kf hsak fhaslk sahf askhf askl hf ahsgdofi has
-            fhas
-          </p>
-          <button className="bg-zinc-800 p-2 rounded-lg px-5 hover:bg-zinc-700 active:bg-blue-700 justify-end">
-            ACK
-          </button>
-        </div>
+        <NotificationList notifications={notifications} />
       </div>
       <Calendar
         showFixedNumberOfWeeks={true}

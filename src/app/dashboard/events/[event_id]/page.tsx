@@ -1,15 +1,9 @@
-import { getEvent } from "@/server-actions/supa";
-import { authClient } from "@/lib/auth-client";
+import { getEvent, getEventMembers } from "@/server-actions/supa";
 import { dateToTimeString, formatLocalDate } from "@/utils/util";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-
-// TODO: Create backend function to fetch members with their email status
-// Expected return type: { email: string, mailSent: boolean, acknowledged: boolean }[]
-async function getEventMembers(eventId: string) {
-  // Placeholder - implement backend call
-  return [];
-}
+import { EventParticipant } from "@/types/eventParticipantType";
+import Link from "next/link";
 
 export default async function Page({
   params,
@@ -19,14 +13,16 @@ export default async function Page({
   const { event_id } = await params;
   const event = await getEvent(event_id);
 
-  // TODO: Get current session to check if user is creator
   const session = await auth.api.getSession({
-    headers: await headers(), // you need to pass the headers object.
+    headers: await headers(),
   });
   const isCreator = session?.user?.id === event?.userId;
 
-  // TODO: Fetch members with their status
-  const members = await getEventMembers(event_id);
+  const memResult = await getEventMembers(event_id);
+  let members: EventParticipant[] = [];
+  if (memResult.success && memResult.data) {
+    members = memResult?.data;
+  }
 
   if (!event) {
     return (
@@ -41,12 +37,12 @@ export default async function Page({
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <a
+          <Link
             href="/dashboard"
             className="inline-block bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-2 px-6 rounded-lg transition"
           >
             ← Back to Dashboard
-          </a>
+          </Link>
         </div>
 
         {/* Event Details Card */}
@@ -125,14 +121,14 @@ export default async function Page({
                       </td>
                     </tr>
                   ) : (
-                    members.map((member: any) => (
+                    members.map((m: EventParticipant) => (
                       <tr
-                        key={member.email}
+                        key={m.id}
                         className="border-b border-zinc-800 hover:bg-zinc-800/50 transition"
                       >
-                        <td className="text-white py-4 px-4">{member.email}</td>
+                        <td className="text-white py-4 px-4">{m.userEmail}</td>
                         <td className="text-center py-4 px-4">
-                          {member.mailSent ? (
+                          {m.mailSent ? (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-900/30 text-green-400">
                               ✓ Sent
                             </span>
@@ -143,7 +139,7 @@ export default async function Page({
                           )}
                         </td>
                         <td className="text-center py-4 px-4">
-                          {member.acknowledged ? (
+                          {m.acknowledgement ? (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-900/30 text-blue-400">
                               ✓ Acknowledged
                             </span>
@@ -168,12 +164,12 @@ export default async function Page({
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {members.map((member: any) => (
+                  {members.map((m: EventParticipant) => (
                     <div
-                      key={member.email}
+                      key={m.id}
                       className="bg-zinc-800 text-white px-4 py-2 rounded-full text-sm"
                     >
-                      {member.email}
+                      {m.userEmail}
                     </div>
                   ))}
                 </div>
