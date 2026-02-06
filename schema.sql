@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS "public"."event" (
     "description" "text" NOT NULL,
     "date" timestamp with time zone NOT NULL,
     "from" timestamp with time zone NOT NULL,
-    "to" timestamp with time zone NOT NULL,
+    "to" timestamp with time zone,
     "user_id" "text" NOT NULL
 );
 
