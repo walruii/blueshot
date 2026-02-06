@@ -9,7 +9,6 @@ import EventList from "./EventList";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import NotificationList from "./NotificationList";
-import { EventParticipant } from "@/types/eventParticipantType";
 import { Session } from "@/types/sessionType";
 import { EventNotification } from "@/types/notificationType";
 
@@ -30,12 +29,9 @@ export default function CalendarView({
 
     if (!events.has(date.toDateString())) return <div className=""></div>;
 
-    console.log(events);
     const eves = events
       .get(date.toDateString())
       ?.sort((a, b) => sortEvents(a, b));
-
-    console.log(eves);
 
     if (!eves) return <div className=""></div>;
 

@@ -85,7 +85,7 @@ export const getEvents = async (): Promise<EventMap> => {
       .select(`event (*)`)
       .eq("user_id", session?.user.id);
     if (error) {
-      console.error("Error fetching evetns", error);
+      console.error("Error fetching events", error);
       return new Map();
     }
     if (!events) {
@@ -111,10 +111,22 @@ export const getNotifications = async (): Promise<EventNotification[]> => {
     }: PostgrestSingleResponse<EventNotificationDB[]> = await supabase
       .from("event_participant")
       .select(
-        `id, user (id, email, name), event!inner (id, title, user_id), mail_sent, acknowledgement`,
+        `id,
+         user (id, email, name),
+          event!inner (
+            id,
+            title,
+            user!inner (
+              id,
+              name,
+              email
+            )
+          ),
+          mail_sent, acknowledgement`,
       )
       .neq("event.user_id", session.user.id)
-      .eq("user_id ", session.user.id);
+      .eq("acknowledgement", false)
+      .eq("user_id", session.user.id);
     if (error) {
       console.error("Error fetching notifications", error);
       return [];
@@ -237,4 +249,25 @@ export const getEventMembers = async (
 
   const members: EventParticipant[] = formatEventParticipants(eventMembers);
   return { success: true, data: members };
+};
+
+export const acknowledgeEvent = async (
+  eventParticipantId: string,
+): Promise<Result<null>> => {
+  try {
+    const { error } = await supabase
+      .from("event_participant")
+      .update({ acknowledgement: true })
+      .eq("id", eventParticipantId);
+
+    if (error) {
+      console.error(error);
+      return { success: false, error: "db failed to update event participant" };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Internal Server Error" };
+  }
 };

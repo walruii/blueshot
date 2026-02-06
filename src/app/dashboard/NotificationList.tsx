@@ -1,5 +1,6 @@
 import { EventNotification } from "@/types/notificationType";
 import Link from "next/link";
+import AcknowledgementButton from "./AcknowledgementButton";
 
 export default function NotificationList({
   notifications,
@@ -14,8 +15,8 @@ export default function NotificationList({
           className="flex w-full justify-between border-b border-zinc-600 px-7 py-2 items-center"
         >
           <p>
-            <span className="bg-zinc-700 p-1 rounded mr-1" title={n.userEmail}>
-              {n.eventUserId}
+            <span className="bg-zinc-700 p-1 rounded mr-1" title={n.eventEmail}>
+              {n.eventUsername}
             </span>
             added you to
             <Link
@@ -25,9 +26,7 @@ export default function NotificationList({
               {n.eventTitle}
             </Link>
           </p>
-          <button className="bg-zinc-800 p-2 rounded-lg px-5 hover:bg-zinc-700 active:bg-blue-700 justify-end">
-            ACK
-          </button>
+          <AcknowledgementButton eventParticipateId={n.id} />
         </div>
       ))}
     </div>

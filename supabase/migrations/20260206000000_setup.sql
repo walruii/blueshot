@@ -80,7 +80,6 @@ CREATE TABLE IF NOT EXISTS "public"."account" (
 );
 
 
-ALTER TABLE "public"."account" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event" (
@@ -90,25 +89,23 @@ CREATE TABLE IF NOT EXISTS "public"."event" (
     "description" "text" NOT NULL,
     "date" timestamp with time zone NOT NULL,
     "from" timestamp with time zone NOT NULL,
-    "to" timestamp with time zone NOT NULL,
-    "user_id" "uuid" NOT NULL
+    "to" timestamp with time zone,
+    "user_id" "text" NOT NULL
 );
 
 
-ALTER TABLE "public"."event" OWNER TO "supabase_admin";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_participant" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "user_id" "uuid" NOT NULL,
+    "user_id" "text" NOT NULL,
     "event_id" "uuid" NOT NULL,
-    "mail_sent" boolean NOT NULL,
-    "acknowledgement" boolean NOT NULL
+    "mail_sent" boolean DEFAULT false NOT NULL,
+    "acknowledgement" boolean DEFAULT false NOT NULL
 );
 
 
-ALTER TABLE "public"."event_participant" OWNER TO "supabase_admin";
 
 
 CREATE TABLE IF NOT EXISTS "public"."session" (
@@ -123,7 +120,6 @@ CREATE TABLE IF NOT EXISTS "public"."session" (
 );
 
 
-ALTER TABLE "public"."session" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."user" (
@@ -137,7 +133,6 @@ CREATE TABLE IF NOT EXISTS "public"."user" (
 );
 
 
-ALTER TABLE "public"."user" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."verification" (
@@ -150,7 +145,6 @@ CREATE TABLE IF NOT EXISTS "public"."verification" (
 );
 
 
-ALTER TABLE "public"."verification" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."account"
@@ -211,7 +205,17 @@ ALTER TABLE ONLY "public"."account"
 
 
 ALTER TABLE ONLY "public"."event_participant"
+    ADD CONSTRAINT "event_participant_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."event_participant"
     ADD CONSTRAINT "event_participants_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "public"."event"("id") ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."event"
+    ADD CONSTRAINT "event_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 
@@ -222,16 +226,11 @@ ALTER TABLE ONLY "public"."session"
 
 
 
-ALTER PUBLICATION "supabase_realtime" OWNER TO "postgres";
 
 
 
 
 
-GRANT USAGE ON SCHEMA "public" TO "postgres";
-GRANT USAGE ON SCHEMA "public" TO "anon";
-GRANT USAGE ON SCHEMA "public" TO "authenticated";
-GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
@@ -406,41 +405,21 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."account" TO "anon";
-GRANT ALL ON TABLE "public"."account" TO "authenticated";
-GRANT ALL ON TABLE "public"."account" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."event" TO "postgres";
-GRANT ALL ON TABLE "public"."event" TO "anon";
-GRANT ALL ON TABLE "public"."event" TO "authenticated";
-GRANT ALL ON TABLE "public"."event" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."event_participant" TO "postgres";
-GRANT ALL ON TABLE "public"."event_participant" TO "anon";
-GRANT ALL ON TABLE "public"."event_participant" TO "authenticated";
-GRANT ALL ON TABLE "public"."event_participant" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."session" TO "anon";
-GRANT ALL ON TABLE "public"."session" TO "authenticated";
-GRANT ALL ON TABLE "public"."session" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."user" TO "anon";
-GRANT ALL ON TABLE "public"."user" TO "authenticated";
-GRANT ALL ON TABLE "public"."user" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."verification" TO "anon";
-GRANT ALL ON TABLE "public"."verification" TO "authenticated";
-GRANT ALL ON TABLE "public"."verification" TO "service_role";
 
 
 
@@ -450,30 +429,18 @@ GRANT ALL ON TABLE "public"."verification" TO "service_role";
 
 
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON SEQUENCES TO "service_role";
 
 
 
 
 
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON FUNCTIONS TO "service_role";
 
 
 
 
 
 
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "postgres";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "anon";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "authenticated";
-ALTER DEFAULT PRIVILEGES FOR ROLE "postgres" IN SCHEMA "public" GRANT ALL ON TABLES TO "service_role";
 
 
 

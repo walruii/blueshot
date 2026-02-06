@@ -24,14 +24,16 @@ export const dotColor = {
 
 export const timeToTimestamp = (date: Date, time: string): string => {
   const [hours, minutes] = time.split(":").map(Number);
-  date.setHours(hours, minutes, 0, 0);
-  return date.toISOString();
+  const next = new Date(date.getTime());
+  next.setHours(hours, minutes, 0, 0);
+  return next.toISOString();
 };
 
 export const timeToDateTime = (date: Date, time: string): Date => {
   const [hours, minutes] = time.split(":").map(Number);
-  date.setHours(hours, minutes, 0, 0);
-  return date;
+  const next = new Date(date.getTime());
+  next.setHours(hours, minutes, 0, 0);
+  return next;
 };
 
 export const dateToTimeString = (date: Date): string => {

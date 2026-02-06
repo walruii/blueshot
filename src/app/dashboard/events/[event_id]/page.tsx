@@ -45,6 +45,10 @@ export default async function Page({
           </Link>
         </div>
 
+        <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 mb-6">
+          <p>You Haven&apos;t Acknowledged the Event!</p>
+          <button>ACK</button>
+        </div>
         {/* Event Details Card */}
         <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 mb-6">
           <h1 className="text-4xl font-bold text-white mb-6">{event.title}</h1>

@@ -61,12 +61,11 @@ export const formatEventNotification = (
   dbNotif: EventNotificationDB,
 ): EventNotification => ({
   id: dbNotif.id,
-  userId: dbNotif.user.id,
-  userEmail: dbNotif.user.email,
-  username: dbNotif.user.name,
   eventId: dbNotif.event.id,
   eventTitle: dbNotif.event.title,
-  eventUserId: dbNotif.event.user_id,
+  eventUserId: dbNotif.event.user.id,
+  eventEmail: dbNotif.event.user.email,
+  eventUsername: dbNotif.event.user.name,
   mailSent: dbNotif.mail_sent,
   acknowledgement: dbNotif.acknowledgement,
 });

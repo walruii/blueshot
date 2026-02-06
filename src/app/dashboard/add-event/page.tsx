@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { formatLocalDate, timeToDateTime } from "@/utils/util";
+import { compareDates, formatLocalDate, timeToDateTime } from "@/utils/util";
 import { addEvent } from "@/server-actions/supa";
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import { useEventForm } from "@/hooks/useEventForm";
@@ -45,7 +45,11 @@ export default function Page() {
     const emailList = emailInput
       .split(",")
       .map((email) => email.trim())
-      .filter((email) => email && !members.includes(email));
+      .filter((email) => {
+        return (
+          email && !members.includes(email) && email !== session?.user.email
+        );
+      });
 
     if (emailList.length === 0) return;
 
@@ -74,6 +78,16 @@ export default function Page() {
 
     try {
       const selectedDate = new Date(formState.date);
+
+      if (compareDates(selectedDate, new Date()) < 0) {
+        showAlert({
+          title: "Can not add Event in the past",
+          type: "warning",
+          description: "",
+        });
+        setIsLoading(false);
+        return;
+      }
       const mems = [...members, session.user.email];
 
       const sendEvent: EventInput = {
