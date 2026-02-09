@@ -1,10 +1,12 @@
+"use client";
 import { acknowledgeEvent } from "@/server-actions/supa";
 
 export default function AcknowledgementButton({
   eventParticipateId,
 }: {
-  eventParticipateId: string;
+  eventParticipateId: string | null;
 }) {
+  if (!eventParticipateId) return null;
   const handleAck = async () => {
     const response = acknowledgeEvent(eventParticipateId);
     console.log(response);

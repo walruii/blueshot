@@ -7,6 +7,8 @@ import {
   formatEvent,
   formatEventParticipants,
   formatEventNotifications,
+  formatEventNotification,
+  formatUpcomingEvents,
 } from "@/utils/transformers";
 import {
   EventParticipantWithUserDB,
@@ -18,6 +20,9 @@ import {
 } from "@/types/notificationType";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import { revalidatePath } from "next/cache";
+import { UpcomingDB } from "@/types/upcomingType";
+import { compareDates } from "@/utils/util";
 
 export const checkEmailListExist = async (
   emails: string[],
@@ -58,12 +63,13 @@ const eventsToMap = (events: { event: EventDB }[]): EventMap => {
 
 export const getEvent = async (id: string): Promise<Event | null> => {
   try {
-    const { data: event, error }: PostgrestSingleResponse<EventDB> =
-      await supabase.from("event").select().eq("id", id).single();
+    const { data: event, error }: PostgrestSingleResponse<EventDB | null> =
+      await supabase.from("event").select().eq("id", id).maybeSingle();
     if (error) {
       console.error("Error getting getEvent", error);
       return null;
     }
+    if (!event) return null;
     return formatEvent(event);
   } catch (err) {
     console.error(err);
@@ -99,6 +105,51 @@ export const getEvents = async (): Promise<EventMap> => {
   }
 };
 
+export const getNotification = async (
+  eventId: string,
+): Promise<EventNotification | null> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session || !session.user) return null;
+    const {
+      data: notif,
+      error,
+    }: PostgrestSingleResponse<EventNotificationDB | null> = await supabase
+      .from("event_participant")
+      .select(
+        `id,
+         user (id, email, name),
+          event!inner (
+            id,
+            title,
+            user!inner (
+              id,
+              name,
+              email
+            )
+          ),
+          mail_sent, acknowledgement`,
+      )
+      .neq("event.user_id", session.user.id)
+      .eq("event.id", eventId)
+      .eq("acknowledgement", false)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+    if (error) {
+      console.error("Error fetching notifications", error);
+      return null;
+    }
+    if (!notif) {
+      return null;
+    }
+    return formatEventNotification(notif);
+  } catch (err) {
+    console.error(err);
+    return null;
+  }
+};
 export const getNotifications = async (): Promise<EventNotification[]> => {
   try {
     const session = await auth.api.getSession({
@@ -192,11 +243,22 @@ export const addEvent = async (
       console.warn("Some members not found:", missingEmails);
     }
 
-    const participants = userIds.map((u) => ({
-      event_id: eventDB.id,
-      user_id: u.id,
-    }));
+    const participants = userIds.map((u) => {
+      if (u.id === event.userId) {
+        return {
+          event_id: eventDB.id,
+          user_id: u.id,
+          acknowledgement: true,
+          mail_sent: true,
+        };
+      }
+      return {
+        event_id: eventDB.id,
+        user_id: u.id,
+      };
+    });
 
+    revalidatePath("/dashboard");
     const { error: ptsError } = await supabase
       .from("event_participant")
       .insert(participants)
@@ -265,6 +327,83 @@ export const acknowledgeEvent = async (
       return { success: false, error: "db failed to update event participant" };
     }
 
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+export const getUpcomingEvents = async () => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session) return [];
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const {
+      data: upcomingEvents,
+      error,
+    }: PostgrestSingleResponse<UpcomingDB[]> = await supabase
+      .from("event_participant")
+      .select(
+        `id,
+          event!inner (
+            id,
+            title,
+            date,
+            from,
+            to,
+            user!inner (
+              id,
+              name,
+              email
+            )
+          )`,
+      )
+      .eq("user_id", session.user.id)
+      .gt("event.from", tenMinutesAgo);
+    if (error) {
+      console.error(error);
+      return [];
+    }
+
+    if (upcomingEvents.length === 0 || !upcomingEvents) {
+      return [];
+    }
+    const sortedEvents = formatUpcomingEvents(upcomingEvents).sort(
+      (a, b) =>
+        new Date(a.eventFrom).getTime() - new Date(b.eventFrom).getTime(),
+    );
+
+    return sortedEvents;
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+};
+
+export const deleteEvent = async (
+  eventId: string,
+): Promise<Result<undefined>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session) return { success: false, error: "Invalid session" };
+    const event = await getEvent(eventId);
+    if (!event) return { success: false, error: "Event Not Found" };
+    if (event.userId !== session.user.id)
+      return { success: false, error: "Only the Creator can delete event" };
+    if (compareDates(event.date, new Date()) <= 0)
+      return { success: false, error: "Can not delete past events" };
+    const { error } = await supabase.from("event").delete().eq("id", eventId);
+    if (error) {
+      console.error(error);
+      return { success: false, error: "Error deleting event from DB." };
+    }
     return { success: true };
   } catch (err) {
     console.error(err);

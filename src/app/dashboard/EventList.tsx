@@ -2,7 +2,6 @@
 import { EventMap } from "../../types/eventTypes";
 import Event from "./Event";
 import { compareDates, formatLocalDate, sortEvents } from "../../utils/util";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAlert } from "../(alert)/AlertProvider";
 
@@ -23,7 +22,7 @@ export default function EventList({
   const { showAlert } = useAlert();
 
   const handleLink = () => {
-    if (compareDates(selectedDate, new Date()) >= 0) {
+    if (compareDates(selectedDate, new Date(), true) >= 0) {
       router.push(
         `/dashboard/add-event?prefillDate=${formatLocalDate(selectedDate)}`,
       );

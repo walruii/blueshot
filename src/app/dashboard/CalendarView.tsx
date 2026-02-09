@@ -8,22 +8,23 @@ import "./Calendar.css";
 import EventList from "./EventList";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
-import NotificationList from "./NotificationList";
 import { Session } from "@/types/sessionType";
 import { EventNotification } from "@/types/notificationType";
+import NotificationUpcomingCluster from "./NotificationUpcomingCluster";
+import { Upcoming } from "@/types/upcomingType";
 
 export default function CalendarView({
-  dbEvents,
+  dbEvents: events,
   notifications,
   session,
+  upcomingEvents,
 }: {
   dbEvents: EventMap;
   notifications: EventNotification[];
   session: Session;
+  upcomingEvents: Upcoming[];
 }) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [events, setEvents] = useState<EventMap>(dbEvents);
-
   const renderTileContent = ({ date, view }: { date: Date; view: string }) => {
     if (view !== "month") return null;
 
@@ -80,13 +81,11 @@ export default function CalendarView({
           </div>
         </div>
       </div>
-      <div className="py-7 bg-zinc-900 rounded-xl h-full col-span-1 lg:col-span-3">
-        <div className="border-b border-zinc-600 flex justify-around">
-          <p className="font-bold pb-3 px-5">Notifications</p>
-          <p className="font-bold pb-3 px-5">Upcoming</p>
-        </div>
-        <NotificationList notifications={notifications} />
-      </div>
+      <NotificationUpcomingCluster
+        className="bg-zinc-900 rounded-xl h-full col-span-1 lg:col-span-3 flex flex-col"
+        notifications={notifications}
+        upcomingEvents={upcomingEvents}
+      />
       <Calendar
         showFixedNumberOfWeeks={true}
         tileClassName={"h-25 flex flex-col sm:items-start p-0"}

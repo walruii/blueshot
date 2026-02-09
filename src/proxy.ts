@@ -12,6 +12,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+
   // Check if the route is under /app or other protected routes
   if (pathname.startsWith("/dashboard")) {
     try {

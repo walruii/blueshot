@@ -1,21 +1,42 @@
-import { getEvent, getEventMembers } from "@/server-actions/supa";
+import {
+  getEvent,
+  getEventMembers,
+  getNotification,
+} from "@/server-actions/supa";
 import { dateToTimeString, formatLocalDate } from "@/utils/util";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { EventParticipant } from "@/types/eventParticipantType";
 import Link from "next/link";
+import { Suspense } from "react";
+import Loading from "@/app/(header-footer)/Loading";
+import { redirect } from "next/navigation";
+import AcknowledgementButton from "../../AcknowledgementButton";
+import DeleteEvent from "./DeleteEvent";
 
 export default async function Page({
   params,
 }: {
   params: { event_id: string };
 }) {
-  const { event_id } = await params;
-  const event = await getEvent(event_id);
+  return (
+    <Suspense fallback={<Loading />}>
+      <PageAsync params={params} />
+    </Suspense>
+  );
+}
 
+async function PageAsync({ params }: { params: { event_id: string } }) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
+
+  if (!session) redirect("/auth/signin");
+
+  const { event_id } = await params;
+  const event = await getEvent(event_id);
+  const eventPart = await getNotification(event_id);
+
   const isCreator = session?.user?.id === event?.userId;
 
   const memResult = await getEventMembers(event_id);
@@ -32,6 +53,16 @@ export default async function Page({
     );
   }
 
+  const canShowAck = (): boolean => {
+    if (session?.user.id === event.userId) {
+      return false;
+    }
+    if (!eventPart) {
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="min-h-screen bg-zinc-950 p-4">
       <div className="max-w-4xl mx-auto">
@@ -45,14 +76,15 @@ export default async function Page({
           </Link>
         </div>
 
-        <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 mb-6">
-          <p>You Haven&apos;t Acknowledged the Event!</p>
-          <button>ACK</button>
-        </div>
+        {canShowAck() && (
+          <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 mb-6 flex justify-between items-center">
+            <p>You Haven&apos;t Acknowledged the Event!</p>
+            <AcknowledgementButton eventParticipateId={eventPart?.id ?? null} />
+          </div>
+        )}
         {/* Event Details Card */}
         <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 mb-6">
           <h1 className="text-4xl font-bold text-white mb-6">{event.title}</h1>
-
           {/* Event Info Grid */}
           <div className="space-y-4">
             {/* Description */}
@@ -91,6 +123,7 @@ export default async function Page({
               </div>
             </div>
           </div>
+          {event.userId === session.user.id && <DeleteEvent event={event} />}
         </div>
 
         {/* Members Section */}
@@ -125,36 +158,44 @@ export default async function Page({
                       </td>
                     </tr>
                   ) : (
-                    members.map((m: EventParticipant) => (
-                      <tr
-                        key={m.id}
-                        className="border-b border-zinc-800 hover:bg-zinc-800/50 transition"
-                      >
-                        <td className="text-white py-4 px-4">{m.userEmail}</td>
-                        <td className="text-center py-4 px-4">
-                          {m.mailSent ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-900/30 text-green-400">
-                              ✓ Sent
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-900/30 text-red-400">
-                              ✗ Not Sent
-                            </span>
+                    members.map((m: EventParticipant) => {
+                      return (
+                        <tr
+                          key={m.id}
+                          className="border-b border-zinc-800 hover:bg-zinc-800/50 transition"
+                        >
+                          <td className="text-white py-4 px-4">
+                            {m.userEmail}
+                          </td>
+                          {m.userId !== event.userId && (
+                            <>
+                              <td className="text-center py-4 px-4">
+                                {m.mailSent ? (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-900/30 text-green-400">
+                                    ✓ Sent
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-red-900/30 text-red-400">
+                                    ✗ Not Sent
+                                  </span>
+                                )}
+                              </td>
+                              <td className="text-center py-4 px-4">
+                                {m.acknowledgement ? (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-900/30 text-blue-400">
+                                    ✓ Acknowledged
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-zinc-700 text-zinc-400">
+                                    Pending
+                                  </span>
+                                )}
+                              </td>
+                            </>
                           )}
-                        </td>
-                        <td className="text-center py-4 px-4">
-                          {m.acknowledgement ? (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-900/30 text-blue-400">
-                              ✓ Acknowledged
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-zinc-700 text-zinc-400">
-                              Pending
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>

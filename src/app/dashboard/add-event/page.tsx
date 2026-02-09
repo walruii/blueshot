@@ -2,7 +2,12 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { compareDates, formatLocalDate, timeToDateTime } from "@/utils/util";
+import {
+  compareDates,
+  formatLocalDate,
+  parseLocalDateInput,
+  timeToDateTime,
+} from "@/utils/util";
 import { addEvent } from "@/server-actions/supa";
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import { useEventForm } from "@/hooks/useEventForm";
@@ -77,9 +82,33 @@ export default function Page() {
     setIsLoading(true);
 
     try {
-      const selectedDate = new Date(formState.date);
+      const selectedDate = parseLocalDateInput(formState.date);
+      const from = timeToDateTime(selectedDate, formState.fromTime);
+      const to = formState.toTime
+        ? timeToDateTime(selectedDate, formState.toTime)
+        : null;
 
-      if (compareDates(selectedDate, new Date()) < 0) {
+      if (to && compareDates(from, to) >= 0) {
+        showAlert({
+          title: '"to" time can not be before "from" time',
+          type: "warning",
+          description: "",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (compareDates(new Date(), from) >= 0) {
+        showAlert({
+          title: '"from" time can not be in the past',
+          type: "warning",
+          description: "",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (compareDates(selectedDate, new Date(), true) < 0) {
         showAlert({
           title: "Can not add Event in the past",
           type: "warning",
@@ -94,10 +123,8 @@ export default function Page() {
         title: formState.title,
         description: formState.description,
         date: selectedDate,
-        from: timeToDateTime(selectedDate, formState.fromTime),
-        to: formState.toTime
-          ? timeToDateTime(selectedDate, formState.toTime)
-          : null,
+        from,
+        to,
         userId: session.user.id,
       };
 

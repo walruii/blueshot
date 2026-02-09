@@ -8,7 +8,7 @@ export default function Event({ e }: { e: TEvent }) {
       key={e.id}
       className="border-b flex flex-col py-3 px-7 border-zinc-600"
     >
-      <p className="block">{e.title} dssfd</p>
+      <p className="block">{e.title}</p>
       <p className="text-sm">created by: </p>
       <div className="flex gap-5 w-full pt-4">
         {e.from && (

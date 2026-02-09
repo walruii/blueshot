@@ -1,6 +1,10 @@
 import CalendarView from "./CalendarView";
 import { Suspense } from "react";
-import { getEvents, getNotifications } from "@/server-actions/supa";
+import {
+  getEvents,
+  getNotifications,
+  getUpcomingEvents,
+} from "@/server-actions/supa";
 import LoadingGrid from "../(header-footer)/LoadingGrid";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
@@ -21,10 +25,13 @@ async function CalendarViewEventWrapper() {
   if (!session) redirect("/auth/signin");
   const events = await getEvents();
   const notifications = await getNotifications();
+  const upcomingEvents = await getUpcomingEvents();
+
   return (
     <CalendarView
       dbEvents={events}
       notifications={notifications}
+      upcomingEvents={upcomingEvents}
       session={session}
     />
   );

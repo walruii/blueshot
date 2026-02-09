@@ -8,7 +8,7 @@ export default function NotificationList({
   notifications: EventNotification[];
 }) {
   return (
-    <div className=" flex flex-col py-3 border-zinc-600 w-full justify-between items-center overflow-scroll h-full">
+    <div className=" flex flex-col py-3 border-zinc-600 w-full justify-between items-center overflow-y-auto min-h-0 h-full">
       {notifications.map((n: EventNotification) => (
         <div
           key={n.id}
@@ -21,7 +21,7 @@ export default function NotificationList({
             added you to
             <Link
               href={`/dashboard/events/${n.eventId}`}
-              className="bg-zinc-700 p-1 rounded ml-1"
+              className="hover:bg-zinc-700 p-1 rounded ml-1"
             >
               {n.eventTitle}
             </Link>
