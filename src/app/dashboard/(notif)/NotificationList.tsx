@@ -1,6 +1,6 @@
 import { EventNotification } from "@/types/notificationType";
 import Link from "next/link";
-import AcknowledgementButton from "./AcknowledgementButton";
+import AcknowledgementButton from "../AcknowledgementButton";
 
 export default function NotificationList({
   notifications,
@@ -8,7 +8,7 @@ export default function NotificationList({
   notifications: EventNotification[];
 }) {
   return (
-    <div className=" flex flex-col py-3 border-zinc-600 w-full justify-between items-center overflow-y-auto min-h-0 h-full">
+    <div className="flex flex-col py-3 border-zinc-600 w-full justify-between items-center overflow-y-auto min-h-0 h-full">
       {notifications.map((n: EventNotification) => (
         <div
           key={n.id}

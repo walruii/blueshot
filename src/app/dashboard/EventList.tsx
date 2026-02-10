@@ -35,7 +35,9 @@ export default function EventList({
     }
   };
   return (
-    <div className={`py-7 bg-zinc-900 rounded-xl h-full ${className}`}>
+    <div
+      className={`py-7 bg-zinc-900 rounded-xl h-full min-h-0 flex flex-col ${className}`}
+    >
       <div className="font-bold pb-3 px-5 flex justify-between items-center">
         <p>{selectedDate.toDateString()}</p>
         <div
@@ -45,7 +47,7 @@ export default function EventList({
           Add Event
         </div>
       </div>
-      <div className="overflow-scroll border-t md:max-h-200 border-zinc-600">
+      <div className="overflow-y-auto border-t max-h-100 md:max-h-none border-zinc-600">
         {hasEvents &&
           eves.map((e) => {
             return <Event key={e.id} e={e} />;

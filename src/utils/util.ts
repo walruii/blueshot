@@ -12,14 +12,20 @@ export const parseLocalDateInput = (dateStr: string): Date => {
   return new Date(year, month - 1, day);
 };
 
-export const compareDates = (date1: Date, date2: Date, justDate?: boolean) => {
+export const compareDates = (
+  input1: Date,
+  input2: Date,
+  justDate?: boolean,
+) => {
+  const date1 = new Date(input1.getTime());
+  const date2 = new Date(input2.getTime());
   if (justDate) {
     date1.setHours(0, 0, 0, 0);
     date2.setHours(0, 0, 0, 0);
   }
 
-  if (date1 < date2) return -1;
-  if (date1 > date2) return 1;
+  if (date1.getTime() < date2.getTime()) return -1;
+  if (date1.getTime() > date2.getTime()) return 1;
   else return 0;
 };
 

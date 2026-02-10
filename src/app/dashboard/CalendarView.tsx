@@ -6,12 +6,11 @@ import DotIcon from "../../svgs/DotIcon";
 import { sortEvents } from "../../utils/util";
 import "./Calendar.css";
 import EventList from "./EventList";
-import Image from "next/image";
-import { authClient } from "@/lib/auth-client";
 import { Session } from "@/types/sessionType";
 import { EventNotification } from "@/types/notificationType";
-import NotificationUpcomingCluster from "./NotificationUpcomingCluster";
+import NotificationUpcomingCluster from "./(notif)/NotificationUpcomingCluster";
 import { Upcoming } from "@/types/upcomingType";
+import UserIcon from "@/svgs/UserIcon";
 
 export default function CalendarView({
   dbEvents: events,
@@ -67,17 +66,11 @@ export default function CalendarView({
         </p>
         <div className="p-6 flex flex-col sm:flex-row">
           <div className="flex justify-center items-center rounded-full overflow-clip h-25 w-25">
-            <Image src="/file.svg" width={100} height={100} alt="" />
+            <UserIcon />
+            {/* <Image src="/file.svg" width={100} height={100} alt="" /> */}
           </div>
           <div className="px-2">
-            <p>you have 0 upcoming events today</p>
-            <button
-              onClick={() => {
-                authClient.signOut();
-              }}
-            >
-              SIGNOUT
-            </button>
+            <p>Hope you are doing fantastic today!</p>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 "use server";
 import { Event, EventDB, EventInput, EventMap } from "@/types/eventTypes";
-import supabase from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { Result, EmailCheckResult } from "@/types/returnType";
 import {
@@ -28,7 +28,7 @@ export const checkEmailListExist = async (
   emails: string[],
 ): Promise<Result<EmailCheckResult[]>> => {
   try {
-    const { data: users, error } = await supabase
+    const { data: users, error } = await supabaseAdmin
       .from("user")
       .select("email")
       .in("email", emails);
@@ -64,7 +64,7 @@ const eventsToMap = (events: { event: EventDB }[]): EventMap => {
 export const getEvent = async (id: string): Promise<Event | null> => {
   try {
     const { data: event, error }: PostgrestSingleResponse<EventDB | null> =
-      await supabase.from("event").select().eq("id", id).maybeSingle();
+      await supabaseAdmin.from("event").select().eq("id", id).maybeSingle();
     if (error) {
       console.error("Error getting getEvent", error);
       return null;
@@ -86,7 +86,7 @@ export const getEvents = async (): Promise<EventMap> => {
     const {
       data: events,
       error,
-    }: PostgrestSingleResponse<{ event: EventDB }[]> = await supabase
+    }: PostgrestSingleResponse<{ event: EventDB }[]> = await supabaseAdmin
       .from("event_participant")
       .select(`event (*)`)
       .eq("user_id", session?.user.id);
@@ -116,7 +116,7 @@ export const getNotification = async (
     const {
       data: notif,
       error,
-    }: PostgrestSingleResponse<EventNotificationDB | null> = await supabase
+    }: PostgrestSingleResponse<EventNotificationDB | null> = await supabaseAdmin
       .from("event_participant")
       .select(
         `id,
@@ -159,7 +159,7 @@ export const getNotifications = async (): Promise<EventNotification[]> => {
     const {
       data: notifs,
       error,
-    }: PostgrestSingleResponse<EventNotificationDB[]> = await supabase
+    }: PostgrestSingleResponse<EventNotificationDB[]> = await supabaseAdmin
       .from("event_participant")
       .select(
         `id,
@@ -207,7 +207,7 @@ export const addEvent = async (
     if (session.user.id !== event.userId) {
       return { success: false, error: "Invalid data provided" };
     }
-    const { data: eventDB, error: eventError } = await supabase
+    const { data: eventDB, error: eventError } = await supabaseAdmin
       .from("event")
       .insert({
         title: event.title,
@@ -225,7 +225,7 @@ export const addEvent = async (
       return { success: false, error: "DB Server Error Adding Event" };
     }
 
-    const { data: userIds, error: memberIdError } = await supabase
+    const { data: userIds, error: memberIdError } = await supabaseAdmin
       .from("user")
       .select("id, email")
       .in("email", [...members]);
@@ -255,11 +255,12 @@ export const addEvent = async (
       return {
         event_id: eventDB.id,
         user_id: u.id,
+        acknowledgement: false,
+        mail_sent: false,
       };
     });
 
-    revalidatePath("/dashboard");
-    const { error: ptsError } = await supabase
+    const { error: ptsError } = await supabaseAdmin
       .from("event_participant")
       .insert(participants)
       .select();
@@ -271,7 +272,12 @@ export const addEvent = async (
         error: "DB Server Error Adding Members to Participant List",
       };
     }
-
+    userIds.forEach((user) => {
+      supabaseAdmin
+        .channel(`user_inbox_${user.id}`)
+        .httpSend("NEW_INVITE", { title: event.title });
+    });
+    revalidatePath("/dashboard");
     return { success: true, data: eventDB };
   } catch (err) {
     console.error("Unexpected Error in addEvent: ", err);
@@ -285,7 +291,7 @@ export const getEventMembers = async (
   const {
     data: eventMembers,
     error: eventParticipantDBError,
-  }: PostgrestSingleResponse<EventParticipantWithUserDB[]> = await supabase
+  }: PostgrestSingleResponse<EventParticipantWithUserDB[]> = await supabaseAdmin
     .from("event_participant")
     .select(
       `id, user!inner ( id, email ), event_id, mail_sent, acknowledgement`,
@@ -317,7 +323,21 @@ export const acknowledgeEvent = async (
   eventParticipantId: string,
 ): Promise<Result<null>> => {
   try {
-    const { error } = await supabase
+    const { data: ep, error: someEr } = await supabaseAdmin
+      .from("event_participant")
+      .select("event!inner ( user_id )")
+      .eq("id", eventParticipantId)
+      .maybeSingle();
+
+    if (!ep) {
+      return { success: false, error: "EventP not found" };
+    }
+    if (someEr) {
+      console.error(someEr);
+      return { success: false, error: "EventP not found" };
+    }
+
+    const { error } = await supabaseAdmin
       .from("event_participant")
       .update({ acknowledgement: true })
       .eq("id", eventParticipantId);
@@ -326,6 +346,10 @@ export const acknowledgeEvent = async (
       console.error(error);
       return { success: false, error: "db failed to update event participant" };
     }
+    console.log(ep.event.user_id);
+    supabaseAdmin
+      .channel(`user_inbox_${ep.event.user_id}`)
+      .httpSend("UPDATE_ACK", {});
 
     revalidatePath("/dashboard");
     return { success: true };
@@ -342,10 +366,13 @@ export const getUpcomingEvents = async () => {
     });
     if (!session) return [];
     const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const tomMidnight = new Date();
+    tomMidnight.setDate(tomMidnight.getDate() + 1);
+    tomMidnight.setHours(0, 0, 0, 0);
     const {
       data: upcomingEvents,
       error,
-    }: PostgrestSingleResponse<UpcomingDB[]> = await supabase
+    }: PostgrestSingleResponse<UpcomingDB[]> = await supabaseAdmin
       .from("event_participant")
       .select(
         `id,
@@ -363,7 +390,8 @@ export const getUpcomingEvents = async () => {
           )`,
       )
       .eq("user_id", session.user.id)
-      .gt("event.from", tenMinutesAgo);
+      .gt("event.from", tenMinutesAgo)
+      .lt("event.from", tomMidnight.toISOString());
     if (error) {
       console.error(error);
       return [];
@@ -399,7 +427,10 @@ export const deleteEvent = async (
       return { success: false, error: "Only the Creator can delete event" };
     if (compareDates(event.date, new Date()) <= 0)
       return { success: false, error: "Can not delete past events" };
-    const { error } = await supabase.from("event").delete().eq("id", eventId);
+    const { error } = await supabaseAdmin
+      .from("event")
+      .delete()
+      .eq("id", eventId);
     if (error) {
       console.error(error);
       return { success: false, error: "Error deleting event from DB." };
