@@ -424,8 +424,6 @@ export const deleteEvent = async (
     if (!event) return { success: false, error: "Event Not Found" };
     if (event.userId !== session.user.id)
       return { success: false, error: "Only the Creator can delete event" };
-    if (event.from <= new Date())
-      return { success: false, error: "Can not delete past events" };
     const { error } = await supabaseAdmin
       .from("event")
       .delete()

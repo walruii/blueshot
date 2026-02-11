@@ -6,11 +6,12 @@
 - ~~can not delete in evnets in the past for the whole day for some reason~~
 - ~~add error alerts on the login / sign in~~
 - ~~add loading on the ack button~~
-- replace the delete method with archive method
+- ~~make the delete feature allow delete at any time and add a confirmation box~~
 - look into sql functions for transactions
 - add the feature to add color
-- fix the status tag's width
 - add chat in the event
 - maybe move theupcoming and ongoing;
+- fix the status tag's width
 - redesign the notifs to be db linked
 - add recent / group in the email like a quick add
+- add a way to add profile pictures
