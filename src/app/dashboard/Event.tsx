@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Event as TEvent } from "../../types/eventTypes";
-import { dateToTimeString } from "../../utils/util";
+import { dateToTimeString } from "../../utils/dateUtil";
 
 export default function Event({ e }: { e: TEvent }) {
   return (

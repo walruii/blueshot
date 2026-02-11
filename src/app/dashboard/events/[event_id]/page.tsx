@@ -1,9 +1,5 @@
-import {
-  getEvent,
-  getEventMembers,
-  getNotification,
-} from "@/server-actions/supa";
-import { dateToTimeString, formatLocalDate } from "@/utils/util";
+import { getEvent } from "@/server-actions/event";
+import { dateToTimeString, formatLocalDate } from "@/utils/dateUtil";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { EventParticipant } from "@/types/eventParticipantType";
@@ -13,6 +9,8 @@ import Loading from "@/app/(header-footer)/Loading";
 import { redirect } from "next/navigation";
 import AcknowledgementButton from "../../AcknowledgementButton";
 import DeleteEvent from "./DeleteEvent";
+import { getNotification } from "@/server-actions/notification";
+import { getEventMembers } from "@/server-actions/eventParticipant";
 
 export default async function Page({
   params,

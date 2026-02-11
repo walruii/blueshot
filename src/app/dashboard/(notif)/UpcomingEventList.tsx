@@ -1,5 +1,5 @@
 import { Upcoming } from "@/types/upcomingType";
-import { dateToTimeString } from "@/utils/util";
+import { dateToTimeString } from "@/utils/dateUtil";
 import Link from "next/link";
 import UpcomingTag from "./UpcomingTag";
 

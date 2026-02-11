@@ -3,7 +3,7 @@ import { useState } from "react";
 import Calendar from "react-calendar";
 import { EventMap } from "../../types/eventTypes";
 import DotIcon from "../../svgs/DotIcon";
-import { sortEvents } from "../../utils/util";
+import { sortEvents } from "../../utils/dateUtil";
 import "./Calendar.css";
 import EventList from "./EventList";
 import { Session } from "@/types/sessionType";

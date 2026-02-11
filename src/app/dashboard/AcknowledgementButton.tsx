@@ -1,7 +1,7 @@
 "use client";
-import { acknowledgeEvent } from "@/server-actions/supa";
 import { useState } from "react";
 import { useAlert } from "../(alert)/AlertProvider";
+import { acknowledgeEvent } from "@/server-actions/acknowledge";
 
 export default function AcknowledgementButton({
   eventParticipateId,

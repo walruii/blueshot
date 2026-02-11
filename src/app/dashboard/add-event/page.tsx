@@ -3,12 +3,10 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import {
-  compareDates,
   formatLocalDate,
   parseLocalDateInput,
   timeToDateTime,
-} from "@/utils/util";
-import { addEvent } from "@/server-actions/supa";
+} from "@/utils/dateUtil";
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import { useEventForm } from "@/hooks/useEventForm";
 import { useMemberManagement } from "@/hooks/useMemberManagement";
@@ -16,6 +14,7 @@ import { FormFields } from "./FormFields";
 import { MembersSection } from "./MembersSection";
 import { MESSAGES } from "./messages";
 import { EventInput } from "@/types/eventTypes";
+import { addEvent } from "@/server-actions/addEvent";
 
 export default function Page() {
   const params = useSearchParams();
@@ -88,7 +87,7 @@ export default function Page() {
         ? timeToDateTime(selectedDate, formState.toTime)
         : null;
 
-      if (to && compareDates(from, to) >= 0) {
+      if (to && from >= to) {
         showAlert({
           title: '"to" time can not be before "from" time',
           type: "warning",
@@ -98,7 +97,7 @@ export default function Page() {
         return;
       }
 
-      if (compareDates(new Date(), from) >= 0) {
+      if (new Date() >= from) {
         showAlert({
           title: '"from" time can not be in the past',
           type: "warning",
@@ -108,7 +107,9 @@ export default function Page() {
         return;
       }
 
-      if (compareDates(selectedDate, new Date(), true) < 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate >= today) {
         showAlert({
           title: "Can not add Event in the past",
           type: "warning",

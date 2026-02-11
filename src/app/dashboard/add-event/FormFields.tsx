@@ -1,7 +1,7 @@
 "use client";
 
 import { FormState } from "@/hooks/useEventForm";
-import { formatLocalDate } from "@/utils/util";
+import { formatLocalDate } from "@/utils/dateUtil";
 
 interface FormFieldsProps {
   formState: FormState;

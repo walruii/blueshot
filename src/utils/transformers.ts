@@ -3,7 +3,7 @@
  * This layer normalizes different Supabase query shapes into consistent application types
  */
 
-import { EventDB, Event } from "@/types/eventTypes";
+import { EventDB, Event, EventMap } from "@/types/eventTypes";
 import {
   EventParticipantWithUserDB,
   EventParticipant,
@@ -99,3 +99,18 @@ export const formatUpcomingEvent = (upcomingEvent: UpcomingDB): Upcoming => ({
 export const formatUpcomingEvents = (
   upcomingEvents: UpcomingDB[],
 ): Upcoming[] => upcomingEvents.map(formatUpcomingEvent);
+
+/*
+ * Convert array of EventsDB to a EventMap
+ */
+export const eventsToMap = (events: { event: EventDB }[]): EventMap => {
+  const newMap: EventMap = new Map();
+  events.forEach(({ event: item }: { event: EventDB }) => {
+    const existing = newMap.get(new Date(item.date).toDateString()) || [];
+    newMap.set(new Date(item.date).toDateString(), [
+      ...existing,
+      formatEvent(item),
+    ]);
+  });
+  return newMap;
+};

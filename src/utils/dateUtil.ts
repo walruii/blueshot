@@ -1,4 +1,4 @@
-import { EventDB, Event } from "../types/eventTypes";
+import { Event } from "@/types/eventTypes";
 
 export const formatLocalDate = (dateObj: Date) => {
   const year = dateObj.getFullYear();
@@ -10,29 +10,6 @@ export const formatLocalDate = (dateObj: Date) => {
 export const parseLocalDateInput = (dateStr: string): Date => {
   const [year, month, day] = dateStr.split("-").map(Number);
   return new Date(year, month - 1, day);
-};
-
-export const compareDates = (
-  input1: Date,
-  input2: Date,
-  justDate?: boolean,
-) => {
-  const date1 = new Date(input1.getTime());
-  const date2 = new Date(input2.getTime());
-  if (justDate) {
-    date1.setHours(0, 0, 0, 0);
-    date2.setHours(0, 0, 0, 0);
-  }
-
-  if (date1.getTime() < date2.getTime()) return -1;
-  if (date1.getTime() > date2.getTime()) return 1;
-  else return 0;
-};
-
-export const dotColor = {
-  "Not Started": "#ff6b6b", // Soft Coral Red (visible but not an "alert" error)
-  "On Going": "#ffd93d", // Golden Yellow (bright and distinct)
-  Done: "#6bc17d", // Pastel Mint Green (clean and soothing)
 };
 
 export const timeToTimestamp = (date: Date, time: string): string => {
@@ -62,16 +39,4 @@ export const sortEvents = (a: Event, b: Event) => {
   const timeB = b.from ? b.from.getTime() : Infinity;
 
   return timeA - timeB;
-};
-
-export const DBEventToEvent = (item: EventDB): Event => {
-  return {
-    id: item.id,
-    userId: item.user_id,
-    description: item.description,
-    title: item.title,
-    date: new Date(item.date),
-    from: new Date(item.from),
-    to: item.to ? new Date(item.to) : null,
-  };
 };
