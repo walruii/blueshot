@@ -3,6 +3,7 @@ import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAlert } from "@/app/(alert)/AlertProvider";
 
 export default function Page() {
   const [email, setEmail] = useState("");
@@ -10,27 +11,37 @@ export default function Page() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const { showAlert } = useAlert();
 
   const signIn = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
-    await authClient.signIn.email(
-      { email, password },
-      {
-        onRequest: () => {
-          setLoading(true);
+    try {
+      await authClient.signIn.email(
+        { email, password },
+        {
+          onRequest: () => {
+            setLoading(true);
+          },
+          onSuccess: () => {
+            setLoading(false);
+            router.push("/dashboard");
+          },
+          onError: (ctx) => {
+            setLoading(false);
+            setError(ctx.error.message);
+          },
         },
-        onSuccess: () => {
-          setLoading(false);
-          router.push("/dashboard");
-        },
-        onError: (ctx) => {
-          setLoading(false);
-          setError(ctx.error.message);
-        },
-      },
-    );
+      );
+    } catch (err) {
+      console.error(err);
+      showAlert({
+        title: "Internal Server Error",
+        description: "Please Try Again Later.",
+        type: "error",
+      });
+    }
   };
 
   return (
