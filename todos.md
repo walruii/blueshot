@@ -5,7 +5,7 @@
 - ~~having time zone issues look into how date is handled and maybe redo it~~
 - ~~can not delete in evnets in the past for the whole day for some reason~~
 - ~~add error alerts on the login / sign in~~
-- add loading on the ack button
+- ~~add loading on the ack button~~
 - replace the delete method with archive method
 - look into sql functions for transactions
 - add the feature to add color
@@ -13,3 +13,4 @@
 - add chat in the event
 - maybe move theupcoming and ongoing;
 - redesign the notifs to be db linked
+- add recent / group in the email like a quick add
