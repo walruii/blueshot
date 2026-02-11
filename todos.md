@@ -3,5 +3,12 @@
 
 - ~~maybe also mark them as done from the get go~~
 - ~~having time zone issues look into how date is handled and maybe redo it~~
+- ~~can not delete in evnets in the past for the whole day for some reason~~
 - look into sql functions for transactions
-- can not delete in evnets in the past for the whole day for some reason
+- add loading on the ack button
+- add error alerts on the login / sign in
+- add the feature to add color
+- fix the status tag's width
+- add chat in the event
+- maybe move theupcoming and ongoing;
+- redesign the notifs to be db linked

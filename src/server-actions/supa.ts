@@ -22,7 +22,6 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { UpcomingDB } from "@/types/upcomingType";
-import { compareDates } from "@/utils/util";
 
 export const checkEmailListExist = async (
   emails: string[],
@@ -425,7 +424,7 @@ export const deleteEvent = async (
     if (!event) return { success: false, error: "Event Not Found" };
     if (event.userId !== session.user.id)
       return { success: false, error: "Only the Creator can delete event" };
-    if (compareDates(event.date, new Date()) <= 0)
+    if (event.from <= new Date())
       return { success: false, error: "Can not delete past events" };
     const { error } = await supabaseAdmin
       .from("event")

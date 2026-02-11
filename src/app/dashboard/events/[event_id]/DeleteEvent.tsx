@@ -3,16 +3,17 @@
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import { deleteEvent } from "@/server-actions/supa";
 import { Event } from "@/types/eventTypes";
-import { compareDates } from "@/utils/util";
 import { useRouter } from "next/navigation";
 
 export default function DeleteEvent({ event: e }: { event: Event }) {
   const { showAlert } = useAlert();
   const router = useRouter();
+  console.log(e.from);
+  console.log(new Date());
   const handleDelete = async () => {
-    if (compareDates(e.date, new Date()) <= 0) {
+    if (e.from <= new Date()) {
       showAlert({
-        title: "Can not delete past Event",
+        title: "Cannot delete past events",
         description: "",
         type: "warning",
       });
