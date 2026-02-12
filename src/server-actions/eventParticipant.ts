@@ -26,7 +26,7 @@ export const getEventMembers = async (
       "Failed to fetch event Participants: ",
       eventParticipantDBError,
     );
-    return { success: false, error: "DB Error fetcting participants" };
+    return { success: false, err: "DB Error fetcting participants" };
   }
 
   if (!eventMembers || !Array.isArray(eventMembers)) {

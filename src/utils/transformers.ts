@@ -3,7 +3,7 @@
  * This layer normalizes different Supabase query shapes into consistent application types
  */
 
-import { EventDB, Event, EventMap } from "@/types/eventTypes";
+import { EventDB, Event, EventMap } from "@/types/event";
 import {
   EventParticipantWithUserDB,
   EventParticipant,
@@ -13,27 +13,6 @@ import {
   EventNotification,
 } from "@/types/notificationType";
 import { Upcoming, UpcomingDB } from "@/types/upcomingType";
-
-/**
- * Convert database event to domain event
- * Transforms ISO string dates to Date objects
- */
-export const formatEvent = (dbEvent: EventDB): Event => ({
-  id: dbEvent.id,
-  title: dbEvent.title,
-  description: dbEvent.description,
-  userId: dbEvent.user_id,
-  date: new Date(dbEvent.date),
-  from: new Date(dbEvent.from),
-  to: dbEvent.to ? new Date(dbEvent.to) : null,
-});
-
-/**
- * Convert array of database events to domain events
- */
-export const formatEvents = (dbEvents: EventDB[]): Event[] =>
-  dbEvents.map(formatEvent);
-
 /**
  * Convert event participant DB response (with user) to domain type
  */
@@ -99,18 +78,3 @@ export const formatUpcomingEvent = (upcomingEvent: UpcomingDB): Upcoming => ({
 export const formatUpcomingEvents = (
   upcomingEvents: UpcomingDB[],
 ): Upcoming[] => upcomingEvents.map(formatUpcomingEvent);
-
-/*
- * Convert array of EventsDB to a EventMap
- */
-export const eventsToMap = (events: { event: EventDB }[]): EventMap => {
-  const newMap: EventMap = new Map();
-  events.forEach(({ event: item }: { event: EventDB }) => {
-    const existing = newMap.get(new Date(item.date).toDateString()) || [];
-    newMap.set(new Date(item.date).toDateString(), [
-      ...existing,
-      formatEvent(item),
-    ]);
-  });
-  return newMap;
-};

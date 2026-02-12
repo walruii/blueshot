@@ -15,11 +15,11 @@ export const acknowledgeEvent = async (
       .maybeSingle();
 
     if (!ep) {
-      return { success: false, error: "EventP not found" };
+      return { success: false, err: "EventP not found" };
     }
     if (someEr) {
       console.error(someEr);
-      return { success: false, error: "EventP not found" };
+      return { success: false, err: "EventP not found" };
     }
 
     const { error } = await supabaseAdmin
@@ -29,7 +29,7 @@ export const acknowledgeEvent = async (
 
     if (error) {
       console.error(error);
-      return { success: false, error: "db failed to update event participant" };
+      return { success: false, err: "db failed to update event participant" };
     }
     console.log(ep.event.user_id);
     supabaseAdmin
@@ -40,6 +40,6 @@ export const acknowledgeEvent = async (
     return { success: true };
   } catch (err) {
     console.error(err);
-    return { success: false, error: "Internal Server Error" };
+    return { success: false, err: "Internal Server Error" };
   }
 };

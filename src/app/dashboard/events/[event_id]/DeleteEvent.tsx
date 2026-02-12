@@ -2,7 +2,7 @@
 
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import { deleteEvent } from "@/server-actions/deleteEvent";
-import { Event } from "@/types/eventTypes";
+import { Event } from "@/types/event";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -19,7 +19,7 @@ export default function DeleteEvent({ event: e }: { event: Event }) {
       const res = await deleteEvent(e.id);
       if (!res.success) {
         showAlert({
-          title: res.error,
+          title: res.err,
           description: "",
           type: "error",
         });

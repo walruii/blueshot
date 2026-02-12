@@ -1,4 +1,17 @@
-import { Event } from "@/types/eventTypes";
+import { Event } from "@/types/event";
+
+export const formatLocalDateTime = (
+  dateObj: Date,
+  hours: number = 0,
+  minutes: number = 0,
+) => {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, "0"); // Months are 0-indexed
+  const day = String(dateObj.getDate()).padStart(2, "0");
+  const h = String(hours).padStart(2, "0");
+  const m = String(minutes).padStart(2, "0");
+  return `${year}-${month}-${day}T${h}:${m}`;
+};
 
 export const formatLocalDate = (dateObj: Date) => {
   const year = dateObj.getFullYear();
@@ -6,24 +19,11 @@ export const formatLocalDate = (dateObj: Date) => {
   const day = String(dateObj.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
-
-export const parseLocalDateInput = (dateStr: string): Date => {
+export const parseLocalDateInput = (str: string): Date => {
+  const [dateStr, timeStr] = str.split("T").map(String);
   const [year, month, day] = dateStr.split("-").map(Number);
-  return new Date(year, month - 1, day);
-};
-
-export const timeToTimestamp = (date: Date, time: string): string => {
-  const [hours, minutes] = time.split(":").map(Number);
-  const next = new Date(date.getTime());
-  next.setHours(hours, minutes, 0, 0);
-  return next.toISOString();
-};
-
-export const timeToDateTime = (date: Date, time: string): Date => {
-  const [hours, minutes] = time.split(":").map(Number);
-  const next = new Date(date.getTime());
-  next.setHours(hours, minutes, 0, 0);
-  return next;
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  return new Date(year, month - 1, day, hours, minutes);
 };
 
 export const dateToTimeString = (date: Date): string => {

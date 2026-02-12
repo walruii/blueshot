@@ -1,5 +1,5 @@
 "use client";
-import { EventMap } from "../../types/eventTypes";
+import { EventMap } from "../../types/event";
 import Event from "./Event";
 import { formatLocalDate, sortEvents } from "../../utils/dateUtil";
 import { useRouter } from "next/navigation";
@@ -24,10 +24,7 @@ export default function EventList({
   const handleLink = () => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    console.log(today);
-    console.log(selectedDate);
     if (selectedDate >= today) {
-      // look up
       router.push(
         `/dashboard/add-event?prefillDate=${formatLocalDate(selectedDate)}`,
       );

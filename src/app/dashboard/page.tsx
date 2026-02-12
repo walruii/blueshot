@@ -22,8 +22,8 @@ async function CalendarViewEventWrapper() {
   });
   if (!session) redirect("/auth/signin");
   const events = await getEvents();
-  const notifications = await getNotifications();
-  const upcomingEvents = await getUpcomingEvents();
+  const notifications = [];
+  const upcomingEvents = [];
 
   return (
     <CalendarView

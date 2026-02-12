@@ -14,22 +14,22 @@ export const deleteEvent = async (
       headers: await headers(),
     });
 
-    if (!session) return { success: false, error: "Invalid session" };
+    if (!session) return { success: false, err: "Invalid session" };
     const event = await getEvent(eventId);
-    if (!event) return { success: false, error: "Event Not Found" };
+    if (!event) return { success: false, err: "Event Not Found" };
     if (event.userId !== session.user.id)
-      return { success: false, error: "Only the Creator can delete event" };
+      return { success: false, err: "Only the Creator can delete event" };
     const { error } = await supabaseAdmin
       .from("event")
       .delete()
       .eq("id", eventId);
     if (error) {
       console.error(error);
-      return { success: false, error: "Error deleting event from DB." };
+      return { success: false, err: "Error deleting event from DB." };
     }
     return { success: true };
   } catch (err) {
     console.error(err);
-    return { success: false, error: "Internal Server Error" };
+    return { success: false, err: "Internal Server Error" };
   }
 };

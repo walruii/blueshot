@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Calendar from "react-calendar";
-import { EventMap } from "../../types/eventTypes";
+import { EventMap } from "../../types/event";
 import DotIcon from "../../svgs/DotIcon";
 import { sortEvents } from "../../utils/dateUtil";
 import "./Calendar.css";

@@ -1,20 +1,27 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import {
-  formatLocalDate,
-  parseLocalDateInput,
-  timeToDateTime,
-} from "@/utils/dateUtil";
+import { formatLocalDateTime, parseLocalDateInput } from "@/utils/dateUtil";
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import { useEventForm } from "@/hooks/useEventForm";
-import { useMemberManagement } from "@/hooks/useMemberManagement";
+import { usePermissionManager } from "@/hooks/usePermissionManager";
 import { FormFields } from "./FormFields";
-import { MembersSection } from "./MembersSection";
+import EventGroupField from "./EventGroupField";
+import { PermissionManager } from "@/components/PermissionManager";
+import { CreateEventGroupModal } from "@/components/CreateEventGroupModal";
+import { CreateUserGroupModal } from "@/components/CreateUserGroupModal";
 import { MESSAGES } from "./messages";
-import { EventInput } from "@/types/eventTypes";
+import { EventInput } from "@/types/event";
 import { addEvent } from "@/server-actions/addEvent";
+import {
+  getAccessibleEventGroups,
+  getOrCreatePersonalGroup,
+} from "@/server-actions/eventGroup";
+import { getAccessibleUserGroups } from "@/server-actions/userGroup";
+import { EventGroup } from "@/types/eventGroup";
+import { UserGroup } from "@/types/userGroup";
 
 export default function Page() {
   const params = useSearchParams();
@@ -22,46 +29,100 @@ export default function Page() {
   const { data: session } = authClient.useSession();
   const { showAlert } = useAlert();
 
-  const prefillDate = params.get("prefillDate") ?? formatLocalDate(new Date());
+  // Event groups state
+  const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
+  const [isLoadingGroups, setIsLoadingGroups] = useState(true);
+
+  // User groups state (for permission manager)
+  const [userGroups, setUserGroups] = useState<UserGroup[]>([]);
+
+  // Modal states
+  const [isCreateEventGroupModalOpen, setIsCreateEventGroupModalOpen] =
+    useState(false);
+  const [isCreateUserGroupModalOpen, setIsCreateUserGroupModalOpen] =
+    useState(false);
+
+  const prefillDate = params.get("prefillDate");
+  const prefillDateTime = prefillDate
+    ? prefillDate + "T00:00"
+    : formatLocalDateTime(new Date());
+
   const {
     formState,
+    setFormState,
     setFormField,
     validateForm,
     errors,
+    setErrors,
     isLoading,
     setIsLoading,
     isFormValid,
-  } = useEventForm(prefillDate);
+  } = useEventForm(prefillDateTime);
 
   const {
-    members,
-    emailInput,
-    setEmailInput,
-    addMembers,
-    removeMember,
+    permissions,
     isValidating,
     validationError,
-  } = useMemberManagement();
+    addMemberByEmail,
+    addUserGroup,
+    updateRole,
+    removeEntry,
+    clearValidationError,
+  } = usePermissionManager([]);
 
-  const handleValidateAndAddEmails = async () => {
-    if (!emailInput.trim()) return;
+  // Load event groups and user groups on mount
+  useEffect(() => {
+    const loadGroups = async () => {
+      if (!session?.user?.id) return;
 
-    const emailList = emailInput
-      .split(",")
-      .map((email) => email.trim())
-      .filter((email) => {
-        return (
-          email && !members.includes(email) && email !== session?.user.email
-        );
-      });
+      setIsLoadingGroups(true);
+      try {
+        // Ensure user has a personal group
+        await getOrCreatePersonalGroup();
 
-    if (emailList.length === 0) return;
+        // Load event groups
+        const eventGroupsResult = await getAccessibleEventGroups();
+        if (eventGroupsResult.success && eventGroupsResult.data) {
+          const groups = eventGroupsResult.data;
+          setEventGroups(groups);
+          // Auto-select Personal group if available and no selection
+          setFormState((prev) => {
+            if (!prev.eventGroupId) {
+              const personalGroup = groups.find((g) => g.name === "Personal");
+              if (personalGroup) {
+                return { ...prev, eventGroupId: personalGroup.id };
+              }
+            }
+            return prev;
+          });
+        }
 
-    const result = await addMembers(emailList);
+        // Load user groups for permission manager
+        const userGroupsResult = await getAccessibleUserGroups();
+        if (userGroupsResult.success && userGroupsResult.data) {
+          setUserGroups(userGroupsResult.data);
+        }
+      } catch (err) {
+        console.error("Error loading groups:", err);
+      } finally {
+        setIsLoadingGroups(false);
+      }
+    };
 
-    if (result?.invalidEmails.length) {
-      showAlert(MESSAGES.ALERT.INVALID_EMAILS(result.invalidEmails));
-    }
+    loadGroups();
+  }, [session?.user?.id, setFormState]);
+
+  // Handle new event group created
+  const handleEventGroupCreated = (newGroup: EventGroup) => {
+    setEventGroups((prev) => [...prev, newGroup]);
+    setFormField("eventGroupId", newGroup.id);
+    setIsCreateEventGroupModalOpen(false);
+  };
+
+  // Handle new user group created
+  const handleUserGroupCreated = (newGroup: UserGroup) => {
+    setUserGroups((prev) => [...prev, newGroup]);
+    setIsCreateUserGroupModalOpen(false);
   };
 
   const handleAddEvent = async (
@@ -69,47 +130,41 @@ export default function Page() {
   ) => {
     e.preventDefault();
 
-    if (!session?.user?.email) {
+    if (!session?.user?.email || !session?.user?.id) {
       showAlert(MESSAGES.ALERT.INVALID_SESSION);
       return;
     }
 
-    if (!validateForm()) {
+    if (!formState.eventGroupId) {
+      setErrors((prev) => ({
+        ...prev,
+        eventGroupId: "Please select an event group",
+      }));
+      return;
+    }
+
+    if (!validateForm(permissions)) {
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const selectedDate = parseLocalDateInput(formState.date);
-      const from = timeToDateTime(selectedDate, formState.fromTime);
+      const from = parseLocalDateInput(formState.fromTime);
       const to = formState.toTime
-        ? timeToDateTime(selectedDate, formState.toTime)
+        ? parseLocalDateInput(formState.toTime)
         : null;
 
       if (to && from >= to) {
         showAlert({
           title: '"to" time can not be before "from" time',
           type: "warning",
-          description: "",
         });
         setIsLoading(false);
         return;
       }
 
       if (new Date() >= from) {
-        showAlert({
-          title: '"from" time can not be in the past',
-          type: "warning",
-          description: "",
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate >= today) {
         showAlert({
           title: "Can not add Event in the past",
           type: "warning",
@@ -118,18 +173,19 @@ export default function Page() {
         setIsLoading(false);
         return;
       }
-      const mems = [...members, session.user.email];
 
       const sendEvent: EventInput = {
         title: formState.title,
         description: formState.description,
-        date: selectedDate,
         from,
         to,
-        userId: session.user.id,
+        type: formState.allDay ? "allday" : "default",
+        createdBy: session.user.id,
+        eventGroupId: formState.eventGroupId,
+        permissions: formState.perEventMembers ? permissions : [],
       };
 
-      const response = await addEvent(sendEvent, mems);
+      const response = await addEvent(sendEvent);
 
       if (!response.success || !response.data) {
         showAlert(MESSAGES.ALERT.EVENT_ADD_ERROR);
@@ -177,24 +233,80 @@ export default function Page() {
               errors={errors}
             />
 
-            <MembersSection
-              members={members}
-              sessionEmail={session?.user?.email}
-              emailInput={emailInput}
-              onEmailInputChange={setEmailInput}
-              onAddMembers={handleValidateAndAddEmails}
-              onRemoveMember={removeMember}
-              isValidating={isValidating}
+            {/* Event Group Selection */}
+            <EventGroupField
+              value={formState.eventGroupId}
+              onChange={(value) => setFormField("eventGroupId", value)}
+              groups={eventGroups}
+              onCreateNew={() => setIsCreateEventGroupModalOpen(true)}
+              isLoading={isLoadingGroups}
+              error={errors.eventGroupId}
             />
 
-            {validationError?.invalidEmails.length ? (
-              <div className="text-red-400 text-sm bg-red-900/20 p-3 rounded">
-                Invalid emails: {validationError.invalidEmails.join(", ")}
+            <div className="flex justify-start items-center gap-3">
+              <label className="text-white text-sm font-medium">
+                Add Per Event Members and Groups
+              </label>
+              <input
+                type="checkbox"
+                checked={formState.perEventMembers}
+                onChange={() =>
+                  setFormField("perEventMembers", !formState.perEventMembers)
+                }
+                className="px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {formState.perEventMembers && (
+              <div className="rounded-lg border border-zinc-700 bg-zinc-800/50 p-4">
+                <h3 className="text-white text-sm font-medium mb-4">
+                  Event Permissions
+                </h3>
+                <p className="text-zinc-400 text-xs mb-4">
+                  Add users or groups to give them access to this specific
+                  event. If a user is added both individually and via a group,
+                  the higher permission takes precedence.
+                </p>
+                <PermissionManager
+                  permissions={permissions}
+                  onAddEmail={addMemberByEmail}
+                  onAddUserGroup={addUserGroup}
+                  onUpdateRole={updateRole}
+                  onRemoveEntry={removeEntry}
+                  isValidating={isValidating}
+                  validationError={validationError}
+                  onClearError={clearValidationError}
+                  availableUserGroups={userGroups}
+                  allowUserGroups={true}
+                  onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
+                />
               </div>
-            ) : null}
+            )}
           </form>
         </div>
       </div>
+
+      {/* Create Event Group Modal */}
+      {session?.user?.id && (
+        <CreateEventGroupModal
+          isOpen={isCreateEventGroupModalOpen}
+          onClose={() => setIsCreateEventGroupModalOpen(false)}
+          onCreated={handleEventGroupCreated}
+          userId={session.user.id}
+          availableUserGroups={userGroups}
+          onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
+        />
+      )}
+
+      {/* Create User Group Modal */}
+      {session?.user?.id && (
+        <CreateUserGroupModal
+          isOpen={isCreateUserGroupModalOpen}
+          onClose={() => setIsCreateUserGroupModalOpen(false)}
+          onCreated={handleUserGroupCreated}
+          userId={session.user.id}
+        />
+      )}
     </div>
   );
 }

@@ -7,8 +7,3 @@ export type Result<T> =
       success: false;
       error: string;
     };
-
-export type EmailCheckResult = {
-  email: string;
-  exist: boolean;
-};

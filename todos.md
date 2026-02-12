@@ -12,6 +12,8 @@
 - fix the status tag's width
 - redesign the notifs to be db linked
 - add a way to add profile pictures
+- add multidate select
+- create enums on supabase
 
 MAJOR FEAT:
 

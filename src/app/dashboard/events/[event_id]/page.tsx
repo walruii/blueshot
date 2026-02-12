@@ -1,5 +1,5 @@
 import { getEvent } from "@/server-actions/event";
-import { dateToTimeString, formatLocalDate } from "@/utils/dateUtil";
+import { dateToTimeString } from "@/utils/dateUtil";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { EventParticipant } from "@/types/eventParticipantType";
@@ -9,8 +9,6 @@ import Loading from "@/app/(header-footer)/Loading";
 import { redirect } from "next/navigation";
 import AcknowledgementButton from "../../AcknowledgementButton";
 import DeleteEvent from "./DeleteEvent";
-import { getNotification } from "@/server-actions/notification";
-import { getEventMembers } from "@/server-actions/eventParticipant";
 
 export default async function Page({
   params,
@@ -33,11 +31,13 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
 
   const { event_id } = await params;
   const event = await getEvent(event_id);
-  const eventPart = await getNotification(event_id);
+  // const eventPart = await getNotification(event_id);
+  const eventPart = null;
 
-  const isCreator = session?.user?.id === event?.userId;
+  const isCreator = session?.user?.id === event?.createdBy;
 
-  const memResult = await getEventMembers(event_id);
+  // const memResult = await getEventMembers(event_id);
+  const memResult = { success: false };
   let members: EventParticipant[] = [];
   if (memResult.success && memResult.data) {
     members = memResult?.data;
@@ -52,7 +52,7 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
   }
 
   const canShowAck = (): boolean => {
-    if (session?.user.id === event.userId) {
+    if (session?.user.id === event.createdBy) {
       return false;
     }
     if (!eventPart) {
@@ -97,14 +97,6 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-zinc-400 text-sm font-medium block mb-2">
-                  Date
-                </label>
-                <p className="text-white text-lg">
-                  {formatLocalDate(event.date)}
-                </p>
-              </div>
-              <div>
-                <label className="text-zinc-400 text-sm font-medium block mb-2">
                   From
                 </label>
                 <p className="text-white text-lg">
@@ -121,7 +113,7 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
               </div>
             </div>
           </div>
-          {event.userId === session.user.id && <DeleteEvent event={event} />}
+          {event.createdBy === session.user.id && <DeleteEvent event={event} />}
         </div>
 
         {/* Members Section */}
