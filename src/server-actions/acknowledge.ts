@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Result } from "@/types/returnType";
-import { formatUserEventState, UserEventState } from "@/types/userEventState";
+import { UserEventState } from "@/types/userEventState";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 

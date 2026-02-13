@@ -2,7 +2,6 @@
 
 import { useRealtimeInbox } from "@/hooks/useRealtimeInbox";
 import { authClient } from "@/lib/auth-client";
-import Loading from "../(header-footer)/Loading";
 
 export default function RealtimeInboxWrapper({
   children,
@@ -11,7 +10,7 @@ export default function RealtimeInboxWrapper({
 }) {
   const { data: session, isPending } = authClient.useSession();
   useRealtimeInbox(session?.user?.id || "");
-  if (isPending) return <Loading />;
+  if (isPending) return <>{children}</>;
 
   return <>{children}</>;
 }

@@ -12,6 +12,6 @@ export type EventGroupAccess = {
   userGroupId: string;
 };
 
-export const formatEventGroup = (
-  dbEventGroupAccess: EventGroupAccessDB,
-) => ({});
+// export const formatEventGroup = (
+//   dbEventGroupAccess: EventGroupAccessDB,
+// ) => ({});

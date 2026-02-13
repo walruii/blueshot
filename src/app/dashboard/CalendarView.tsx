@@ -1,27 +1,17 @@
 "use client";
 import { useState } from "react";
 import Calendar from "react-calendar";
-import { Event, EventMap } from "../../types/event";
+import { EventMap } from "../../types/event";
 import DotIcon from "../../svgs/DotIcon";
 import { sortEvents } from "../../utils/dateUtil";
 import "./Calendar.css";
 import EventList from "./EventList";
-import { Session } from "@/types/sessionType";
-import NotificationUpcomingCluster from "./(notif)/NotificationUpcomingCluster";
-import UserIcon from "@/svgs/UserIcon";
 import Link from "next/link";
-import { Notification } from "@/types/notification";
 
 export default function CalendarView({
   dbEvents: events,
-  notifications,
-  session,
-  activeEvents,
 }: {
   dbEvents: EventMap;
-  notifications: Notification[];
-  session: Session;
-  activeEvents: Event[];
 }) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const renderTileContent = ({ date, view }: { date: Date; view: string }) => {
@@ -64,26 +54,7 @@ export default function CalendarView({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-2 lg:grid-cols-6 lg:grid-rows-4 h-auto lg:h-260 max-w-500 mx-auto">
-      <div className="pb-7 pt-4 bg-zinc-900 rounded-xl h-full col-span-1 lg:col-span-3">
-        <p className="font-bold pb-3 px-5 text-3xl">
-          Welcome! {session.user.name}
-        </p>
-        <div className="p-6 flex flex-col sm:flex-row">
-          <div className="flex justify-center items-center rounded-full overflow-clip h-25 w-25">
-            <UserIcon />
-            {/* <Image src="/file.svg" width={100} height={100} alt="" /> */}
-          </div>
-          <div className="px-2">
-            <p>Hope you are doing fantastic today!</p>
-          </div>
-        </div>
-      </div>
-      <NotificationUpcomingCluster
-        className="bg-zinc-900 rounded-xl h-full col-span-1 lg:col-span-3 flex flex-col"
-        notifications={notifications}
-        activeEvents={activeEvents}
-      />
+    <>
       <Calendar
         showFixedNumberOfWeeks={true}
         tileClassName={"h-25 flex flex-col sm:items-start p-0"}
@@ -97,6 +68,6 @@ export default function CalendarView({
         events={events}
         className="lg:row-span-3 lg:col-span-2"
       />
-    </div>
+    </>
   );
 }

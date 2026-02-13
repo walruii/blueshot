@@ -2,10 +2,9 @@ import { getEvent } from "@/server-actions/event";
 import { dateToTimeString } from "@/utils/dateUtil";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { EventParticipant } from "@/types/eventParticipantType";
 import Link from "next/link";
 import { Suspense } from "react";
-import Loading from "@/app/(header-footer)/Loading";
+import Loading from "@/app/(loading)/Loading";
 import { redirect } from "next/navigation";
 import AcknowledgementButton from "../../AcknowledgementButton";
 import DeleteEvent from "./DeleteEvent";
@@ -13,7 +12,8 @@ import {
   getUserEventState,
   getUserEventStates,
 } from "@/server-actions/userStateEvent";
-import { EventMember, UserEventState } from "@/types/userEventState";
+import { EventMember } from "@/types/userEventState";
+import LoadingEventPage from "@/app/(loading)/LoadingEventPage";
 
 export default async function Page({
   params,
@@ -21,7 +21,7 @@ export default async function Page({
   params: { event_id: string };
 }) {
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<LoadingEventPage />}>
       <PageAsync params={params} />
     </Suspense>
   );
