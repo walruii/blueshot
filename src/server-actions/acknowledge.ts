@@ -1,45 +1,53 @@
 "use server";
 
+import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Result } from "@/types/returnType";
+import { formatUserEventState, UserEventState } from "@/types/userEventState";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 export const acknowledgeEvent = async (
-  eventParticipantId: string,
-): Promise<Result<null>> => {
+  userEventStateId: string,
+): Promise<Result<UserEventState | null>> => {
   try {
-    const { data: ep, error: someEr } = await supabaseAdmin
-      .from("event_participant")
-      .select("event!inner ( user_id )")
-      .eq("id", eventParticipantId)
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session)
+      return { success: false, error: "Invalid Seesion Try again Later" };
+    const { data: ues, error: someEr } = await supabaseAdmin
+      .from("event_user_state")
+      .select("event!inner ( created_by )")
+      .eq("id", userEventStateId)
+      .eq("user_id", session.user.id)
       .maybeSingle();
 
-    if (!ep) {
-      return { success: false, err: "EventP not found" };
+    if (!ues) {
+      return { success: false, error: "UES not found" };
     }
     if (someEr) {
       console.error(someEr);
-      return { success: false, err: "EventP not found" };
+      return { success: false, error: "UES not found" };
     }
 
     const { error } = await supabaseAdmin
-      .from("event_participant")
-      .update({ acknowledgement: true })
-      .eq("id", eventParticipantId);
+      .from("event_user_state")
+      .update({ acknowledged_at: new Date().toISOString() })
+      .eq("id", userEventStateId);
 
     if (error) {
       console.error(error);
-      return { success: false, err: "db failed to update event participant" };
+      return { success: false, error: "db failed to update event user state" };
     }
-    console.log(ep.event.user_id);
     supabaseAdmin
-      .channel(`user_inbox_${ep.event.user_id}`)
+      .channel(`user_inbox_${ues.event.created_by}`)
       .httpSend("UPDATE_ACK", {});
 
     revalidatePath("/dashboard");
     return { success: true };
   } catch (err) {
     console.error(err);
-    return { success: false, err: "Internal Server Error" };
+    return { success: false, error: "Internal Server Error" };
   }
 };

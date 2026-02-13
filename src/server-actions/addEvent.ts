@@ -1,18 +1,22 @@
 "use server";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { EventDB, EventInput } from "@/types/event";
+import { Database } from "@/types/database.types";
+import { EventInput } from "@/types/event";
 import { PermissionEntry } from "@/types/permission";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { getAffectedUserIds, notifyAffectedUsers } from "./notification";
 
 interface EmailCheckResult {
   email: string;
   exist: boolean;
 }
 
-export const addEvent = async (event: EventInput): Promise<Result<EventDB>> => {
+export const addEvent = async (
+  event: EventInput,
+): Promise<Result<Database["public"]["Tables"]["event"]["Row"]>> => {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -66,30 +70,10 @@ export const addEvent = async (event: EventInput): Promise<Result<EventDB>> => {
       }
     }
 
-    // Create event_user_state for the creator (auto-acknowledged)
-    const { error: stateError } = await supabaseAdmin
-      .from("event_user_state")
-      .insert({
-        event_id: eventDB.id,
-        user_id: event.createdBy,
-        source_group_id: event.eventGroupId,
-        acknowledged_at: new Date().toISOString(),
-        event_sent_at: new Date().toISOString(),
-      });
-
-    if (stateError) {
-      console.warn(
-        "Failed to create event_user_state for creator:",
-        stateError,
-      );
-    }
+    await addUserStates(eventDB, event.permissions);
 
     // Send realtime notification to affected users
-    await notifyAffectedUsers(
-      eventDB.id,
-      event.eventGroupId,
-      event.permissions,
-    );
+    await notifyAffectedUsers(eventDB, "NEW_EVENT", event.permissions);
 
     revalidatePath("/dashboard");
     return { success: true, data: eventDB };
@@ -99,6 +83,45 @@ export const addEvent = async (event: EventInput): Promise<Result<EventDB>> => {
   }
 };
 
+async function addUserStates(
+  eventDb: Database["public"]["Tables"]["event"]["Row"],
+  permissions?: PermissionEntry[],
+) {
+  const userIds = await getAffectedUserIds(eventDb, permissions);
+
+  const userStates: {
+    event_id: string;
+    user_id: string;
+    acknowledged_at: string | null;
+    event_sent_at: string | null;
+  }[] = [];
+  userIds.forEach((id) => {
+    if (id === eventDb.created_by) {
+      userStates.push({
+        event_id: eventDb.id,
+        user_id: id,
+        acknowledged_at: new Date().toISOString(),
+        event_sent_at: new Date().toISOString(),
+      });
+      return;
+    }
+    userStates.push({
+      event_id: eventDb.id,
+      user_id: id,
+      acknowledged_at: null,
+      event_sent_at: new Date().toISOString(),
+    });
+    return;
+  });
+  // Create event_user_state for the creator (auto-acknowledged)
+  const { error: stateError } = await supabaseAdmin
+    .from("event_user_state")
+    .insert(userStates);
+
+  if (stateError) {
+    console.warn("Failed to create event_user_states ", stateError);
+  }
+}
 /**
  * Resolve permission entries to database format for event_access
  */
@@ -168,64 +191,6 @@ async function resolvePermissionsForEvent(
   }
 
   return results;
-}
-
-/**
- * Notify users who have access to the event
- */
-async function notifyAffectedUsers(
-  eventId: string,
-  eventGroupId: string,
-  permissions: PermissionEntry[],
-): Promise<void> {
-  try {
-    // Collect user IDs from permissions
-    const userIds = new Set<string>();
-
-    const emailEntries = permissions.filter((p) => p.type === "email");
-    if (emailEntries.length > 0) {
-      const emails = emailEntries.map((e) => e.identifier);
-      const { data: users } = await supabaseAdmin
-        .from("user")
-        .select("id")
-        .in("email", emails);
-
-      users?.forEach((u) => userIds.add(u.id));
-    }
-
-    // Get users from user groups
-    const groupEntries = permissions.filter((p) => p.type === "userGroup");
-    for (const entry of groupEntries) {
-      const { data: members } = await supabaseAdmin
-        .from("user_group_member")
-        .select("user_id")
-        .eq("user_group_id", entry.identifier);
-
-      members?.forEach((m) => userIds.add(m.user_id));
-    }
-
-    // Get users from event group access
-    const { data: groupAccess } = await supabaseAdmin
-      .from("event_group_access")
-      .select("user_id")
-      .eq("event_group_id", eventGroupId)
-      .not("user_id", "is", null);
-
-    groupAccess?.forEach((a) => {
-      if (a.user_id) userIds.add(a.user_id);
-    });
-
-    // Send realtime notifications
-    for (const userId of userIds) {
-      supabaseAdmin.channel(`user_inbox_${userId}`).send({
-        type: "broadcast",
-        event: "NEW_EVENT",
-        payload: { eventId },
-      });
-    }
-  } catch (err) {
-    console.error("Error notifying users:", err);
-  }
 }
 
 export const checkEmailListExist = async (

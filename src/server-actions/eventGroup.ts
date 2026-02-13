@@ -198,6 +198,21 @@ export const getOrCreatePersonalGroup = async (): Promise<
       return { success: false, error: "Failed to create personal group" };
     }
 
+    // Group access to user
+    const { error } = await supabaseAdmin.from("event_group_access").insert({
+      event_group_id: newGroup.id,
+      user_id: session.user.id,
+      role: 3,
+    });
+
+    if (error) {
+      console.error("Error adding user to event group access", error);
+      return {
+        success: false,
+        error: "Failed to add you to group access contact Support",
+      };
+    }
+
     return { success: true, data: formatEventGroup(newGroup) };
   } catch (err) {
     console.error("Unexpected error in getOrCreatePersonalGroup:", err);

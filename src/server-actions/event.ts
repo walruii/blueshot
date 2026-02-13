@@ -1,20 +1,16 @@
 "use server";
-import {
-  Event,
-  EventDB,
-  EventMap,
-  formatEvent,
-  formatEventMap,
-} from "@/types/event";
+import { Event, EventMap, formatEvent, formatEventMap } from "@/types/event";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
 export const getEvent = async (id: string): Promise<Event | null> => {
   try {
-    const { data: event, error }: PostgrestSingleResponse<EventDB | null> =
-      await supabaseAdmin.from("event").select().eq("id", id).maybeSingle();
+    const { data: event, error } = await supabaseAdmin
+      .rpc("get_event", {
+        request_id: id,
+      })
+      .maybeSingle();
     if (error) {
       console.error("DBError running getEvent", error);
       return null;

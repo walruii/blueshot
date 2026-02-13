@@ -1,27 +1,27 @@
 "use client";
 import { useState } from "react";
 import Calendar from "react-calendar";
-import { EventMap } from "../../types/event";
+import { Event, EventMap } from "../../types/event";
 import DotIcon from "../../svgs/DotIcon";
 import { sortEvents } from "../../utils/dateUtil";
 import "./Calendar.css";
 import EventList from "./EventList";
 import { Session } from "@/types/sessionType";
-import { EventNotification } from "@/types/notificationType";
 import NotificationUpcomingCluster from "./(notif)/NotificationUpcomingCluster";
-import { Upcoming } from "@/types/upcomingType";
 import UserIcon from "@/svgs/UserIcon";
+import Link from "next/link";
+import { Notification } from "@/types/notification";
 
 export default function CalendarView({
   dbEvents: events,
   notifications,
   session,
-  upcomingEvents,
+  activeEvents,
 }: {
   dbEvents: EventMap;
-  notifications: EventNotification[];
+  notifications: Notification[];
   session: Session;
-  upcomingEvents: Upcoming[];
+  activeEvents: Event[];
 }) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const renderTileContent = ({ date, view }: { date: Date; view: string }) => {
@@ -41,7 +41,12 @@ export default function CalendarView({
           {eves.slice(0, 3).map((e) => (
             <div key={e.id} className="flex items-center gap-1">
               <DotIcon size={10} color={"yellow"} />
-              <p className="truncate text-xs hidden sm:block">{e.title}</p>
+              <Link
+                href={`/dashboard/events/${e.id}`}
+                className="hover:underline"
+              >
+                <p className="truncate text-xs hidden sm:block">{e.title}</p>
+              </Link>
             </div>
           ))}
         </div>
@@ -77,7 +82,7 @@ export default function CalendarView({
       <NotificationUpcomingCluster
         className="bg-zinc-900 rounded-xl h-full col-span-1 lg:col-span-3 flex flex-col"
         notifications={notifications}
-        upcomingEvents={upcomingEvents}
+        activeEvents={activeEvents}
       />
       <Calendar
         showFixedNumberOfWeeks={true}

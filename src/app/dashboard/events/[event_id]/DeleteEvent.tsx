@@ -19,13 +19,19 @@ export default function DeleteEvent({ event: e }: { event: Event }) {
       const res = await deleteEvent(e.id);
       if (!res.success) {
         showAlert({
-          title: res.err,
+          title: res.error,
           description: "",
           type: "error",
         });
         setIsLoading(false);
         return;
       }
+
+      showAlert({
+        title: "Event Deleted",
+        description: `${e.title}`,
+        type: "success",
+      });
       setConfirmWin(false);
       setIsLoading(false);
       router.push("/dashboard");

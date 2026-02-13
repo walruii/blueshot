@@ -11,6 +11,8 @@ export type Event = {
   createdBy: string;
   from: Date;
   to: Date | null;
+  eventUserName: string;
+  eventUserEmail: string;
 };
 
 export type EventInput = {
@@ -24,7 +26,8 @@ export type EventInput = {
   permissions: PermissionEntry[]; // per-event permissions
 };
 
-export type EventDB = Database["public"]["Tables"]["event"]["Row"];
+export type EventDB =
+  Database["public"]["Functions"]["get_event"]["Returns"]["0"];
 
 export type EventMap = Map<string, Event[]>;
 
@@ -42,6 +45,8 @@ export const formatEvent = (dbEvent: EventDB): Event => ({
   type: dbEvent.type,
   status: dbEvent.status,
   eventGroupId: dbEvent.event_group_id,
+  eventUserName: dbEvent.event_user_name,
+  eventUserEmail: dbEvent.event_user_email,
 });
 
 /**

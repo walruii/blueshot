@@ -322,6 +322,7 @@ export type Database = {
           priority: number
           title: string
           type: string
+          user_id: string
         }
         Insert: {
           archived?: string | null
@@ -331,6 +332,7 @@ export type Database = {
           priority?: number
           title: string
           type: string
+          user_id: string
         }
         Update: {
           archived?: string | null
@@ -340,8 +342,17 @@ export type Database = {
           priority?: number
           title?: string
           type?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       session: {
         Row: {

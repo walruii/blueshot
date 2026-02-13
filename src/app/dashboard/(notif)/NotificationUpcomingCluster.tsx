@@ -1,18 +1,18 @@
 "use client";
 import { useState } from "react";
 import NotificationList from "./NotificationList";
-import { EventNotification } from "@/types/notificationType";
 import UpcomingEventList from "./UpcomingEventList";
-import { Upcoming } from "@/types/upcomingType";
+import { Event } from "@/types/event";
+import { Notification } from "@/types/notification";
 
 export default function NotificationUpcomingCluster({
   className,
   notifications,
-  upcomingEvents,
+  activeEvents,
 }: {
   className?: string;
-  notifications: EventNotification[];
-  upcomingEvents: Upcoming[];
+  notifications: Notification[];
+  activeEvents: Event[];
 }) {
   const [selectedCluster, setCluster] = useState<"notification" | "upcoming">(
     "notification",
@@ -36,7 +36,7 @@ export default function NotificationUpcomingCluster({
       {selectedCluster === "notification" ? (
         <NotificationList notifications={notifications} />
       ) : (
-        <UpcomingEventList upcomingEvents={upcomingEvents} />
+        <UpcomingEventList activeEvents={activeEvents} />
       )}
     </div>
   );

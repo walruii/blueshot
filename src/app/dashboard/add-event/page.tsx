@@ -151,11 +151,13 @@ export default function Page() {
 
     try {
       const from = parseLocalDateInput(formState.fromTime);
-      const to = formState.toTime
-        ? parseLocalDateInput(formState.toTime)
-        : null;
+      const to = formState.allDay
+        ? null
+        : formState.toTime
+          ? parseLocalDateInput(formState.toTime)
+          : null;
 
-      if (to && from >= to) {
+      if (to && !formState.allDay && from >= to) {
         showAlert({
           title: '"to" time can not be before "from" time',
           type: "warning",

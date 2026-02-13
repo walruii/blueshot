@@ -3,8 +3,8 @@
 import { auth } from "@/lib/auth";
 import { Result } from "@/types/returnType";
 import { headers } from "next/headers";
-import { getEvent } from "./event";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { notifyAffectedUsers } from "./notification";
 
 export const deleteEvent = async (
   eventId: string,
@@ -14,22 +14,27 @@ export const deleteEvent = async (
       headers: await headers(),
     });
 
-    if (!session) return { success: false, err: "Invalid session" };
-    const event = await getEvent(eventId);
-    if (!event) return { success: false, err: "Event Not Found" };
-    if (event.userId !== session.user.id)
-      return { success: false, err: "Only the Creator can delete event" };
+    if (!session) return { success: false, error: "Invalid session" };
+    const { data: event } = await supabaseAdmin
+      .from("event")
+      .select()
+      .eq("id", eventId)
+      .maybeSingle();
+    if (!event) return { success: false, error: "Event Not Found" };
+    if (event.created_by !== session.user.id)
+      return { success: false, error: "Only the Creator can delete event" };
     const { error } = await supabaseAdmin
       .from("event")
       .delete()
       .eq("id", eventId);
     if (error) {
       console.error(error);
-      return { success: false, err: "Error deleting event from DB." };
+      return { success: false, error: "Error deleting event from DB." };
     }
+    notifyAffectedUsers(event, "DELETE_EVENT");
     return { success: true };
   } catch (err) {
     console.error(err);
-    return { success: false, err: "Internal Server Error" };
+    return { success: false, error: "Internal Server Error" };
   }
 };

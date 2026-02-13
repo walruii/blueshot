@@ -9,13 +9,13 @@ export default function Event({ e }: { e: TEvent }) {
       className="border-b flex flex-col py-3 px-7 border-zinc-600"
     >
       <p className="block">{e.title}</p>
-      <p className="text-sm">created by: </p>
+      <p className="text-sm" title={e.eventUserEmail}>
+        created by: {e.eventUserName}
+      </p>
       <div className="flex gap-5 w-full pt-4">
-        {e.from && (
-          <p className="bg-blue-800 p-1 px-2 rounded-md">
-            from: {dateToTimeString(e.from)}
-          </p>
-        )}
+        <p className="bg-blue-800 p-1 px-2 rounded-md">
+          from: {dateToTimeString(e.from)}
+        </p>
         {e.to && (
           <p className="bg-blue-800 p-1 px-2 rounded-md">
             to: {dateToTimeString(e.to)}

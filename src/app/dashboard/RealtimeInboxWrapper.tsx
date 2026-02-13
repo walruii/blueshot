@@ -1,6 +1,6 @@
 "use client";
 
-import { useRealtimeInbox } from "@/hooks/useRealtimeIndox";
+import { useRealtimeInbox } from "@/hooks/useRealtimeInbox";
 import { authClient } from "@/lib/auth-client";
 import Loading from "../(header-footer)/Loading";
 
