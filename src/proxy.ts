@@ -12,7 +12,6 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-
   // Check if the route is under /app or other protected routes
   if (pathname.startsWith("/dashboard")) {
     try {
@@ -27,6 +26,7 @@ export async function proxy(request: NextRequest) {
       }
     } catch (error) {
       // If there's an error getting the session, redirect to signin
+      console.error("Error Getting the Session In Proxy", error);
       return NextResponse.redirect(new URL("/auth/signin", request.url));
     }
   }
@@ -34,16 +34,6 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configure which routes to run middleware on
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
-    "/((?!_next/static|_next/image|favicon.ico|public).*)",
-  ],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|public).*)"],
 };

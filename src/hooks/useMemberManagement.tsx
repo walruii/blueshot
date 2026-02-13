@@ -1,5 +1,5 @@
+import { checkEmailListExist } from "@/server-actions/addEvent";
 import { useState } from "react";
-import { checkEmailListExist } from "@/server-actions/supa";
 
 interface ValidationError {
   validEmails: string[];

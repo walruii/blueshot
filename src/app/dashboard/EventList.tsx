@@ -1,7 +1,7 @@
 "use client";
-import { EventMap } from "../../types/eventTypes";
+import { EventMap } from "../../types/event";
 import Event from "./Event";
-import { compareDates, formatLocalDate, sortEvents } from "../../utils/util";
+import { formatLocalDate, sortEvents } from "../../utils/dateUtil";
 import { useRouter } from "next/navigation";
 import { useAlert } from "../(alert)/AlertProvider";
 
@@ -22,7 +22,9 @@ export default function EventList({
   const { showAlert } = useAlert();
 
   const handleLink = () => {
-    if (compareDates(selectedDate, new Date(), true) >= 0) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (selectedDate >= today) {
       router.push(
         `/dashboard/add-event?prefillDate=${formatLocalDate(selectedDate)}`,
       );

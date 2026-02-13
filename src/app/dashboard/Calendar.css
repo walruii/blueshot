@@ -10,7 +10,7 @@
 }
 
 .react-calendar__navigation button {
-  @apply min-w-[44px] bg-transparent text-white font-semibold rounded-lg transition-all
+  @apply min-w-11 bg-transparent text-white font-semibold rounded-lg transition-all
          hover:bg-blue-600 focus:bg-blue-700 disabled:bg-blue-300;
 }
 

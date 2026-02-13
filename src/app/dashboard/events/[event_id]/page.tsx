@@ -1,18 +1,19 @@
-import {
-  getEvent,
-  getEventMembers,
-  getNotification,
-} from "@/server-actions/supa";
-import { dateToTimeString, formatLocalDate } from "@/utils/util";
+import { getEvent } from "@/server-actions/event";
+import { dateToTimeString } from "@/utils/dateUtil";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { EventParticipant } from "@/types/eventParticipantType";
 import Link from "next/link";
 import { Suspense } from "react";
-import Loading from "@/app/(header-footer)/Loading";
+import Loading from "@/app/(loading)/Loading";
 import { redirect } from "next/navigation";
 import AcknowledgementButton from "../../AcknowledgementButton";
 import DeleteEvent from "./DeleteEvent";
+import {
+  getUserEventState,
+  getUserEventStates,
+} from "@/server-actions/userStateEvent";
+import { EventMember } from "@/types/userEventState";
+import LoadingEventPage from "@/app/(loading)/LoadingEventPage";
 
 export default async function Page({
   params,
@@ -20,7 +21,7 @@ export default async function Page({
   params: { event_id: string };
 }) {
   return (
-    <Suspense fallback={<Loading />}>
+    <Suspense fallback={<LoadingEventPage />}>
       <PageAsync params={params} />
     </Suspense>
   );
@@ -35,15 +36,10 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
 
   const { event_id } = await params;
   const event = await getEvent(event_id);
-  const eventPart = await getNotification(event_id);
+  const isCreator = session?.user?.id === event?.createdBy;
+  const ues = await getUserEventState(event_id);
 
-  const isCreator = session?.user?.id === event?.userId;
-
-  const memResult = await getEventMembers(event_id);
-  let members: EventParticipant[] = [];
-  if (memResult.success && memResult.data) {
-    members = memResult?.data;
-  }
+  const eventMembers = await getUserEventStates(event_id);
 
   if (!event) {
     return (
@@ -54,12 +50,9 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
   }
 
   const canShowAck = (): boolean => {
-    if (session?.user.id === event.userId) {
-      return false;
-    }
-    if (!eventPart) {
-      return false;
-    }
+    if (session?.user.id === event.createdBy) return false;
+    if (!ues) return false;
+    if (ues.acknowledgedAt) return false;
     return true;
   };
 
@@ -79,9 +72,10 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
         {canShowAck() && (
           <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 mb-6 flex justify-between items-center">
             <p>You Haven&apos;t Acknowledged the Event!</p>
-            <AcknowledgementButton eventParticipateId={eventPart?.id ?? null} />
+            <AcknowledgementButton eventParticipateId={ues?.id ?? null} />
           </div>
         )}
+
         {/* Event Details Card */}
         <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800 mb-6">
           <h1 className="text-4xl font-bold text-white mb-6">{event.title}</h1>
@@ -99,31 +93,35 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="text-zinc-400 text-sm font-medium block mb-2">
-                  Date
-                </label>
-                <p className="text-white text-lg">
-                  {formatLocalDate(event.date)}
-                </p>
-              </div>
-              <div>
-                <label className="text-zinc-400 text-sm font-medium block mb-2">
                   From
                 </label>
                 <p className="text-white text-lg">
                   {dateToTimeString(event.from)}
                 </p>
               </div>
+              {event.type === "default" ? (
+                <div>
+                  <label className="text-zinc-400 text-sm font-medium block mb-2">
+                    To
+                  </label>
+                  <p className="text-white text-lg">
+                    {event.to ? dateToTimeString(event.to) : "N/A"}
+                  </p>
+                </div>
+              ) : (
+                <div>All Day Event</div>
+              )}
               <div>
                 <label className="text-zinc-400 text-sm font-medium block mb-2">
-                  To
+                  Created by:
                 </label>
-                <p className="text-white text-lg">
-                  {event.to ? dateToTimeString(event.to) : "N/A"}
+                <p className="text-white text-lg" title={event.eventUserEmail}>
+                  {event.eventUserName}
                 </p>
               </div>
             </div>
           </div>
-          {event.userId === session.user.id && <DeleteEvent event={event} />}
+          {isCreator && <DeleteEvent event={event} />}
         </div>
 
         {/* Members Section */}
@@ -140,7 +138,7 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
                       Member Email
                     </th>
                     <th className="text-center text-zinc-400 font-medium py-3 px-4">
-                      Mail Sent
+                      Notification Sent
                     </th>
                     <th className="text-center text-zinc-400 font-medium py-3 px-4">
                       Acknowledged
@@ -148,7 +146,7 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {members.length === 0 ? (
+                  {eventMembers.length === 0 ? (
                     <tr>
                       <td
                         colSpan={3}
@@ -158,7 +156,7 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
                       </td>
                     </tr>
                   ) : (
-                    members.map((m: EventParticipant) => {
+                    eventMembers.map((m: EventMember) => {
                       return (
                         <tr
                           key={m.id}
@@ -167,10 +165,10 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
                           <td className="text-white py-4 px-4">
                             {m.userEmail}
                           </td>
-                          {m.userId !== event.userId && (
+                          {m.userId !== event.createdBy && (
                             <>
                               <td className="text-center py-4 px-4">
-                                {m.mailSent ? (
+                                {m.eventSentAt ? (
                                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-green-900/30 text-green-400">
                                     ✓ Sent
                                   </span>
@@ -181,7 +179,7 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
                                 )}
                               </td>
                               <td className="text-center py-4 px-4">
-                                {m.acknowledgement ? (
+                                {m.acknowledgedAt ? (
                                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-900/30 text-blue-400">
                                     ✓ Acknowledged
                                   </span>
@@ -203,13 +201,13 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
           ) : (
             /* Regular Member View - Simple list */
             <div className="space-y-2">
-              {members.length === 0 ? (
+              {eventMembers.length === 0 ? (
                 <p className="text-zinc-500 text-center py-8">
                   No members in this event
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
-                  {members.map((m: EventParticipant) => (
+                  {eventMembers.map((m: EventMember) => (
                     <div
                       key={m.id}
                       className="bg-zinc-800 text-white px-4 py-2 rounded-full text-sm"

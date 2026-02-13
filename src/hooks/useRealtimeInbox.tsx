@@ -10,10 +10,18 @@ export function useRealtimeInbox(userId: string) {
   useEffect(() => {
     const channel = supabaseAnon.channel(`user_inbox_${userId}`);
     channel
-      .on("broadcast", { event: "NEW_INVITE" }, (payload) => {
+      .on("broadcast", { event: "NEW_EVENT" }, (payload) => {
         showAlert({
           title: "You got invited to a new event",
-          description: payload.payload.title,
+          description: payload.title,
+          type: "info",
+        });
+        router.refresh();
+      })
+      .on("broadcast", { event: "DELETE_EVENT" }, (payload) => {
+        showAlert({
+          title: "One of the Event's you were in got Deleted",
+          description: `${payload.title}`,
           type: "info",
         });
         router.refresh();

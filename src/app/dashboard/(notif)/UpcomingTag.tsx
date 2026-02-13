@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 
 const TAG = {
   fiveMinutes: {
-    title: "5 Mins left",
+    title: "In 5 mins",
     color: "bg-red-500",
   },
   tenMinutes: {
-    title: "10 Mins Left",
+    title: "In 10 mins",
     color: "bg-yellow-500",
   },
   onGoing: {
