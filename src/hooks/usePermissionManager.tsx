@@ -2,6 +2,11 @@ import { useState, useCallback } from "react";
 import { PermissionEntry, Role, RoleValue } from "@/types/permission";
 import { checkEmailListExist } from "@/server-actions/addEvent";
 
+interface UsePermissionManagerOptions {
+  initialPermissions?: PermissionEntry[];
+  excludedEmails?: string[]; // Emails that cannot be added (e.g., creator's email)
+}
+
 interface UsePermissionManagerReturn {
   permissions: PermissionEntry[];
   setPermissions: React.Dispatch<React.SetStateAction<PermissionEntry[]>>;
@@ -21,8 +26,20 @@ interface UsePermissionManagerReturn {
 }
 
 export const usePermissionManager = (
-  initialPermissions: PermissionEntry[] = [],
+  optionsOrInitialPermissions:
+    | UsePermissionManagerOptions
+    | PermissionEntry[] = [],
 ): UsePermissionManagerReturn => {
+  // Support both old signature (array) and new signature (options object)
+  const options: UsePermissionManagerOptions = Array.isArray(
+    optionsOrInitialPermissions,
+  )
+    ? { initialPermissions: optionsOrInitialPermissions }
+    : optionsOrInitialPermissions;
+
+  const { initialPermissions = [], excludedEmails = [] } = options;
+  const excludedEmailsSet = new Set(excludedEmails.map((e) => e.toLowerCase()));
+
   const [permissions, setPermissions] =
     useState<PermissionEntry[]>(initialPermissions);
   const [emailInput, setEmailInput] = useState("");
@@ -36,12 +53,24 @@ export const usePermissionManager = (
     [permissions],
   );
 
+  const isExcludedEmail = useCallback(
+    (email: string): boolean => {
+      return excludedEmailsSet.has(email.toLowerCase());
+    },
+    [excludedEmailsSet],
+  );
+
   const addMemberByEmail = useCallback(
     async (email: string): Promise<boolean> => {
       const trimmedEmail = email.trim().toLowerCase();
 
       if (!trimmedEmail) {
         setValidationError("Email is required");
+        return false;
+      }
+
+      if (isExcludedEmail(trimmedEmail)) {
+        setValidationError("Cannot add yourself or the event creator");
         return false;
       }
 
@@ -86,7 +115,7 @@ export const usePermissionManager = (
         setIsValidating(false);
       }
     },
-    [hasEntry],
+    [hasEntry, isExcludedEmail],
   );
 
   const addMembersByEmailList = useCallback(
@@ -96,7 +125,10 @@ export const usePermissionManager = (
       const uniqueEmails = [
         ...new Set(emails.map((e) => e.trim().toLowerCase())),
       ];
-      const newEmails = uniqueEmails.filter((e) => e && !hasEntry(e));
+      // Filter out already added emails and excluded emails (like creator's email)
+      const newEmails = uniqueEmails.filter(
+        (e) => e && !hasEntry(e) && !isExcludedEmail(e),
+      );
 
       if (newEmails.length === 0) {
         return { valid: [], invalid: [] };
@@ -148,7 +180,7 @@ export const usePermissionManager = (
         setIsValidating(false);
       }
     },
-    [hasEntry],
+    [hasEntry, isExcludedEmail],
   );
 
   const addUserGroup = useCallback(

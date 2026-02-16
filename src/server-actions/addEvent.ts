@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { Database } from "@/types/database.types";
 import { EventInput } from "@/types/event";
-import { PermissionEntry } from "@/types/permission";
+import { PermissionEntry, canWrite } from "@/types/permission";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -12,7 +12,10 @@ import {
   getAffectedUserIds,
   notifyAffectedUsers,
 } from "./notification";
-import { resolvePermissionsForEvent } from "./utils/permissionUtils";
+import {
+  resolvePermissionsForEvent,
+  getUserEventGroupRole,
+} from "./utils/permissionUtils";
 
 interface EmailCheckResult {
   email: string;
@@ -33,6 +36,20 @@ export const addEvent = async (
 
     if (session.user.id !== event.createdBy) {
       return { success: false, error: "Invalid data provided" };
+    }
+
+    // If adding to an event group, verify user has READ_WRITE+ access
+    if (event.eventGroupId) {
+      const role = await getUserEventGroupRole(
+        session.user.id,
+        event.eventGroupId,
+      );
+      if (!role || !canWrite(role)) {
+        return {
+          success: false,
+          error: "You don't have write access to this event group",
+        };
+      }
     }
 
     // Create the event

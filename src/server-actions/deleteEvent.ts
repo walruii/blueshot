@@ -5,6 +5,7 @@ import { Result } from "@/types/returnType";
 import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { CreatorInfo, notifyAffectedUsers } from "./notification";
+import { getEventPermissions } from "./utils/permissionUtils";
 
 export const deleteEvent = async (
   eventId: string,
@@ -21,8 +22,16 @@ export const deleteEvent = async (
       .eq("id", eventId)
       .maybeSingle();
     if (!event) return { success: false, error: "Event Not Found" };
-    if (event.created_by !== session.user.id)
-      return { success: false, error: "Only the Creator can delete event" };
+
+    // Check if user has permission to delete (creator OR admin on event group)
+    const permissions = await getEventPermissions(session.user.id, eventId);
+    if (!permissions.canDelete) {
+      return {
+        success: false,
+        error: "You don't have permission to delete this event",
+      };
+    }
+
     const { error } = await supabaseAdmin
       .from("event")
       .delete()
