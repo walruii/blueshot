@@ -12,9 +12,12 @@ import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { notifyEventGroupAction } from "./notification";
-import { verifyOwnership } from "./utils/authWrapper";
 import { fetchAccessDetails, AccessResult } from "./utils/accessUtils";
-import { resolvePermissionsForEventGroup } from "./utils/permissionUtils";
+import {
+  resolvePermissionsForEventGroup,
+  getUserEventGroupRole,
+} from "./utils/permissionUtils";
+import { Role, isAdmin, RoleValue } from "@/types/permission";
 
 const PERSONAL_GROUP_NAME = "Personal";
 
@@ -87,6 +90,105 @@ export const getAccessibleEventGroups = async (): Promise<
     return { success: true, data: uniqueGroups };
   } catch (err) {
     console.error("Unexpected error in getAccessibleEventGroups:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+/**
+ * Get event groups where the user has write access (READ_WRITE or ADMIN)
+ * Used for filtering which event groups can be selected when creating events
+ */
+export const getWritableEventGroups = async (): Promise<
+  Result<EventGroup[]>
+> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    const userId = session.user.id;
+
+    // Get groups created by the user (owner always has write access)
+    const { data: createdGroups, error: createdError } = await supabaseAdmin
+      .from("event_group")
+      .select("*")
+      .eq("created_by", userId);
+
+    if (createdError) {
+      console.error("Error fetching created groups:", createdError);
+      return { success: false, error: "Failed to fetch event groups" };
+    }
+
+    // Get groups the user has write access to directly (role >= READ_WRITE)
+    const { data: directWriteAccess, error: directError } = await supabaseAdmin
+      .from("event_group_access")
+      .select("event_group_id")
+      .eq("user_id", userId)
+      .gte("role", Role.READ_WRITE);
+
+    if (directError) {
+      console.error("Error fetching direct write access:", directError);
+      return { success: false, error: "Failed to fetch event groups" };
+    }
+
+    // Get user's group memberships
+    const { data: userGroupMemberships } = await supabaseAdmin
+      .from("user_group_member")
+      .select("user_group_id")
+      .eq("user_id", userId);
+
+    const userGroupIds =
+      userGroupMemberships?.map((g) => g.user_group_id) || [];
+
+    // Get groups the user has write access to via user groups
+    let groupWriteAccess: { event_group_id: string }[] = [];
+    if (userGroupIds.length > 0) {
+      const { data } = await supabaseAdmin
+        .from("event_group_access")
+        .select("event_group_id")
+        .in("user_group_id", userGroupIds)
+        .gte("role", Role.READ_WRITE);
+      groupWriteAccess = data || [];
+    }
+
+    // Combine all group IDs
+    const accessGroupIds = [
+      ...(directWriteAccess?.map((a) => a.event_group_id) || []),
+      ...groupWriteAccess.map((a) => a.event_group_id),
+    ];
+
+    // Get the actual group details
+    let sharedGroups: EventGroup[] = [];
+    if (accessGroupIds.length > 0) {
+      const { data: sharedGroupsData, error: sharedError } = await supabaseAdmin
+        .from("event_group")
+        .select("*")
+        .in("id", [...new Set(accessGroupIds)]);
+
+      if (sharedError) {
+        console.error("Error fetching shared groups:", sharedError);
+      } else {
+        sharedGroups = (sharedGroupsData || []).map(formatEventGroup);
+      }
+    }
+
+    // Combine and deduplicate
+    const allGroups = [
+      ...(createdGroups || []).map(formatEventGroup),
+      ...sharedGroups,
+    ];
+    const uniqueGroups = allGroups.filter(
+      (group, index, self) =>
+        index === self.findIndex((g) => g.id === group.id),
+    );
+
+    return { success: true, data: uniqueGroups };
+  } catch (err) {
+    console.error("Unexpected error in getWritableEventGroups:", err);
     return { success: false, error: "Internal Server Error" };
   }
 };
@@ -245,6 +347,7 @@ export const getOrCreatePersonalGroup = async (): Promise<
 
 /**
  * Add access to an existing event group
+ * Accessible by owner OR admin on event group
  */
 export const addAccessToEventGroup = async (
   groupId: string,
@@ -259,16 +362,21 @@ export const addAccessToEventGroup = async (
       return { success: false, error: "Invalid session" };
     }
 
-    // Verify user owns the group
+    // Check if user has admin access to the group
+    const userRole = await getUserEventGroupRole(session.user.id, groupId);
+    if (!userRole || !isAdmin(userRole)) {
+      return { success: false, error: "Access denied" };
+    }
+
+    // Get the group details
     const { data: group, error: groupError } = await supabaseAdmin
       .from("event_group")
       .select("*")
       .eq("id", groupId)
-      .eq("created_by", session.user.id)
       .single();
 
     if (groupError || !group) {
-      return { success: false, error: "Group not found or access denied" };
+      return { success: false, error: "Group not found" };
     }
 
     const accessInserts = await resolvePermissionsForEventGroup(
@@ -347,6 +455,8 @@ export const addAccessToEventGroup = async (
 
 /**
  * Remove access from an event group (user or user group)
+ * Accessible by owner OR admin on event group
+ * Admins cannot remove other admins - only the owner can
  */
 export const removeAccessFromEventGroup = async (
   groupId: string,
@@ -369,24 +479,58 @@ export const removeAccessFromEventGroup = async (
       };
     }
 
-    // Verify user owns the group
+    // Check if user has admin access to the group
+    const userRole = await getUserEventGroupRole(session.user.id, groupId);
+    if (!userRole || !isAdmin(userRole)) {
+      return { success: false, error: "Access denied" };
+    }
+
+    // Get the group details
     const { data: group, error: groupError } = await supabaseAdmin
       .from("event_group")
       .select("*")
       .eq("id", groupId)
-      .eq("created_by", session.user.id)
       .single();
 
     if (groupError || !group) {
-      return { success: false, error: "Group not found or access denied" };
+      return { success: false, error: "Group not found" };
     }
 
-    // Cannot remove owner from their own group
-    if (targetUserId === session.user.id) {
+    const isOwner = group.created_by === session.user.id;
+
+    // Cannot remove the owner from their own group
+    if (targetUserId === group.created_by) {
       return {
         success: false,
-        error: "Cannot remove yourself from the group",
+        error: "Cannot remove the group owner",
       };
+    }
+
+    // If not the owner, check if target is an admin (admins can't remove other admins)
+    if (!isOwner && targetUserId) {
+      const targetRole = await getUserEventGroupRole(targetUserId, groupId);
+      if (targetRole && isAdmin(targetRole)) {
+        return {
+          success: false,
+          error: "Only the group owner can remove admins",
+        };
+      }
+    }
+
+    // If not the owner and removing a user group, check if it grants admin access
+    if (!isOwner && targetUserGroupId) {
+      const { data: accessData } = await supabaseAdmin
+        .from("event_group_access")
+        .select("role")
+        .eq("event_group_id", groupId)
+        .eq("user_group_id", targetUserGroupId)
+        .maybeSingle();
+      if (accessData && isAdmin(accessData.role as RoleValue)) {
+        return {
+          success: false,
+          error: "Only the group owner can remove admin user groups",
+        };
+      }
     }
 
     let query = supabaseAdmin
@@ -435,7 +579,7 @@ export type { AccessResult as EventGroupAccessResult } from "./utils/accessUtils
 
 /**
  * Get all users and user groups with access to an event group
- * Only accessible by group owner
+ * Accessible by owner OR admin on event group
  */
 export const getEventGroupAccess = async (
   groupId: string,
@@ -449,14 +593,10 @@ export const getEventGroupAccess = async (
       return { success: false, error: "Invalid session" };
     }
 
-    // Verify user owns the group
-    const ownershipResult = await verifyOwnership(
-      "event_group",
-      groupId,
-      session.user.id,
-    );
-    if (!ownershipResult.success) {
-      return ownershipResult;
+    // Check if user has admin access to the group
+    const userRole = await getUserEventGroupRole(session.user.id, groupId);
+    if (!userRole || !isAdmin(userRole)) {
+      return { success: false, error: "Access denied" };
     }
 
     const accessData = await fetchAccessDetails("eventGroup", groupId);

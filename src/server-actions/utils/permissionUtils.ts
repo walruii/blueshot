@@ -1,7 +1,12 @@
 "use server";
 
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { PermissionEntry } from "@/types/permission";
+import {
+  PermissionEntry,
+  Role,
+  RoleValue,
+  getHigherRole,
+} from "@/types/permission";
 
 interface EventAccessInsert {
   event_id: string;
@@ -189,4 +194,154 @@ export async function resolvePermissionsToUserIds(
   }
 
   return [...userIds];
+}
+
+/**
+ * Get a user's effective role for an event group
+ * Considers: direct access, access via user groups, and owner status
+ * Returns the highest role from all access paths, or null if no access
+ */
+export async function getUserEventGroupRole(
+  userId: string,
+  eventGroupId: string,
+): Promise<RoleValue | null> {
+  // Check if user is the owner (treat as ADMIN)
+  const { data: eventGroup, error: groupError } = await supabaseAdmin
+    .from("event_group")
+    .select("created_by")
+    .eq("id", eventGroupId)
+    .maybeSingle();
+
+  if (groupError || !eventGroup) {
+    return null;
+  }
+
+  // Owner has implicit ADMIN access
+  if (eventGroup.created_by === userId) {
+    return Role.ADMIN;
+  }
+
+  // Get direct user access
+  const { data: directAccess } = await supabaseAdmin
+    .from("event_group_access")
+    .select("role")
+    .eq("event_group_id", eventGroupId)
+    .eq("user_id", userId);
+
+  // Get user's group memberships
+  const { data: userGroups } = await supabaseAdmin
+    .from("user_group_member")
+    .select("user_group_id")
+    .eq("user_id", userId);
+
+  const userGroupIds = userGroups?.map((g) => g.user_group_id) || [];
+
+  // Get access via user groups
+  let groupAccess: { role: number }[] = [];
+  if (userGroupIds.length > 0) {
+    const { data } = await supabaseAdmin
+      .from("event_group_access")
+      .select("role")
+      .eq("event_group_id", eventGroupId)
+      .in("user_group_id", userGroupIds);
+    groupAccess = data || [];
+  }
+
+  // Combine all access entries and find highest role
+  const allRoles = [
+    ...(directAccess?.map((a) => a.role as RoleValue) || []),
+    ...(groupAccess.map((a) => a.role as RoleValue) || []),
+  ];
+
+  if (allRoles.length === 0) {
+    return null;
+  }
+
+  return allRoles.reduce((highest, current) => getHigherRole(highest, current));
+}
+
+/**
+ * Check if user is the owner of an event group
+ */
+export async function isEventGroupOwner(
+  userId: string,
+  eventGroupId: string,
+): Promise<boolean> {
+  const { data: eventGroup } = await supabaseAdmin
+    .from("event_group")
+    .select("created_by")
+    .eq("id", eventGroupId)
+    .maybeSingle();
+
+  return eventGroup?.created_by === userId;
+}
+
+/**
+ * Get user's permissions for a specific event
+ * Returns object with canEdit, canDelete, canManageAccess, canChangeEventGroup, isOwner flags
+ */
+export async function getEventPermissions(
+  userId: string,
+  eventId: string,
+): Promise<{
+  canEdit: boolean;
+  canDelete: boolean;
+  canManageAccess: boolean;
+  canChangeEventGroup: boolean;
+  isOwner: boolean;
+  isEventCreator: boolean;
+}> {
+  // Get the event details
+  const { data: event } = await supabaseAdmin
+    .from("event")
+    .select("created_by, event_group_id")
+    .eq("id", eventId)
+    .maybeSingle();
+
+  if (!event) {
+    return {
+      canEdit: false,
+      canDelete: false,
+      canManageAccess: false,
+      canChangeEventGroup: false,
+      isOwner: false,
+      isEventCreator: false,
+    };
+  }
+
+  const isEventCreator = event.created_by === userId;
+
+  // If no event group, only creator has full access
+  if (!event.event_group_id) {
+    return {
+      canEdit: isEventCreator,
+      canDelete: isEventCreator,
+      canManageAccess: isEventCreator,
+      canChangeEventGroup: isEventCreator,
+      isOwner: isEventCreator,
+      isEventCreator,
+    };
+  }
+
+  // Get user's role in the event group
+  const role = await getUserEventGroupRole(userId, event.event_group_id);
+  const isGroupOwner = await isEventGroupOwner(userId, event.event_group_id);
+
+  // Permission logic:
+  // - canEdit: creator with READ_WRITE+ OR ADMIN
+  // - canDelete: creator OR ADMIN
+  // - canManageAccess: creator OR ADMIN
+  // - canChangeEventGroup: only the event creator (not admins)
+  // - isOwner: group owner (for UI purposes like showing all management options)
+  const hasWriteAccess = role !== null && role >= Role.READ_WRITE;
+  const hasAdminAccess = role === Role.ADMIN;
+
+  return {
+    canEdit: (isEventCreator && hasWriteAccess) || hasAdminAccess,
+    canDelete: isEventCreator || hasAdminAccess,
+    canManageAccess: isEventCreator || hasAdminAccess,
+    canChangeEventGroup: isEventCreator && hasWriteAccess,
+    isOwner: isGroupOwner,
+    isEventCreator,
+  };
 }

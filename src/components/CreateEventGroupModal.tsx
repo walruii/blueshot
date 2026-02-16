@@ -14,6 +14,7 @@ interface CreateEventGroupModalProps {
   onClose: () => void;
   onCreated: (group: EventGroup) => void;
   userId: string;
+  userEmail?: string;
   availableUserGroups?: UserGroup[];
   onCreateUserGroup?: () => void;
 }
@@ -23,6 +24,7 @@ export const CreateEventGroupModal = ({
   onClose,
   onCreated,
   userId,
+  userEmail,
   availableUserGroups = [],
   onCreateUserGroup,
 }: CreateEventGroupModalProps) => {
@@ -41,7 +43,10 @@ export const CreateEventGroupModal = ({
     removeEntry,
     clearValidationError,
     setPermissions,
-  } = usePermissionManager([]);
+  } = usePermissionManager({
+    initialPermissions: [],
+    excludedEmails: userEmail ? [userEmail] : [],
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

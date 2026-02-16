@@ -14,6 +14,7 @@ import {
 import { EventMember } from "@/types/userEventState";
 import LoadingEventPage from "@/app/(loading)/LoadingEventPage";
 import EventEditMode from "./EventEditMode";
+import { getEventPermissions } from "@/server-actions/utils/permissionUtils";
 
 export default async function Page({
   params,
@@ -36,7 +37,18 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
 
   const { event_id } = await params;
   const event = await getEvent(event_id);
-  const isCreator = session?.user?.id === event?.createdBy;
+
+  // Get user's permissions for this event
+  const permissions = event
+    ? await getEventPermissions(session.user.id, event_id)
+    : {
+        canEdit: false,
+        canDelete: false,
+        canManageAccess: false,
+        isOwner: false,
+        isEventCreator: false,
+      };
+
   const ues = await getUserEventState(event_id);
 
   const eventMembers = await getUserEventStates(event_id);
@@ -121,17 +133,17 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
               </div>
             </div>
           </div>
-          {isCreator && <DeleteEvent event={event} />}
+          {permissions.canDelete && <DeleteEvent event={event} />}
         </div>
 
-        {/* Edit Permissions (Creator Only) */}
-        {isCreator && <EventEditMode event={event} />}
+        {/* Edit Permissions (Users with canManageAccess) */}
+        {permissions.canManageAccess && <EventEditMode event={event} />}
 
         {/* Members Section */}
         <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800">
           <h2 className="text-2xl font-bold text-white mb-6">Event Members</h2>
 
-          {isCreator ? (
+          {permissions.canManageAccess ? (
             /* Creator View - Shows mail status and acknowledgment */
             <div className="overflow-x-auto">
               <table className="w-full">

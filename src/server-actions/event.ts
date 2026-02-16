@@ -7,9 +7,13 @@ import { PermissionEntry } from "@/types/permission";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { CreatorInfo, notifyEventAccessAction } from "./notification";
-import { verifyOwnership } from "./utils/authWrapper";
 import { fetchAccessDetails, AccessResult } from "./utils/accessUtils";
-import { resolvePermissionsForEvent } from "./utils/permissionUtils";
+import {
+  resolvePermissionsForEvent,
+  getEventPermissions,
+  getUserEventGroupRole,
+} from "./utils/permissionUtils";
+import { canWrite } from "@/types/permission";
 
 export const getEvent = async (id: string): Promise<Event | null> => {
   try {
@@ -60,7 +64,7 @@ export type { AccessResult as EventAccessResult } from "./utils/accessUtils";
 
 /**
  * Get all users and user groups with direct access to an event
- * Only accessible by event creator
+ * Accessible by event creator OR admin on event group
  */
 export const getEventAccess = async (
   eventId: string,
@@ -74,14 +78,10 @@ export const getEventAccess = async (
       return { success: false, error: "Invalid session" };
     }
 
-    // Verify user owns the event
-    const ownershipResult = await verifyOwnership(
-      "event",
-      eventId,
-      session.user.id,
-    );
-    if (!ownershipResult.success) {
-      return ownershipResult;
+    // Check if user has permission to manage access
+    const permissions = await getEventPermissions(session.user.id, eventId);
+    if (!permissions.canManageAccess) {
+      return { success: false, error: "Access denied" };
     }
 
     const accessData = await fetchAccessDetails("event", eventId);
@@ -94,6 +94,7 @@ export const getEventAccess = async (
 
 /**
  * Add access to an event
+ * Accessible by event creator OR admin on event group
  */
 export const addAccessToEvent = async (
   eventId: string,
@@ -108,16 +109,21 @@ export const addAccessToEvent = async (
       return { success: false, error: "Invalid session" };
     }
 
-    // Verify user owns the event
+    // Check if user has permission to manage access
+    const userPermissions = await getEventPermissions(session.user.id, eventId);
+    if (!userPermissions.canManageAccess) {
+      return { success: false, error: "Access denied" };
+    }
+
+    // Get the event details
     const { data: event, error: eventError } = await supabaseAdmin
       .from("event")
       .select("*")
       .eq("id", eventId)
-      .eq("created_by", session.user.id)
       .single();
 
     if (eventError || !event) {
-      return { success: false, error: "Event not found or access denied" };
+      return { success: false, error: "Event not found" };
     }
 
     const accessInserts = await resolvePermissionsForEvent(
@@ -186,6 +192,7 @@ export const addAccessToEvent = async (
 
 /**
  * Remove access from an event
+ * Accessible by event creator OR admin on event group
  */
 export const removeAccessFromEvent = async (
   eventId: string,
@@ -208,23 +215,28 @@ export const removeAccessFromEvent = async (
       };
     }
 
-    // Verify user owns the event
+    // Check if user has permission to manage access
+    const userPermissions = await getEventPermissions(session.user.id, eventId);
+    if (!userPermissions.canManageAccess) {
+      return { success: false, error: "Access denied" };
+    }
+
+    // Get the event details
     const { data: event, error: eventError } = await supabaseAdmin
       .from("event")
       .select("*")
       .eq("id", eventId)
-      .eq("created_by", session.user.id)
       .single();
 
     if (eventError || !event) {
-      return { success: false, error: "Event not found or access denied" };
+      return { success: false, error: "Event not found" };
     }
 
-    // Cannot remove owner from their own event
-    if (targetUserId === session.user.id) {
+    // Cannot remove the event creator from their own event
+    if (targetUserId === event.created_by) {
       return {
         success: false,
-        error: "Cannot remove yourself from the event",
+        error: "Cannot remove the event creator",
       };
     }
 
@@ -274,6 +286,8 @@ export const removeAccessFromEvent = async (
 
 /**
  * Update an event's event group
+ * Only accessible by the event creator (not admins)
+ * Changing event group is a structural change that only the owner should control
  */
 export const updateEventGroup = async (
   eventId: string,
@@ -288,16 +302,23 @@ export const updateEventGroup = async (
       return { success: false, error: "Invalid session" };
     }
 
-    // Verify user owns the event
+    // Get the event details
     const { data: event, error: eventError } = await supabaseAdmin
       .from("event")
       .select("*")
       .eq("id", eventId)
-      .eq("created_by", session.user.id)
       .single();
 
     if (eventError || !event) {
-      return { success: false, error: "Event not found or access denied" };
+      return { success: false, error: "Event not found" };
+    }
+
+    // Only the event creator can change the event group
+    if (event.created_by !== session.user.id) {
+      return {
+        success: false,
+        error: "Only the event creator can change the event group",
+      };
     }
 
     // Verify user has access to the new event group
@@ -311,20 +332,13 @@ export const updateEventGroup = async (
       return { success: false, error: "Event group not found" };
     }
 
-    // Check if user owns or has access to the new group
-    const hasAccess =
-      newGroup.created_by === session.user.id ||
-      (
-        await supabaseAdmin
-          .from("event_group_access")
-          .select("id")
-          .eq("event_group_id", newEventGroupId)
-          .eq("user_id", session.user.id)
-          .maybeSingle()
-      ).data !== null;
-
-    if (!hasAccess) {
-      return { success: false, error: "No access to target event group" };
+    // Check if user has READ_WRITE+ access to the new group
+    const targetGroupRole = await getUserEventGroupRole(
+      session.user.id,
+      newEventGroupId,
+    );
+    if (!targetGroupRole || !canWrite(targetGroupRole)) {
+      return { success: false, error: "No write access to target event group" };
     }
 
     // Update the event

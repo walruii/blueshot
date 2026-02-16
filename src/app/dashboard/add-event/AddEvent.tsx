@@ -15,7 +15,7 @@ import { MESSAGES } from "./messages";
 import { EventInput } from "@/types/event";
 import { addEvent } from "@/server-actions/addEvent";
 import {
-  getAccessibleEventGroups,
+  getWritableEventGroups,
   getOrCreatePersonalGroup,
 } from "@/server-actions/eventGroup";
 import { getAccessibleUserGroups } from "@/server-actions/userGroup";
@@ -67,7 +67,10 @@ export default function AddEvent() {
     updateRole,
     removeEntry,
     clearValidationError,
-  } = usePermissionManager([]);
+  } = usePermissionManager({
+    initialPermissions: [],
+    excludedEmails: session?.user?.email ? [session.user.email] : [],
+  });
 
   // Load event groups and user groups on mount
   useEffect(() => {
@@ -79,8 +82,8 @@ export default function AddEvent() {
         // Ensure user has a personal group
         await getOrCreatePersonalGroup();
 
-        // Load event groups
-        const eventGroupsResult = await getAccessibleEventGroups();
+        // Load event groups (only those with write access)
+        const eventGroupsResult = await getWritableEventGroups();
         if (eventGroupsResult.success && eventGroupsResult.data) {
           const groups = eventGroupsResult.data;
           setEventGroups(groups);
@@ -294,6 +297,7 @@ export default function AddEvent() {
           onClose={() => setIsCreateEventGroupModalOpen(false)}
           onCreated={handleEventGroupCreated}
           userId={session.user.id}
+          userEmail={session.user.email}
           availableUserGroups={userGroups}
           onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
         />
