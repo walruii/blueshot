@@ -50,7 +50,7 @@ export default function UpcomingTag({ from }: { from: Date }) {
 
   const tag = TAG[tagKey];
   return (
-    <span className={`block font-bold px-2 rounded-lg ${tag.color}`}>
+    <span className={`block font-bold px-2 rounded-lg w-fit ${tag.color}`}>
       {tag.title}
     </span>
   );
