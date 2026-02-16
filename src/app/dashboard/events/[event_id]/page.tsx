@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { Suspense } from "react";
-import Loading from "@/app/(loading)/Loading";
 import { redirect } from "next/navigation";
 import AcknowledgementButton from "../../AcknowledgementButton";
 import DeleteEvent from "./DeleteEvent";
@@ -14,6 +13,7 @@ import {
 } from "@/server-actions/userStateEvent";
 import { EventMember } from "@/types/userEventState";
 import LoadingEventPage from "@/app/(loading)/LoadingEventPage";
+import EventEditMode from "./EventEditMode";
 
 export default async function Page({
   params,
@@ -123,6 +123,9 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
           </div>
           {isCreator && <DeleteEvent event={event} />}
         </div>
+
+        {/* Edit Permissions (Creator Only) */}
+        {isCreator && <EventEditMode event={event} />}
 
         {/* Members Section */}
         <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800">

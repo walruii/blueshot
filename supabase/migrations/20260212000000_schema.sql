@@ -66,7 +66,7 @@ CREATE TYPE "public"."access" AS ENUM (
 );
 
 
-ALTER TYPE "public"."access" OWNER TO "supabase_admin";
+ALTER TYPE "public"."access" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."event_status" AS ENUM (
@@ -76,7 +76,7 @@ CREATE TYPE "public"."event_status" AS ENUM (
 );
 
 
-ALTER TYPE "public"."event_status" OWNER TO "supabase_admin";
+ALTER TYPE "public"."event_status" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."event_type" AS ENUM (
@@ -85,11 +85,152 @@ CREATE TYPE "public"."event_type" AS ENUM (
 );
 
 
-ALTER TYPE "public"."event_type" OWNER TO "supabase_admin";
+ALTER TYPE "public"."event_type" OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_active_events"("requesting_user_id" "text") RETURNS TABLE("id" "uuid", "title" "text", "description" "text", "from" timestamp with time zone, "to" timestamp with time zone, "created_by" "text", "created_at" timestamp with time zone, "type" "public"."event_type", "status" "public"."event_status", "event_group_id" "uuid", "event_user_name" "text", "event_user_email" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT e.id, e.title, e.description, e."from", e."to", e.created_by, e.created_at, e.type, e.status, e.event_group_id, u.name as event_user_name, u.email as event_user_email
+    FROM event e
+
+    LEFT JOIN "user" u ON e.created_by = u.id
+    WHERE e."to" > NOW()
+    AND EXISTS (
+        SELECT 1
+        FROM view_all_event_access vae
+        WHERE vae.event_id = e.id
+        AND vae.user_id = requesting_user_id
+    )
+    ORDER BY e."from";
+
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_active_events"("requesting_user_id" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_event"("request_id" "uuid") RETURNS TABLE("id" "uuid", "title" "text", "description" "text", "from" timestamp with time zone, "to" timestamp with time zone, "created_by" "text", "created_at" timestamp with time zone, "type" "public"."event_type", "status" "public"."event_status", "event_group_id" "uuid", "event_user_name" "text", "event_user_email" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT e.id, e.title, e.description, e.from, e.to, e.created_by, e.created_at, e.type, e.status, e.event_group_id, u.name as event_user_name, u.email as event_user_email
+    FROM event e
+
+    LEFT JOIN "user" u ON e.created_by = u.id
+    WHERE e.id = request_id
+    LIMIT 1;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_event"("request_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_event_members"("target_event_id" "uuid") RETURNS TABLE("acknowledged_at" timestamp with time zone, "created_at" timestamp with time zone, "event_id" "uuid", "event_sent_at" timestamp with time zone, "id" "uuid", "user_id" "text", "user_name" "text", "user_email" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+eus.acknowledged_at,
+eus.created_at,
+eus.event_id,
+eus.event_sent_at,
+eus.id,
+eus.user_id,
+u.email as user_email, u.name as user_name
+    FROM event_user_state eus
+    LEFT JOIN "user" u ON u.id = eus.user_id
+    WHERE eus.event_id = target_event_id
+      AND EXISTS (
+          SELECT 1
+          FROM view_all_event_access vae
+          WHERE vae.event_id = target_event_id
+      );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_event_members"("target_event_id" "uuid") OWNER TO "postgres";
 
 SET default_tablespace = '';
 
 SET default_table_access_method = "heap";
+
+
+CREATE TABLE IF NOT EXISTS "public"."event_user_state" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
+    "event_id" "uuid" NOT NULL,
+    "user_id" "text" NOT NULL,
+    "event_sent_at" timestamp with time zone,
+    "acknowledged_at" timestamp with time zone
+);
+
+
+ALTER TABLE "public"."event_user_state" OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") RETURNS SETOF "public"."event_user_state"
+    LANGUAGE "plpgsql"
+    AS $$BEGIN
+    RETURN QUERY
+    SELECT eus.*
+    FROM event_user_state eus
+    WHERE eus.event_id = target_event_id
+      AND eus.user_id = requesting_user_id
+      AND EXISTS (
+          -- One simple check against our 4-way view
+          SELECT 1
+          FROM view_all_event_access vae
+          WHERE vae.event_id = target_event_id
+            AND vae.user_id = requesting_user_id
+      );
+END;$$;
+
+
+ALTER FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_user_events"("request_id" "text") RETURNS TABLE("id" "uuid", "title" "text", "description" "text", "from" timestamp with time zone, "to" timestamp with time zone, "created_by" "text", "created_at" timestamp with time zone, "type" "public"."event_type", "status" "public"."event_status", "event_group_id" "uuid", "event_user_name" "text", "event_user_email" "text")
+    LANGUAGE "plpgsql"
+    AS $$
+BEGIN
+    RETURN QUERY
+    SELECT DISTINCT e.id, e.title, e.description, e.from, e.to, e.created_by, e.created_at, e.type, e.status, e.event_group_id, u.name as event_user_name, u.email as event_user_email
+    FROM event e
+
+    LEFT JOIN "user" u ON e.created_by = u.id
+    -- 1. Path via Event Groups (Team access)
+    LEFT JOIN event_group_access ega ON e.event_group_id = ega.event_group_id
+    LEFT JOIN user_group_member ugm ON ega.user_group_id = ugm.user_group_id
+
+    -- 2. Path via Individual Event Access (One-off guests)
+    LEFT JOIN event_access ea ON e.id = ea.event_id
+    LEFT JOIN user_group_member ugm_direct ON ea.user_group_id = ugm_direct.user_group_id
+
+    WHERE
+        -- User is the creator
+        e.created_by = request_id
+
+        -- OR User has access via an Event Group (Directly or via a User Group)
+        OR ega.user_id = request_id
+        OR ugm.user_id = request_id
+
+        -- OR User has access to the specific Event (Directly or via a User Group)
+        OR ea.user_id = request_id
+        OR ugm_direct.user_id = request_id;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_user_events"("request_id" "text") OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."account" (
@@ -126,7 +267,7 @@ CREATE TABLE IF NOT EXISTS "public"."event" (
 );
 
 
-ALTER TABLE "public"."event" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_access" (
@@ -139,7 +280,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_access" (
 );
 
 
-ALTER TABLE "public"."event_access" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event_access" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_group" (
@@ -150,7 +291,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_group" (
 );
 
 
-ALTER TABLE "public"."event_group" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event_group" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_group_access" (
@@ -163,21 +304,22 @@ CREATE TABLE IF NOT EXISTS "public"."event_group_access" (
 );
 
 
-ALTER TABLE "public"."event_group_access" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event_group_access" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."event_user_state" (
+CREATE TABLE IF NOT EXISTS "public"."notifications" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "title" "text" NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "source_group_id" "uuid" NOT NULL,
-    "event_id" "uuid" NOT NULL,
-    "user_id" "text" NOT NULL,
-    "event_sent_at" timestamp with time zone,
-    "acknowledged_at" timestamp with time zone
+    "priority" integer DEFAULT 1 NOT NULL,
+    "type" "text" NOT NULL,
+    "archived" timestamp with time zone,
+    "payload" "jsonb",
+    "user_id" "text" NOT NULL
 );
 
 
-ALTER TABLE "public"."event_user_state" OWNER TO "supabase_admin";
+ALTER TABLE "public"."notifications" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."session" (
@@ -217,7 +359,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_group" (
 );
 
 
-ALTER TABLE "public"."user_group" OWNER TO "supabase_admin";
+ALTER TABLE "public"."user_group" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."user_group_member" (
@@ -228,7 +370,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_group_member" (
 );
 
 
-ALTER TABLE "public"."user_group_member" OWNER TO "supabase_admin";
+ALTER TABLE "public"."user_group_member" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."verification" (
@@ -242,6 +384,35 @@ CREATE TABLE IF NOT EXISTS "public"."verification" (
 
 
 ALTER TABLE "public"."verification" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."view_all_event_access" WITH ("security_invoker"='on') AS
+ SELECT "e"."id" AS "event_id",
+    "ega"."user_id"
+   FROM ("public"."event" "e"
+     JOIN "public"."event_group_access" "ega" ON (("e"."event_group_id" = "ega"."event_group_id")))
+  WHERE ("ega"."user_id" IS NOT NULL)
+UNION
+ SELECT "e"."id" AS "event_id",
+    "ugm"."user_id"
+   FROM (("public"."event" "e"
+     JOIN "public"."event_group_access" "ega" ON (("e"."event_group_id" = "ega"."event_group_id")))
+     JOIN "public"."user_group_member" "ugm" ON (("ega"."user_group_id" = "ugm"."user_group_id")))
+  WHERE ("ega"."user_group_id" IS NOT NULL)
+UNION
+ SELECT "ea"."event_id",
+    "ea"."user_id"
+   FROM "public"."event_access" "ea"
+  WHERE ("ea"."user_id" IS NOT NULL)
+UNION
+ SELECT "ea"."event_id",
+    "ugm"."user_id"
+   FROM ("public"."event_access" "ea"
+     JOIN "public"."user_group_member" "ugm" ON (("ea"."user_group_id" = "ugm"."user_group_id")))
+  WHERE ("ea"."user_group_id" IS NOT NULL);
+
+
+ALTER VIEW "public"."view_all_event_access" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."account"
@@ -271,6 +442,11 @@ ALTER TABLE ONLY "public"."event_user_state"
 
 ALTER TABLE ONLY "public"."event"
     ADD CONSTRAINT "events_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."notifications"
+    ADD CONSTRAINT "notifications_pkey" PRIMARY KEY ("id");
 
 
 
@@ -377,12 +553,12 @@ ALTER TABLE ONLY "public"."event_user_state"
 
 
 ALTER TABLE ONLY "public"."event_user_state"
-    ADD CONSTRAINT "event_user_state_source_group_id_fkey" FOREIGN KEY ("source_group_id") REFERENCES "public"."event_group"("id") ON UPDATE CASCADE ON DELETE CASCADE;
-
-
-
-ALTER TABLE ONLY "public"."event_user_state"
     ADD CONSTRAINT "event_user_state_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."notifications"
+    ADD CONSTRAINT "notifications_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 
@@ -422,6 +598,9 @@ ALTER TABLE "public"."event_group_access" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."event_user_state" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."session" ENABLE ROW LEVEL SECURITY;
@@ -618,6 +797,48 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."get_active_events"("requesting_user_id" "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."get_active_events"("requesting_user_id" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_active_events"("requesting_user_id" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_active_events"("requesting_user_id" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_event"("request_id" "uuid") TO "postgres";
+GRANT ALL ON FUNCTION "public"."get_event"("request_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_event"("request_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_event"("request_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_event_members"("target_event_id" "uuid") TO "postgres";
+GRANT ALL ON FUNCTION "public"."get_event_members"("target_event_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_event_members"("target_event_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_event_members"("target_event_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."event_user_state" TO "postgres";
+GRANT ALL ON TABLE "public"."event_user_state" TO "anon";
+GRANT ALL ON TABLE "public"."event_user_state" TO "authenticated";
+GRANT ALL ON TABLE "public"."event_user_state" TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_user_events"("request_id" "text") TO "postgres";
+GRANT ALL ON FUNCTION "public"."get_user_events"("request_id" "text") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_user_events"("request_id" "text") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_user_events"("request_id" "text") TO "service_role";
+
+
+
 
 
 
@@ -667,10 +888,10 @@ GRANT ALL ON TABLE "public"."event_group_access" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."event_user_state" TO "postgres";
-GRANT ALL ON TABLE "public"."event_user_state" TO "anon";
-GRANT ALL ON TABLE "public"."event_user_state" TO "authenticated";
-GRANT ALL ON TABLE "public"."event_user_state" TO "service_role";
+GRANT ALL ON TABLE "public"."notifications" TO "postgres";
+GRANT ALL ON TABLE "public"."notifications" TO "anon";
+GRANT ALL ON TABLE "public"."notifications" TO "authenticated";
+GRANT ALL ON TABLE "public"."notifications" TO "service_role";
 
 
 
@@ -703,6 +924,13 @@ GRANT ALL ON TABLE "public"."user_group_member" TO "service_role";
 GRANT ALL ON TABLE "public"."verification" TO "anon";
 GRANT ALL ON TABLE "public"."verification" TO "authenticated";
 GRANT ALL ON TABLE "public"."verification" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."view_all_event_access" TO "postgres";
+GRANT ALL ON TABLE "public"."view_all_event_access" TO "anon";
+GRANT ALL ON TABLE "public"."view_all_event_access" TO "authenticated";
+GRANT ALL ON TABLE "public"."view_all_event_access" TO "service_role";
 
 
 

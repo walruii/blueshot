@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { Result } from "@/types/returnType";
 import { headers } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { notifyAffectedUsers } from "./notification";
+import { CreatorInfo, notifyAffectedUsers } from "./notification";
 
 export const deleteEvent = async (
   eventId: string,
@@ -31,7 +31,11 @@ export const deleteEvent = async (
       console.error(error);
       return { success: false, error: "Error deleting event from DB." };
     }
-    notifyAffectedUsers(event, "DELETE_EVENT");
+    const creator: CreatorInfo = {
+      name: session.user.name,
+      email: session.user.email,
+    };
+    notifyAffectedUsers(event, "DELETE_EVENT", creator);
     return { success: true };
   } catch (err) {
     console.error(err);
