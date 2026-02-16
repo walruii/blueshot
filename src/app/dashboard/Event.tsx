@@ -19,6 +19,9 @@ export default function Event({ e }: { e: TEvent }) {
         {e.to && (
           <p className="bg-blue-800 p-1 px-2 rounded-md">
             to: {dateToTimeString(e.to)}
+            {e.to.toDateString() != e.from.toDateString() && (
+              <span>, {e.to.toDateString()}</span>
+            )}
           </p>
         )}
         <Link

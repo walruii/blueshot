@@ -12,9 +12,9 @@
 - ~~add multidate select~~
 - ~~make get acknowledgement function~~
 - ~~maybe move the upcoming and ongoing~~;
-- fix the status tag's width
+- ~~fix the status tag's width~~
+- ~~show the date with the time if multi select~~
 - add a way to add profile pictures
-  - show the date with the time if multi select
 - redesign the notifs to be db linked
   - add notifs on evnet add / delete, user group add delete , event group access
 - when sending invalid ids to the request it sends error fix that to make it just null or something
@@ -23,10 +23,10 @@ MAJOR FEAT:
 
 - ~~add groups for the events and make them auto select the people~~
 - ~~look into sql functions for transactions~~
+- ~~delink the calendarView with the layout so every component is individual~~
 - add the feature to add color to event or groups
 - add chat in the event
 - Enable RLS
 - Properly use zod
 - add week view
 - add day view
-- delink the calendarView with the layout so every component is individual

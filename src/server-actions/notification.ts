@@ -5,6 +5,7 @@ import { Database } from "@/types/database.types";
 import { formatNotification } from "@/types/notification";
 import { PermissionEntry } from "@/types/permission";
 import { headers } from "next/headers";
+import { Result } from "@/types/returnType";
 
 export const getNotifications = async () => {
   try {
@@ -16,7 +17,8 @@ export const getNotifications = async () => {
     const { data, error } = await supabaseAdmin
       .from("notifications")
       .select("*")
-      .eq("user_id", session.user.id)
+      .eq("user_id", session.user.id!)
+      .is("archived", null)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -99,3 +101,34 @@ export async function notifyAffectedUsers(
     console.error("Error in notifyAffectedUsers:", err);
   }
 }
+
+export const archiveNotification = async (
+  id: string,
+): Promise<Result<null>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session)
+      return { success: false, error: "Invalid session. Try again later." };
+
+    const { error } = await supabaseAdmin
+      .from("notifications")
+      .update({ archived: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", session.user.id);
+
+    if (error) {
+      console.error("Error archiving notification:", error);
+      return { success: false, error: "Failed to archive notification" };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Error in archiveNotification:", err);
+    return {
+      success: false,
+      error: "Internal server error archiving notification",
+    };
+  }
+};
