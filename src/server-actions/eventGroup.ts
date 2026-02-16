@@ -11,6 +11,10 @@ import { PermissionEntry } from "@/types/permission";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { notifyEventGroupAction } from "./notification";
+import { verifyOwnership } from "./utils/authWrapper";
+import { fetchAccessDetails, AccessResult } from "./utils/accessUtils";
+import { resolvePermissionsForEventGroup } from "./utils/permissionUtils";
 
 const PERSONAL_GROUP_NAME = "Personal";
 
@@ -136,6 +140,25 @@ export const createEventGroup = async (
         if (accessError) {
           console.error("Failed to add permissions:", accessError);
           // Don't fail the whole operation, group is created
+        } else {
+          // Notify users who were added (only direct users, not via user groups)
+          const directUserIds = accessInserts
+            .filter((a) => a.user_id !== null)
+            .map((a) => a.user_id as string);
+
+          if (directUserIds.length > 0) {
+            await notifyEventGroupAction(
+              directUserIds,
+              "ADDED_TO_EVENT_GROUP",
+              groupData.id,
+              groupData.name,
+              {
+                id: session.user.id,
+                name: session.user.name,
+                email: session.user.email,
+              },
+            );
+          }
         }
       }
     }
@@ -221,62 +244,225 @@ export const getOrCreatePersonalGroup = async (): Promise<
 };
 
 /**
- * Helper to resolve permission entries to database format
+ * Add access to an existing event group
  */
-async function resolvePermissionsForEventGroup(
-  eventGroupId: string,
+export const addAccessToEventGroup = async (
+  groupId: string,
   permissions: PermissionEntry[],
-): Promise<
-  Array<{
-    event_group_id: string;
-    user_id: string | null;
-    user_group_id: string | null;
-    role: number;
-  }>
-> {
-  const results: Array<{
-    event_group_id: string;
-    user_id: string | null;
-    user_group_id: string | null;
-    role: number;
-  }> = [];
+): Promise<Result<{ added: number; failed: number }>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-  // Separate emails and user groups
-  const emailEntries = permissions.filter((p) => p.type === "email");
-  const groupEntries = permissions.filter((p) => p.type === "userGroup");
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
 
-  // Resolve emails to user IDs
-  if (emailEntries.length > 0) {
-    const emails = emailEntries.map((e) => e.identifier);
-    const { data: users, error } = await supabaseAdmin
-      .from("user")
-      .select("id, email")
-      .in("email", emails);
+    // Verify user owns the group
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("event_group")
+      .select("*")
+      .eq("id", groupId)
+      .eq("created_by", session.user.id)
+      .single();
 
-    if (!error && users) {
-      for (const entry of emailEntries) {
-        const user = users.find((u) => u.email === entry.identifier);
-        if (user) {
-          results.push({
-            event_group_id: eventGroupId,
-            user_id: user.id,
-            user_group_id: null,
-            role: entry.role,
-          });
+    if (groupError || !group) {
+      return { success: false, error: "Group not found or access denied" };
+    }
+
+    const accessInserts = await resolvePermissionsForEventGroup(
+      groupId,
+      permissions,
+    );
+
+    if (accessInserts.length === 0) {
+      return { success: true, data: { added: 0, failed: permissions.length } };
+    }
+
+    // Check existing access
+    const { data: existingAccess } = await supabaseAdmin
+      .from("event_group_access")
+      .select("user_id, user_group_id")
+      .eq("event_group_id", groupId);
+
+    const existingUserIds = new Set(
+      existingAccess?.filter((a) => a.user_id).map((a) => a.user_id) || [],
+    );
+    const existingGroupIds = new Set(
+      existingAccess
+        ?.filter((a) => a.user_group_id)
+        .map((a) => a.user_group_id) || [],
+    );
+
+    const newInserts = accessInserts.filter((a) => {
+      if (a.user_id) return !existingUserIds.has(a.user_id);
+      if (a.user_group_id) return !existingGroupIds.has(a.user_group_id);
+      return false;
+    });
+
+    let added = 0;
+
+    if (newInserts.length > 0) {
+      const { error: accessError } = await supabaseAdmin
+        .from("event_group_access")
+        .insert(newInserts);
+
+      if (accessError) {
+        console.error("Failed to add access:", accessError);
+      } else {
+        added = newInserts.length;
+
+        // Notify users who were added (only direct users, not via user groups)
+        const directUserIds = newInserts
+          .filter((a) => a.user_id !== null)
+          .map((a) => a.user_id as string);
+
+        if (directUserIds.length > 0) {
+          await notifyEventGroupAction(
+            directUserIds,
+            "ADDED_TO_EVENT_GROUP",
+            groupId,
+            group.name,
+            {
+              id: session.user.id,
+              name: session.user.name,
+              email: session.user.email,
+            },
+          );
         }
       }
     }
-  }
 
-  // Add user group entries directly
-  for (const entry of groupEntries) {
-    results.push({
-      event_group_id: eventGroupId,
-      user_id: null,
-      user_group_id: entry.identifier,
-      role: entry.role,
+    revalidatePath("/dashboard");
+    return {
+      success: true,
+      data: { added, failed: accessInserts.length - added },
+    };
+  } catch (err) {
+    console.error("Unexpected error in addAccessToEventGroup:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+/**
+ * Remove access from an event group (user or user group)
+ */
+export const removeAccessFromEventGroup = async (
+  groupId: string,
+  targetUserId?: string,
+  targetUserGroupId?: string,
+): Promise<Result<null>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
     });
-  }
 
-  return results;
-}
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    if (!targetUserId && !targetUserGroupId) {
+      return {
+        success: false,
+        error: "Must specify user or user group to remove",
+      };
+    }
+
+    // Verify user owns the group
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("event_group")
+      .select("*")
+      .eq("id", groupId)
+      .eq("created_by", session.user.id)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found or access denied" };
+    }
+
+    // Cannot remove owner from their own group
+    if (targetUserId === session.user.id) {
+      return {
+        success: false,
+        error: "Cannot remove yourself from the group",
+      };
+    }
+
+    let query = supabaseAdmin
+      .from("event_group_access")
+      .delete()
+      .eq("event_group_id", groupId);
+
+    if (targetUserId) {
+      query = query.eq("user_id", targetUserId);
+    } else if (targetUserGroupId) {
+      query = query.eq("user_group_id", targetUserGroupId);
+    }
+
+    const { error } = await query;
+
+    if (error) {
+      console.error("Error removing access:", error);
+      return { success: false, error: "Failed to remove access" };
+    }
+
+    // Notify removed user (only if it's a direct user, not a group)
+    if (targetUserId) {
+      await notifyEventGroupAction(
+        [targetUserId],
+        "REMOVED_FROM_EVENT_GROUP",
+        groupId,
+        group.name,
+        {
+          id: session.user.id,
+          name: session.user.name,
+          email: session.user.email,
+        },
+      );
+    }
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error in removeAccessFromEventGroup:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+// Re-export shared access types for backwards compatibility
+export type { AccessResult as EventGroupAccessResult } from "./utils/accessUtils";
+
+/**
+ * Get all users and user groups with access to an event group
+ * Only accessible by group owner
+ */
+export const getEventGroupAccess = async (
+  groupId: string,
+): Promise<Result<AccessResult>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Verify user owns the group
+    const ownershipResult = await verifyOwnership(
+      "event_group",
+      groupId,
+      session.user.id,
+    );
+    if (!ownershipResult.success) {
+      return ownershipResult;
+    }
+
+    const accessData = await fetchAccessDetails("eventGroup", groupId);
+    return { success: true, data: accessData };
+  } catch (err) {
+    console.error("Unexpected error in getEventGroupAccess:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};

@@ -6,6 +6,7 @@ import { UserGroup, UserGroupInput, formatUserGroup } from "@/types/userGroup";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { notifyUserGroupAction } from "./notification";
 
 /**
  * Get all user groups accessible by the user (created by them or member of)
@@ -138,6 +139,20 @@ export const createUserGroup = async (
         if (memberError) {
           console.error("Failed to add members:", memberError);
           // Don't fail the whole operation, group is created
+        } else {
+          // Notify added members
+          const addedUserIds = users.map((u) => u.id);
+          await notifyUserGroupAction(
+            addedUserIds,
+            "ADDED_TO_USER_GROUP",
+            groupData.id,
+            groupData.name,
+            {
+              id: session.user.id,
+              name: session.user.name,
+              email: session.user.email,
+            },
+          );
         }
       }
     }
@@ -251,6 +266,172 @@ export const getUserGroupMembers = async (
     return { success: true, data: result };
   } catch (err) {
     console.error("Unexpected error in getUserGroupMembers:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+/**
+ * Add members to an existing user group
+ */
+export const addMembersToUserGroup = async (
+  groupId: string,
+  memberEmails: string[],
+): Promise<Result<{ added: string[]; failed: string[] }>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Verify user owns the group
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("user_group")
+      .select("*")
+      .eq("id", groupId)
+      .eq("created_by", session.user.id)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found or access denied" };
+    }
+
+    // Resolve emails to user IDs
+    const { data: users, error: usersError } = await supabaseAdmin
+      .from("user")
+      .select("id, email")
+      .in("email", memberEmails);
+
+    if (usersError) {
+      console.error("Error resolving user emails:", usersError);
+      return { success: false, error: "Failed to resolve emails" };
+    }
+
+    const added: string[] = [];
+    const failed: string[] = [];
+
+    if (users && users.length > 0) {
+      // Check existing members
+      const { data: existingMembers } = await supabaseAdmin
+        .from("user_group_member")
+        .select("user_id")
+        .eq("user_group_id", groupId);
+
+      const existingIds = new Set(existingMembers?.map((m) => m.user_id) || []);
+
+      const newMembers = users.filter((u) => !existingIds.has(u.id));
+
+      if (newMembers.length > 0) {
+        const memberInserts = newMembers.map((user) => ({
+          user_group_id: groupId,
+          user_id: user.id,
+        }));
+
+        const { error: memberError } = await supabaseAdmin
+          .from("user_group_member")
+          .insert(memberInserts);
+
+        if (memberError) {
+          console.error("Failed to add members:", memberError);
+          failed.push(...newMembers.map((u) => u.email));
+        } else {
+          added.push(...newMembers.map((u) => u.email));
+
+          // Notify added members
+          await notifyUserGroupAction(
+            newMembers.map((u) => u.id),
+            "ADDED_TO_USER_GROUP",
+            groupId,
+            group.name,
+            {
+              id: session.user.id,
+              name: session.user.name,
+              email: session.user.email,
+            },
+          );
+        }
+      }
+    }
+
+    // Track emails that didn't resolve
+    const resolvedEmails = new Set(users?.map((u) => u.email) || []);
+    memberEmails.forEach((email) => {
+      if (!resolvedEmails.has(email)) {
+        failed.push(email);
+      }
+    });
+
+    revalidatePath("/dashboard");
+    return { success: true, data: { added, failed } };
+  } catch (err) {
+    console.error("Unexpected error in addMembersToUserGroup:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+/**
+ * Remove a member from a user group
+ */
+export const removeMemberFromUserGroup = async (
+  groupId: string,
+  memberUserId: string,
+): Promise<Result<null>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Verify user owns the group
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("user_group")
+      .select("*")
+      .eq("id", groupId)
+      .eq("created_by", session.user.id)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found or access denied" };
+    }
+
+    // Cannot remove owner from their own group
+    if (memberUserId === session.user.id) {
+      return { success: false, error: "Cannot remove yourself from the group" };
+    }
+
+    const { error } = await supabaseAdmin
+      .from("user_group_member")
+      .delete()
+      .eq("user_group_id", groupId)
+      .eq("user_id", memberUserId);
+
+    if (error) {
+      console.error("Error removing member:", error);
+      return { success: false, error: "Failed to remove member" };
+    }
+
+    // Notify removed member
+    await notifyUserGroupAction(
+      [memberUserId],
+      "REMOVED_FROM_USER_GROUP",
+      groupId,
+      group.name,
+      {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+      },
+    );
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error in removeMemberFromUserGroup:", err);
     return { success: false, error: "Internal Server Error" };
   }
 };

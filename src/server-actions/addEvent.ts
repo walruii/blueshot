@@ -7,7 +7,12 @@ import { PermissionEntry } from "@/types/permission";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { getAffectedUserIds, notifyAffectedUsers } from "./notification";
+import {
+  CreatorInfo,
+  getAffectedUserIds,
+  notifyAffectedUsers,
+} from "./notification";
+import { resolvePermissionsForEvent } from "./utils/permissionUtils";
 
 interface EmailCheckResult {
   email: string;
@@ -73,7 +78,11 @@ export const addEvent = async (
     await addUserStates(eventDB, event.permissions);
 
     // Send realtime notification to affected users
-    await notifyAffectedUsers(eventDB, "NEW_EVENT", event.permissions);
+    const creator: CreatorInfo = {
+      name: session.user.name,
+      email: session.user.email,
+    };
+    await notifyAffectedUsers(eventDB, "NEW_EVENT", creator, event.permissions);
 
     revalidatePath("/dashboard");
     return { success: true, data: eventDB };
@@ -121,76 +130,6 @@ async function addUserStates(
   if (stateError) {
     console.warn("Failed to create event_user_states ", stateError);
   }
-}
-/**
- * Resolve permission entries to database format for event_access
- */
-async function resolvePermissionsForEvent(
-  eventId: string,
-  permissions: PermissionEntry[],
-): Promise<
-  Array<{
-    event_id: string;
-    user_id: string;
-    user_group_id: string | null;
-    role: number;
-  }>
-> {
-  const results: Array<{
-    event_id: string;
-    user_id: string;
-    user_group_id: string | null;
-    role: number;
-  }> = [];
-
-  // Separate emails and user groups
-  const emailEntries = permissions.filter((p) => p.type === "email");
-  const groupEntries = permissions.filter((p) => p.type === "userGroup");
-
-  // Resolve emails to user IDs
-  if (emailEntries.length > 0) {
-    const emails = emailEntries.map((e) => e.identifier);
-    const { data: users, error } = await supabaseAdmin
-      .from("user")
-      .select("id, email")
-      .in("email", emails);
-
-    if (!error && users) {
-      for (const entry of emailEntries) {
-        const user = users.find((u) => u.email === entry.identifier);
-        if (user) {
-          results.push({
-            event_id: eventId,
-            user_id: user.id,
-            user_group_id: null,
-            role: entry.role,
-          });
-        }
-      }
-    }
-  }
-
-  // Add user group entries - need to resolve group members
-  for (const entry of groupEntries) {
-    // Get all members of the user group
-    const { data: members, error } = await supabaseAdmin
-      .from("user_group_member")
-      .select("user_id")
-      .eq("user_group_id", entry.identifier);
-
-    if (!error && members) {
-      for (const member of members) {
-        results.push({
-          event_id: eventId,
-          user_id: member.user_id,
-          user_group_id: entry.identifier,
-          role: entry.role,
-        });
-      }
-    }
-  }
-
-  return results;
 }
 
 export const checkEmailListExist = async (
