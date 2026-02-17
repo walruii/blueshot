@@ -169,7 +169,7 @@ export const createUserGroup = async (
       console.error("Failed to add creator as member:", creatorError);
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true, data: formatUserGroup(groupData) };
   } catch (err) {
     console.error("Unexpected error in createUserGroup:", err);
@@ -363,7 +363,7 @@ export const addMembersToUserGroup = async (
       }
     });
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true, data: { added, failed } };
   } catch (err) {
     console.error("Unexpected error in addMembersToUserGroup:", err);
@@ -428,7 +428,7 @@ export const removeMemberFromUserGroup = async (
       },
     );
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true };
   } catch (err) {
     console.error("Unexpected error in removeMemberFromUserGroup:", err);

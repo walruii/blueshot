@@ -101,7 +101,7 @@ export const addEvent = async (
     };
     await notifyAffectedUsers(eventDB, "NEW_EVENT", creator, event.permissions);
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true, data: eventDB };
   } catch (err) {
     console.error("Unexpected Error in addEvent: ", err);

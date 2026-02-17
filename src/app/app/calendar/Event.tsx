@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Event as TEvent } from "../../types/event";
-import { dateToTimeString } from "../../utils/dateUtil";
+import { Event as TEvent } from "@/types/event";
+import { dateToTimeString } from "@/utils/dateUtil";
 
 export default function Event({ e }: { e: TEvent }) {
   return (
@@ -25,7 +25,7 @@ export default function Event({ e }: { e: TEvent }) {
           </p>
         )}
         <Link
-          href={`/dashboard/events/${e.id}`}
+          href={`/app/event/${e.id}`}
           className="bg-blue-700 rounded-lg ml-auto w-20 p-1 text-center hover:bg-blue-600 active:bg-blue-800"
         >
           view

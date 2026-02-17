@@ -1,9 +1,9 @@
 "use client";
 import { useState } from "react";
 import Calendar from "react-calendar";
-import { EventMap } from "../../types/event";
-import DotIcon from "../../svgs/DotIcon";
-import { sortEvents } from "../../utils/dateUtil";
+import { EventMap } from "@/types/event";
+import DotIcon from "@/svgs/DotIcon";
+import { sortEvents } from "@/utils/dateUtil";
 import "./Calendar.css";
 import EventList from "./EventList";
 import Link from "next/link";
@@ -31,10 +31,7 @@ export default function CalendarView({
           {eves.slice(0, 3).map((e) => (
             <div key={e.id} className="flex items-center gap-1">
               <DotIcon size={10} color={"yellow"} />
-              <Link
-                href={`/dashboard/events/${e.id}`}
-                className="hover:underline"
-              >
+              <Link href={`/app/event/${e.id}`} className="hover:underline">
                 <p className="truncate text-xs hidden sm:block">{e.title}</p>
               </Link>
             </div>
@@ -61,12 +58,12 @@ export default function CalendarView({
         tileContent={renderTileContent}
         onChange={(e) => handleCalendarChange(e as Date | null)}
         value={selectedDate}
-        className="h-full lg:col-span-4 lg:row-span-3"
+        className="h-full lg:col-span-4 lg:row-span-4"
       />
       <EventList
         selectedDate={selectedDate}
         events={events}
-        className="lg:row-span-3 lg:col-span-2"
+        className="lg:row-span-4 lg:col-span-2"
       />
     </>
   );

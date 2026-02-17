@@ -34,7 +34,7 @@ export default function DeleteEvent({ event: e }: { event: Event }) {
       });
       setConfirmWin(false);
       setIsLoading(false);
-      router.push("/dashboard");
+      router.push("/app");
     } catch (err) {
       console.error(err);
       showAlert({

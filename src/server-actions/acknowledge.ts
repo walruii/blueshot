@@ -44,7 +44,7 @@ export const acknowledgeEvent = async (
       .channel(`user_inbox_${ues.event.created_by}`)
       .httpSend("UPDATE_ACK", {});
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true };
   } catch (err) {
     console.error(err);

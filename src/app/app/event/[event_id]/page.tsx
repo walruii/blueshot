@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import AcknowledgementButton from "../../AcknowledgementButton";
+import AcknowledgementButton from "@/app/app/AcknowledgementButton";
 import DeleteEvent from "./DeleteEvent";
 import {
   getUserEventState,
@@ -74,7 +74,7 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
         {/* Header */}
         <div className="mb-8">
           <Link
-            href="/dashboard"
+            href="/app"
             className="inline-block bg-zinc-800 hover:bg-zinc-700 text-white font-semibold py-2 px-6 rounded-lg transition"
           >
             ← Back to Dashboard

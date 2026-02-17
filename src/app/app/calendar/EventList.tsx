@@ -1,9 +1,9 @@
 "use client";
-import { EventMap } from "../../types/event";
+import { EventMap } from "@/types/event";
 import Event from "./Event";
-import { formatLocalDate, sortEvents } from "../../utils/dateUtil";
+import { formatLocalDate, sortEvents } from "@/utils/dateUtil";
 import { useRouter } from "next/navigation";
-import { useAlert } from "../(alert)/AlertProvider";
+import { useAlert } from "@/app/(alert)/AlertProvider";
 
 export default function EventList({
   selectedDate,
@@ -26,7 +26,7 @@ export default function EventList({
     today.setHours(0, 0, 0, 0);
     if (selectedDate >= today) {
       router.push(
-        `/dashboard/add-event?prefillDate=${formatLocalDate(selectedDate)}`,
+        `/app/calendar/new?prefillDate=${formatLocalDate(selectedDate)}`,
       );
     } else {
       showAlert({
@@ -44,7 +44,7 @@ export default function EventList({
         <p>{selectedDate.toDateString()}</p>
         <div
           onClick={() => handleLink()}
-          className="bg-zinc-800 p-2 rounded-lg px-5 hover:bg-zinc-700 active:bg-blue-700"
+          className="bg-zinc-800 p-2 rounded-lg px-5 hover:bg-zinc-700 active:bg-blue-700 cursor-pointer"
         >
           Add Event
         </div>

@@ -1,3 +1,4 @@
+"use client";
 import { Notification } from "@/types/notification";
 import { dateToTimeString } from "@/utils/dateUtil";
 import CrossIcon from "@/svgs/CrossIcon";
@@ -19,7 +20,7 @@ function NotificationContent({ notification }: { notification: Notification }) {
         </p>
         {isNewEvent && (
           <Link
-            href={`/dashboard/events/${payload.eventId}`}
+            href={`/app/event/${payload.eventId}`}
             className="text-sm text-blue-400 hover:text-blue-300 underline"
           >
             View Event

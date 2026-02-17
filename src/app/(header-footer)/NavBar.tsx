@@ -7,7 +7,7 @@ import Link from "next/link";
 export default function NavBar() {
   const router = useRouter();
   const pathname = usePathname();
-  const isDashboard = pathname?.startsWith("/dashboard");
+  const isDashboard = pathname?.startsWith("/app");
 
   return (
     <nav className="flex justify-between items-center p-5 ">
@@ -18,9 +18,9 @@ export default function NavBar() {
         {isDashboard && (
           <>
             <Link
-              href="/dashboard"
+              href="/app"
               className={`text-sm font-medium transition ${
-                pathname === "/dashboard"
+                pathname === "/app"
                   ? "text-blue-400"
                   : "text-zinc-400 hover:text-white"
               }`}
@@ -28,19 +28,19 @@ export default function NavBar() {
               Dashboard
             </Link>
             <Link
-              href="/dashboard/add-event"
+              href="/app/calendar"
               className={`text-sm font-medium transition ${
-                pathname === "/dashboard/add-event"
+                pathname?.startsWith("/app/calendar")
                   ? "text-blue-400"
                   : "text-zinc-400 hover:text-white"
               }`}
             >
-              Add Event
+              Calendar
             </Link>
             <Link
-              href="/dashboard/groups/user"
+              href="/app/groups/user"
               className={`text-sm font-medium transition ${
-                pathname?.startsWith("/dashboard/groups")
+                pathname?.startsWith("/app/groups")
                   ? "text-blue-400"
                   : "text-zinc-400 hover:text-white"
               }`}

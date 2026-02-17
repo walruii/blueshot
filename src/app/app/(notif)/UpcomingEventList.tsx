@@ -16,7 +16,7 @@ export default function UpcomingEventList({
           className="flex w-full border-b border-zinc-600 items-center justify-between py-2"
         >
           <div className="flex flex-col p-1 rounded px-7 py-2 gap-2">
-            <Link href={`/dashboard/events/${e.id}`}>{e.title}</Link>
+            <Link href={`/app/event/${e.id}`}>{e.title}</Link>
             <UpcomingTag from={e.from} />
           </div>
           <div className="flex flex-col w-40 border-l px-3 py-2 border-zinc-600">

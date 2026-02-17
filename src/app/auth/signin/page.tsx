@@ -26,7 +26,7 @@ export default function Page() {
           },
           onSuccess: () => {
             setLoading(false);
-            router.push("/dashboard");
+            router.push("/app");
           },
           onError: (ctx) => {
             setLoading(false);

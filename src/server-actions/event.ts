@@ -179,7 +179,7 @@ export const addAccessToEvent = async (
       }
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return {
       success: true,
       data: { added, failed: accessInserts.length - added },
@@ -276,7 +276,7 @@ export const removeAccessFromEvent = async (
       );
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true };
   } catch (err) {
     console.error("Unexpected error in removeAccessFromEvent:", err);
@@ -352,7 +352,7 @@ export const updateEventGroup = async (
       return { success: false, error: "Failed to update event group" };
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true };
   } catch (err) {
     console.error("Unexpected error in updateEventGroup:", err);

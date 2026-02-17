@@ -11,8 +11,8 @@ export default function GroupsLayout({
   const pathname = usePathname();
 
   const tabs = [
-    { name: "User Groups", href: "/dashboard/groups/user" },
-    { name: "Event Groups", href: "/dashboard/groups/event" },
+    { name: "User Groups", href: "/app/groups/user" },
+    { name: "Event Groups", href: "/app/groups/event" },
   ];
 
   return (

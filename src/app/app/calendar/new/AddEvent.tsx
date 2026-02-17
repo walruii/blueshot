@@ -198,7 +198,7 @@ export default function AddEvent() {
       }
 
       showAlert(MESSAGES.ALERT.EVENT_ADD_SUCCESS);
-      router.push(`/dashboard/events/${response.data.id}`);
+      router.push(`/app/event/${response.data.id}`);
     } catch (err) {
       console.error("Error adding event:", err);
       showAlert(MESSAGES.ALERT.EVENT_ADD_ERROR);
