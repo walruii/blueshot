@@ -66,7 +66,7 @@ CREATE TYPE "public"."access" AS ENUM (
 );
 
 
-ALTER TYPE "public"."access" OWNER TO "supabase_admin";
+ALTER TYPE "public"."access" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."event_status" AS ENUM (
@@ -76,7 +76,7 @@ CREATE TYPE "public"."event_status" AS ENUM (
 );
 
 
-ALTER TYPE "public"."event_status" OWNER TO "supabase_admin";
+ALTER TYPE "public"."event_status" OWNER TO "postgres";
 
 
 CREATE TYPE "public"."event_type" AS ENUM (
@@ -85,7 +85,7 @@ CREATE TYPE "public"."event_type" AS ENUM (
 );
 
 
-ALTER TYPE "public"."event_type" OWNER TO "supabase_admin";
+ALTER TYPE "public"."event_type" OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_active_events"("requesting_user_id" "text") RETURNS TABLE("id" "uuid", "title" "text", "description" "text", "from" timestamp with time zone, "to" timestamp with time zone, "created_by" "text", "created_at" timestamp with time zone, "type" "public"."event_type", "status" "public"."event_status", "event_group_id" "uuid", "event_user_name" "text", "event_user_email" "text")
@@ -111,7 +111,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."get_active_events"("requesting_user_id" "text") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."get_active_events"("requesting_user_id" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_event"("request_id" "uuid") RETURNS TABLE("id" "uuid", "title" "text", "description" "text", "from" timestamp with time zone, "to" timestamp with time zone, "created_by" "text", "created_at" timestamp with time zone, "type" "public"."event_type", "status" "public"."event_status", "event_group_id" "uuid", "event_user_name" "text", "event_user_email" "text")
@@ -129,7 +129,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."get_event"("request_id" "uuid") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."get_event"("request_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_event_members"("target_event_id" "uuid") RETURNS TABLE("acknowledged_at" timestamp with time zone, "created_at" timestamp with time zone, "event_id" "uuid", "event_sent_at" timestamp with time zone, "id" "uuid", "user_id" "text", "user_name" "text", "user_email" "text")
@@ -157,7 +157,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."get_event_members"("target_event_id" "uuid") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."get_event_members"("target_event_id" "uuid") OWNER TO "postgres";
 
 SET default_tablespace = '';
 
@@ -174,7 +174,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_user_state" (
 );
 
 
-ALTER TABLE "public"."event_user_state" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event_user_state" OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") RETURNS SETOF "public"."event_user_state"
@@ -195,7 +195,7 @@ CREATE OR REPLACE FUNCTION "public"."get_user_event_state"("target_event_id" "uu
 END;$$;
 
 
-ALTER FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."get_user_event_state"("target_event_id" "uuid", "requesting_user_id" "text") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_user_events"("request_id" "text") RETURNS TABLE("id" "uuid", "title" "text", "description" "text", "from" timestamp with time zone, "to" timestamp with time zone, "created_by" "text", "created_at" timestamp with time zone, "type" "public"."event_type", "status" "public"."event_status", "event_group_id" "uuid", "event_user_name" "text", "event_user_email" "text")
@@ -230,7 +230,7 @@ END;
 $$;
 
 
-ALTER FUNCTION "public"."get_user_events"("request_id" "text") OWNER TO "supabase_admin";
+ALTER FUNCTION "public"."get_user_events"("request_id" "text") OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."account" (
@@ -267,7 +267,7 @@ CREATE TABLE IF NOT EXISTS "public"."event" (
 );
 
 
-ALTER TABLE "public"."event" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_access" (
@@ -280,7 +280,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_access" (
 );
 
 
-ALTER TABLE "public"."event_access" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event_access" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_group" (
@@ -291,7 +291,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_group" (
 );
 
 
-ALTER TABLE "public"."event_group" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event_group" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."event_group_access" (
@@ -304,7 +304,7 @@ CREATE TABLE IF NOT EXISTS "public"."event_group_access" (
 );
 
 
-ALTER TABLE "public"."event_group_access" OWNER TO "supabase_admin";
+ALTER TABLE "public"."event_group_access" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."notifications" (
@@ -319,7 +319,7 @@ CREATE TABLE IF NOT EXISTS "public"."notifications" (
 );
 
 
-ALTER TABLE "public"."notifications" OWNER TO "supabase_admin";
+ALTER TABLE "public"."notifications" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."session" (
@@ -359,7 +359,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_group" (
 );
 
 
-ALTER TABLE "public"."user_group" OWNER TO "supabase_admin";
+ALTER TABLE "public"."user_group" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."user_group_member" (
@@ -370,7 +370,7 @@ CREATE TABLE IF NOT EXISTS "public"."user_group_member" (
 );
 
 
-ALTER TABLE "public"."user_group_member" OWNER TO "supabase_admin";
+ALTER TABLE "public"."user_group_member" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."verification" (
@@ -412,7 +412,7 @@ UNION
   WHERE ("ea"."user_group_id" IS NOT NULL);
 
 
-ALTER VIEW "public"."view_all_event_access" OWNER TO "supabase_admin";
+ALTER VIEW "public"."view_all_event_access" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."account"
