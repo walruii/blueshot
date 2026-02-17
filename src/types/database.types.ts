@@ -181,7 +181,7 @@ export type Database = {
             foreignKeyName: "event_access_user_group_id_fkey"
             columns: ["user_group_id"]
             isOneToOne: false
-            referencedRelation: "user_group_member"
+            referencedRelation: "user_group"
             referencedColumns: ["id"]
           },
           {
