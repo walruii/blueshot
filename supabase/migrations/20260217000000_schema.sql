@@ -137,7 +137,7 @@ CREATE OR REPLACE FUNCTION "public"."get_event_members"("target_event_id" "uuid"
     AS $$
 BEGIN
     RETURN QUERY
-    SELECT
+    SELECT 
 eus.acknowledged_at,
 eus.created_at,
 eus.event_id,
@@ -508,7 +508,7 @@ ALTER TABLE ONLY "public"."event_access"
 
 
 ALTER TABLE ONLY "public"."event_access"
-    ADD CONSTRAINT "event_access_user_group_id_fkey" FOREIGN KEY ("user_group_id") REFERENCES "public"."user_group_member"("id") ON UPDATE CASCADE ON DELETE CASCADE;
+    ADD CONSTRAINT "event_access_user_group_id_fkey" FOREIGN KEY ("user_group_id") REFERENCES "public"."user_group"("id") ON UPDATE CASCADE ON DELETE CASCADE;
 
 
 
