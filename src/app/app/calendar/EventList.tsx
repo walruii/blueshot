@@ -49,7 +49,7 @@ export default function EventList({
           Add Event
         </Button>
       </div>
-      <div className="overflow-y-auto border-t max-h-100 md:max-h-none border-border">
+      <div className="overflow-y-auto border-t border-border flex-1 min-h-0">
         {hasEvents &&
           eves.map((e) => {
             return <Event key={e.id} e={e} />;

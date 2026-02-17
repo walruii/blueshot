@@ -22,7 +22,7 @@ async function CalendarPageWrapper() {
   const events = await getEvents();
 
   return (
-    <div className="grid grid-cols-1 gap-2 lg:grid-cols-6 lg:grid-rows-4 h-auto lg:h-260 max-w-500 mx-auto">
+    <div className="grid grid-cols-1 gap-2 lg:grid-cols-6 lg:grid-rows-3 h-auto max-w-500 mx-auto">
       <CalendarView dbEvents={events} />
     </div>
   );

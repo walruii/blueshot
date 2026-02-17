@@ -29,9 +29,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={geist.variable} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${geist.variable} dark`}
+      suppressHydrationWarning
+    >
       <body className={`${mont.variable} ${firaMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <ThemeProvider attribute="class" forcedTheme="dark">
           <AlertProvider>{children}</AlertProvider>
           <Toaster />
         </ThemeProvider>

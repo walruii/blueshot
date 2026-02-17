@@ -3,6 +3,10 @@
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { UserGroup, UserGroupInput, formatUserGroup } from "@/types/userGroup";
+import {
+  UserGroupMemberChange,
+  BatchChangeResult,
+} from "@/types/pendingChanges";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -432,6 +436,143 @@ export const removeMemberFromUserGroup = async (
     return { success: true };
   } catch (err) {
     console.error("Unexpected error in removeMemberFromUserGroup:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+/**
+ * Batch update user group members - processes multiple changes in one call
+ * Returns successful and failed changes
+ */
+export const batchUpdateUserGroupMembers = async (
+  groupId: string,
+  changes: UserGroupMemberChange[],
+): Promise<Result<BatchChangeResult<UserGroupMemberChange>>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Get the group to verify ownership
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("user_group")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found" };
+    }
+
+    // Only the group owner can modify members
+    if (group.created_by !== session.user.id) {
+      return {
+        success: false,
+        error: "Only the group owner can modify members",
+      };
+    }
+
+    const successful: UserGroupMemberChange[] = [];
+    const failed: { change: UserGroupMemberChange; error: string }[] = [];
+
+    // Process each change
+    for (const change of changes) {
+      try {
+        let error: string | null = null;
+
+        switch (change.type) {
+          case "add-member": {
+            // Check if user is already a member
+            const { data: existing } = await supabaseAdmin
+              .from("user_group_member")
+              .select("id")
+              .eq("user_group_id", groupId)
+              .eq("user_id", change.userId)
+              .maybeSingle();
+
+            if (existing) {
+              error = "User is already a member";
+              break;
+            }
+
+            const { error: insertError } = await supabaseAdmin
+              .from("user_group_member")
+              .insert({
+                user_group_id: groupId,
+                user_id: change.userId,
+              });
+
+            if (insertError) {
+              error = "Failed to add member";
+            } else {
+              // Notify user
+              await notifyUserGroupAction(
+                [change.userId],
+                "ADDED_TO_USER_GROUP",
+                groupId,
+                group.name,
+                {
+                  id: session.user.id,
+                  name: session.user.name,
+                  email: session.user.email,
+                },
+              );
+            }
+            break;
+          }
+
+          case "remove-member": {
+            // Cannot remove owner from their own group
+            if (change.userId === session.user.id) {
+              error = "Cannot remove yourself from the group";
+              break;
+            }
+
+            const { error: deleteError } = await supabaseAdmin
+              .from("user_group_member")
+              .delete()
+              .eq("user_group_id", groupId)
+              .eq("user_id", change.userId);
+
+            if (deleteError) {
+              error = "Failed to remove member";
+            } else {
+              // Notify user
+              await notifyUserGroupAction(
+                [change.userId],
+                "REMOVED_FROM_USER_GROUP",
+                groupId,
+                group.name,
+                {
+                  id: session.user.id,
+                  name: session.user.name,
+                  email: session.user.email,
+                },
+              );
+            }
+            break;
+          }
+        }
+
+        if (error) {
+          failed.push({ change, error });
+        } else {
+          successful.push(change);
+        }
+      } catch (err) {
+        console.error("Error processing change:", err);
+        failed.push({ change, error: "Unexpected error" });
+      }
+    }
+
+    revalidatePath("/app");
+    return { success: true, data: { successful, failed } };
+  } catch (err) {
+    console.error("Unexpected error in batchUpdateUserGroupMembers:", err);
     return { success: false, error: "Internal Server Error" };
   }
 };
