@@ -23,11 +23,11 @@ export const acknowledgeEvent = async (
       .eq("user_id", session.user.id)
       .maybeSingle();
 
-    if (!ues) {
-      return { success: false, error: "UES not found" };
-    }
     if (someEr) {
       console.error(someEr);
+      return { success: false, error: "UES not found" };
+    }
+    if (!ues) {
       return { success: false, error: "UES not found" };
     }
 

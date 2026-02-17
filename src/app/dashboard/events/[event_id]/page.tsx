@@ -38,6 +38,14 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
   const { event_id } = await params;
   const event = await getEvent(event_id);
 
+  if (!event) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="text-white text-xl">Event not found</div>
+      </div>
+    );
+  }
+
   // Get user's permissions for this event
   const permissions = event
     ? await getEventPermissions(session.user.id, event_id)
@@ -52,14 +60,6 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
   const ues = await getUserEventState(event_id);
 
   const eventMembers = await getUserEventStates(event_id);
-
-  if (!event) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="text-white text-xl">Event not found</div>
-      </div>
-    );
-  }
 
   const canShowAck = (): boolean => {
     if (session?.user.id === event.createdBy) return false;
@@ -134,10 +134,9 @@ async function PageAsync({ params }: { params: { event_id: string } }) {
             </div>
           </div>
           {permissions.canDelete && <DeleteEvent event={event} />}
+          {/* Edit Permissions (Users with canManageAccess) */}
+          {permissions.canManageAccess && <EventEditMode event={event} />}
         </div>
-
-        {/* Edit Permissions (Users with canManageAccess) */}
-        {permissions.canManageAccess && <EventEditMode event={event} />}
 
         {/* Members Section */}
         <div className="bg-zinc-900 rounded-xl p-8 border border-zinc-800">

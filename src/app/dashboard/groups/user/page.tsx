@@ -13,6 +13,8 @@ import { checkEmailListExist } from "@/server-actions/addEvent";
 import LoadingCircle from "@/svgs/LoadingCircle";
 import EmailAddForm from "@/components/EmailAddForm";
 import MemberListItem from "@/components/MemberListItem";
+import { CreateUserGroupModal } from "@/components/CreateUserGroupModal";
+import { authClient } from "@/lib/auth-client";
 
 interface Member {
   userId: string;
@@ -22,6 +24,11 @@ interface Member {
 
 export default function ManageUserGroupsPage() {
   const { showAlert } = useAlert();
+  const { data: session } = authClient.useSession();
+
+  // Modal state
+  const [isCreateUserGroupModalOpen, setIsCreateUserGroupModalOpen] =
+    useState(false);
 
   // Group selection state
   const [groups, setGroups] = useState<UserGroup[]>([]);
@@ -139,6 +146,12 @@ export default function ManageUserGroupsPage() {
     }
   };
 
+  const handleUserGroupCreated = (newGroup: UserGroup) => {
+    setGroups((prev) => [...prev, newGroup]);
+    setSelectedGroupId(newGroup.id);
+    setIsCreateUserGroupModalOpen(false);
+  };
+
   if (loadingGroups) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -149,6 +162,17 @@ export default function ManageUserGroupsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Create Button */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-white">User Groups</h1>
+        <button
+          onClick={() => setIsCreateUserGroupModalOpen(true)}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          + Create User Group
+        </button>
+      </div>
+
       {/* Group Selector */}
       <div>
         <label className="mb-2 block text-sm font-medium text-zinc-300">
@@ -213,9 +237,19 @@ export default function ManageUserGroupsPage() {
             You don&apos;t have any user groups yet.
           </p>
           <p className="mt-2 text-sm text-zinc-500">
-            Create a user group when adding an event to get started.
+            Click &quot;Create User Group&quot; above to get started.
           </p>
         </div>
+      )}
+
+      {/* Create User Group Modal */}
+      {session?.user?.id && (
+        <CreateUserGroupModal
+          isOpen={isCreateUserGroupModalOpen}
+          onClose={() => setIsCreateUserGroupModalOpen(false)}
+          onCreated={handleUserGroupCreated}
+          userId={session.user.id}
+        />
       )}
     </div>
   );

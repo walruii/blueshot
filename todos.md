@@ -17,8 +17,8 @@
 - add a way to add profile pictures
 - ~~redesign the notifs to be db linked~~
   - ~~add notifs on evnet add / delete, user group add delete , event group access~~
-- when sending invalid ids to the request it sends error fix that to make it just null or something
-- when adding additional user groups it fails check why
+- ~~when sending invalid ids to the request it sends error fix that to make it just null or something~~
+- ~~when adding additional user groups it fails check why~~
 - perform proper testing for the frontend and backend logic
 
 MAJOR FEAT:

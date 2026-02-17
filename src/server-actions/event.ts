@@ -23,8 +23,8 @@ export const getEvent = async (id: string): Promise<Event | null> => {
       })
       .maybeSingle();
     if (error) {
+      if (error.code === "22P02") return null;
       console.error("DBError running getEvent", error);
-      return null;
     }
     if (!event) return null;
     return formatEvent(event);

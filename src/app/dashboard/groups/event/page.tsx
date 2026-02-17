@@ -18,9 +18,19 @@ import LoadingCircle from "@/svgs/LoadingCircle";
 import EmailAddForm from "@/components/EmailAddForm";
 import UserGroupDropdown from "@/components/UserGroupDropdown";
 import MemberListItem from "@/components/MemberListItem";
+import { CreateEventGroupModal } from "@/components/CreateEventGroupModal";
+import { CreateUserGroupModal } from "@/components/CreateUserGroupModal";
+import { authClient } from "@/lib/auth-client";
 
 export default function ManageEventGroupsPage() {
   const { showAlert } = useAlert();
+  const { data: session } = authClient.useSession();
+
+  // Modal state
+  const [isCreateEventGroupModalOpen, setIsCreateEventGroupModalOpen] =
+    useState(false);
+  const [isCreateUserGroupModalOpen, setIsCreateUserGroupModalOpen] =
+    useState(false);
 
   // Group selection state
   const [groups, setGroups] = useState<EventGroup[]>([]);
@@ -134,7 +144,10 @@ export default function ManageEventGroupsPage() {
     return { success: false, error: "Failed to add user" };
   };
 
-  const handleAddUserGroup = async (userGroup: { id: string; name: string }) => {
+  const handleAddUserGroup = async (userGroup: {
+    id: string;
+    name: string;
+  }) => {
     if (!selectedGroupId) return;
 
     const result = await addAccessToEventGroup(selectedGroupId, [
@@ -215,6 +228,17 @@ export default function ManageEventGroupsPage() {
   // Get IDs of already-added user groups
   const excludedUserGroupIds = accessData?.userGroups.map((g) => g.id) || [];
 
+  const handleEventGroupCreated = (newGroup: EventGroup) => {
+    setGroups((prev) => [...prev, newGroup]);
+    setSelectedGroupId(newGroup.id);
+    setIsCreateEventGroupModalOpen(false);
+  };
+
+  const handleUserGroupCreated = (newGroup: UserGroup) => {
+    setAvailableUserGroups((prev) => [...prev, newGroup]);
+    setIsCreateUserGroupModalOpen(false);
+  };
+
   if (loadingGroups) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -225,6 +249,17 @@ export default function ManageEventGroupsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header with Create Button */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold text-white">Event Groups</h1>
+        <button
+          onClick={() => setIsCreateEventGroupModalOpen(true)}
+          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+        >
+          + Create Event Group
+        </button>
+      </div>
+
       {/* Group Selector */}
       <div>
         <label className="mb-2 block text-sm font-medium text-zinc-300">
@@ -252,16 +287,14 @@ export default function ManageEventGroupsPage() {
           </h2>
 
           {/* Add User Form */}
-          <EmailAddForm
-            onAdd={handleAddUser}
-            label="Add User by Email"
-          />
+          <EmailAddForm onAdd={handleAddUser} label="Add User by Email" />
 
           {/* Add User Group */}
           <UserGroupDropdown
             groups={availableUserGroups}
             excludedIds={excludedUserGroupIds}
             onSelect={handleAddUserGroup}
+            onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
           />
 
           {loadingAccess ? (
@@ -332,9 +365,32 @@ export default function ManageEventGroupsPage() {
             You don&apos;t have any event groups yet.
           </p>
           <p className="mt-2 text-sm text-zinc-500">
-            Create an event group when adding an event to get started.
+            Click &quot;Create Event Group&quot; above to get started.
           </p>
         </div>
+      )}
+
+      {/* Create Event Group Modal */}
+      {session?.user?.id && (
+        <CreateEventGroupModal
+          isOpen={isCreateEventGroupModalOpen}
+          onClose={() => setIsCreateEventGroupModalOpen(false)}
+          onCreated={handleEventGroupCreated}
+          userId={session.user.id}
+          userEmail={session.user.email}
+          availableUserGroups={availableUserGroups}
+          onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
+        />
+      )}
+
+      {/* Create User Group Modal */}
+      {session?.user?.id && (
+        <CreateUserGroupModal
+          isOpen={isCreateUserGroupModalOpen}
+          onClose={() => setIsCreateUserGroupModalOpen(false)}
+          onCreated={handleUserGroupCreated}
+          userId={session.user.id}
+        />
       )}
     </div>
   );

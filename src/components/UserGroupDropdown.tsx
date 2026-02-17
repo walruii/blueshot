@@ -13,6 +13,7 @@ interface UserGroupDropdownProps {
   onSelect: (group: UserGroupOption) => void;
   placeholder?: string;
   label?: string;
+  onCreateUserGroup?: () => void;
 }
 
 export default function UserGroupDropdown({
@@ -21,6 +22,7 @@ export default function UserGroupDropdown({
   onSelect,
   placeholder = "Search user groups...",
   label = "Add User Group",
+  onCreateUserGroup,
 }: UserGroupDropdownProps) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -89,6 +91,18 @@ export default function UserGroupDropdown({
             <div className="px-3 py-2 text-sm text-zinc-400">
               No groups found
             </div>
+          )}
+          {onCreateUserGroup && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onCreateUserGroup();
+              }}
+              className="w-full border-t border-zinc-600 px-3 py-2 text-left text-sm font-medium text-blue-400 hover:bg-zinc-600"
+            >
+              + Create New User Group
+            </button>
           )}
         </div>
       )}

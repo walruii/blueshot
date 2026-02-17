@@ -21,6 +21,8 @@ import LoadingCircle from "@/svgs/LoadingCircle";
 import EmailAddForm from "@/components/EmailAddForm";
 import UserGroupDropdown from "@/components/UserGroupDropdown";
 import MemberListItem from "@/components/MemberListItem";
+import { CreateUserGroupModal } from "@/components/CreateUserGroupModal";
+import { authClient } from "@/lib/auth-client";
 
 interface EventEditModeProps {
   event: Event;
@@ -29,9 +31,12 @@ interface EventEditModeProps {
 export default function EventEditMode({ event }: EventEditModeProps) {
   const { showAlert } = useAlert();
   const router = useRouter();
+  const { data: session } = authClient.useSession();
 
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isCreateUserGroupModalOpen, setIsCreateUserGroupModalOpen] =
+    useState(false);
 
   // Event group state
   const [eventGroups, setEventGroups] = useState<EventGroup[]>([]);
@@ -155,7 +160,10 @@ export default function EventEditMode({ event }: EventEditModeProps) {
     }
   };
 
-  const handleAddUserGroup = async (userGroup: { id: string; name: string }) => {
+  const handleAddUserGroup = async (userGroup: {
+    id: string;
+    name: string;
+  }) => {
     const result = await addAccessToEvent(event.id, [
       {
         identifier: userGroup.id,
@@ -201,7 +209,11 @@ export default function EventEditMode({ event }: EventEditModeProps) {
   };
 
   const handleRemoveUserGroup = async (userGroupId: string, name: string) => {
-    const result = await removeAccessFromEvent(event.id, undefined, userGroupId);
+    const result = await removeAccessFromEvent(
+      event.id,
+      undefined,
+      userGroupId,
+    );
 
     if (result.success) {
       showAlert({
@@ -222,11 +234,16 @@ export default function EventEditMode({ event }: EventEditModeProps) {
   // IDs of user groups that already have access
   const excludedUserGroupIds = accessData?.userGroups.map((g) => g.id) || [];
 
+  const handleUserGroupCreated = (newGroup: UserGroup) => {
+    setAvailableUserGroups((prev) => [...prev, newGroup]);
+    setIsCreateUserGroupModalOpen(false);
+  };
+
   if (!isEditing) {
     return (
       <button
         onClick={() => setIsEditing(true)}
-        className="mb-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+        className="mb-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 mt-5"
       >
         Edit Permissions
       </button>
@@ -234,7 +251,7 @@ export default function EventEditMode({ event }: EventEditModeProps) {
   }
 
   return (
-    <div className="mb-6 rounded-xl border border-zinc-700 bg-zinc-800 p-6">
+    <div className="mb-6 rounded-xl border border-zinc-700 bg-zinc-800 p-6 mt-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold text-white">Edit Permissions</h2>
         <button
@@ -318,6 +335,7 @@ export default function EventEditMode({ event }: EventEditModeProps) {
                 excludedIds={excludedUserGroupIds}
                 onSelect={handleAddUserGroup}
                 label="Add User Group"
+                onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
               />
             </div>
 
@@ -381,6 +399,16 @@ export default function EventEditMode({ event }: EventEditModeProps) {
             )}
           </div>
         </div>
+      )}
+
+      {/* Create User Group Modal */}
+      {session?.user?.id && (
+        <CreateUserGroupModal
+          isOpen={isCreateUserGroupModalOpen}
+          onClose={() => setIsCreateUserGroupModalOpen(false)}
+          onCreated={handleUserGroupCreated}
+          userId={session.user.id}
+        />
       )}
     </div>
   );
