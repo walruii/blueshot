@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface UserGroupOption {
   id: string;
@@ -13,6 +15,7 @@ interface UserGroupDropdownProps {
   onSelect: (group: UserGroupOption) => void;
   placeholder?: string;
   label?: string;
+  onCreateUserGroup?: () => void;
 }
 
 export default function UserGroupDropdown({
@@ -21,6 +24,7 @@ export default function UserGroupDropdown({
   onSelect,
   placeholder = "Search user groups...",
   label = "Add User Group",
+  onCreateUserGroup,
 }: UserGroupDropdownProps) {
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -55,13 +59,9 @@ export default function UserGroupDropdown({
   };
 
   return (
-    <div className="relative mb-4" ref={containerRef}>
-      {label && (
-        <label className="mb-2 block text-sm font-medium text-zinc-300">
-          {label}
-        </label>
-      )}
-      <input
+    <div className="relative space-y-2" ref={containerRef}>
+      {label && <Label>{label}</Label>}
+      <Input
         type="text"
         value={search}
         onChange={(e) => {
@@ -70,25 +70,36 @@ export default function UserGroupDropdown({
         }}
         onFocus={() => setIsOpen(true)}
         placeholder={placeholder}
-        className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
       />
       {isOpen && (
-        <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-zinc-600 bg-zinc-700 shadow-lg">
+        <div className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-popover shadow-lg">
           {filteredGroups.length > 0 ? (
             filteredGroups.map((group) => (
               <button
                 key={group.id}
                 type="button"
                 onClick={() => handleSelect(group)}
-                className="w-full px-3 py-2 text-left text-sm text-white hover:bg-zinc-600"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
               >
                 {group.name}
               </button>
             ))
           ) : (
-            <div className="px-3 py-2 text-sm text-zinc-400">
+            <div className="px-3 py-2 text-sm text-muted-foreground">
               No groups found
             </div>
+          )}
+          {onCreateUserGroup && (
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onCreateUserGroup();
+              }}
+              className="w-full border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
+            >
+              + Create New User Group
+            </button>
           )}
         </div>
       )}

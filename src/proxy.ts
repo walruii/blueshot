@@ -13,7 +13,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Check if the route is under /app or other protected routes
-  if (pathname.startsWith("/dashboard")) {
+  if (pathname.startsWith("/app")) {
     try {
       // Get session from better-auth
       const session = await auth.api.getSession({

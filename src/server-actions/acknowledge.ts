@@ -23,11 +23,11 @@ export const acknowledgeEvent = async (
       .eq("user_id", session.user.id)
       .maybeSingle();
 
-    if (!ues) {
-      return { success: false, error: "UES not found" };
-    }
     if (someEr) {
       console.error(someEr);
+      return { success: false, error: "UES not found" };
+    }
+    if (!ues) {
       return { success: false, error: "UES not found" };
     }
 
@@ -44,7 +44,7 @@ export const acknowledgeEvent = async (
       .channel(`user_inbox_${ues.event.created_by}`)
       .httpSend("UPDATE_ACK", {});
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true };
   } catch (err) {
     console.error(err);

@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import LoadingCircle from "@/svgs/LoadingCircle";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
 
 interface EmailAddFormProps {
   onAdd: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -49,15 +52,11 @@ export default function EmailAddForm({
   };
 
   return (
-    <div className="mb-4">
-      {label && (
-        <label className="mb-2 block text-sm font-medium text-zinc-300">
-          {label}
-        </label>
-      )}
+    <div className="space-y-2">
+      {label && <Label>{label}</Label>}
       <div className="flex gap-2">
         <div className="relative flex-1">
-          <input
+          <Input
             type="email"
             value={emailInput}
             onChange={(e) => {
@@ -66,25 +65,23 @@ export default function EmailAddForm({
             }}
             onKeyDown={handleKeyPress}
             placeholder={placeholder}
-            className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-sm text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
             disabled={disabled || isValidating}
           />
           {isValidating && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <LoadingCircle />
+              <Loader2 className="size-4 animate-spin" />
             </div>
           )}
         </div>
-        <button
+        <Button
           type="button"
           onClick={handleAdd}
           disabled={disabled || isValidating || !emailInput.trim()}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-zinc-600"
         >
           Add
-        </button>
+        </Button>
       </div>
-      {emailError && <p className="mt-1 text-sm text-red-500">{emailError}</p>}
+      {emailError && <p className="text-sm text-destructive">{emailError}</p>}
     </div>
   );
 }

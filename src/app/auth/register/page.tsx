@@ -4,6 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAlert } from "@/app/(alert)/AlertProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function Page() {
   const [email, setEmail] = useState("");
@@ -33,7 +43,7 @@ export default function Page() {
           },
           onSuccess: () => {
             setLoading(false);
-            router.push("/dashboard");
+            router.push("/app");
           },
           onError: (ctx) => {
             setLoading(false);
@@ -52,71 +62,76 @@ export default function Page() {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center min-h-screen bg-zinc-950">
-      <h1 className="text-4xl font-bold text-blue-500 mb-12">Blueshot</h1>
-      <div className="w-full max-w-md bg-zinc-900 rounded-xl shadow-lg p-8 border border-zinc-800">
-        <h2 className="text-2xl font-bold text-white mb-6">Create Account</h2>
-        {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
-        <form onSubmit={(e) => signUp(e)} className="flex flex-col gap-4">
-          <div>
-            <label className="text-white text-sm block mb-2">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-white text-sm block mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-white text-sm block mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-white text-sm block mb-2">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-semibold py-2 rounded transition"
-          >
-            {loading ? "Registering..." : "Register"}
-          </button>
-        </form>
-        <p className="text-slate-300 text-sm mt-6 text-center">
-          Already have an account?{" "}
-          <Link
-            href="/auth/signin"
-            className="text-blue-400 hover:text-blue-300"
-          >
-            Sign in
-          </Link>
-        </p>
-      </div>
+    <div className="flex flex-col justify-center items-center min-h-screen bg-background px-4">
+      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8 md:mb-12">
+        Blueshot
+      </h1>
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Create Account</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <div className="text-destructive text-sm mb-4">{error}</div>
+          )}
+          <form onSubmit={(e) => signUp(e)} className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Registering..." : "Register"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-muted-foreground text-sm">
+            Already have an account?{" "}
+            <Link href="/auth/signin" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

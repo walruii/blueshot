@@ -8,6 +8,7 @@ import {
   formatEventGroup,
 } from "@/types/eventGroup";
 import { PermissionEntry } from "@/types/permission";
+import { EventGroupChange, BatchChangeResult } from "@/types/pendingChanges";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
@@ -265,7 +266,7 @@ export const createEventGroup = async (
       }
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true, data: formatEventGroup(groupData) };
   } catch (err) {
     console.error("Unexpected error in createEventGroup:", err);
@@ -442,7 +443,7 @@ export const addAccessToEventGroup = async (
       }
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return {
       success: true,
       data: { added, failed: accessInserts.length - added },
@@ -566,10 +567,125 @@ export const removeAccessFromEventGroup = async (
       );
     }
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true };
   } catch (err) {
     console.error("Unexpected error in removeAccessFromEventGroup:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+/**
+ * Update the role/permission for a user or user group in an event group
+ * Accessible by owner OR admin on event group
+ * Admins cannot change other admins' roles - only the owner can
+ */
+export const updateAccessToEventGroup = async (
+  groupId: string,
+  newRole: RoleValue,
+  targetUserId?: string,
+  targetUserGroupId?: string,
+): Promise<Result<null>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    if (!targetUserId && !targetUserGroupId) {
+      return {
+        success: false,
+        error: "Must specify user or user group to update",
+      };
+    }
+
+    // Check if user has admin access to the group
+    const userRole = await getUserEventGroupRole(session.user.id, groupId);
+    if (!userRole || !isAdmin(userRole)) {
+      return { success: false, error: "Access denied" };
+    }
+
+    // Get the group details
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("event_group")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found" };
+    }
+
+    const isOwner = group.created_by === session.user.id;
+
+    // Cannot modify the owner's role
+    if (targetUserId === group.created_by) {
+      return {
+        success: false,
+        error: "Cannot modify the group owner's role",
+      };
+    }
+
+    // If not the owner, check if target is an admin (admins can't modify other admins)
+    if (!isOwner && targetUserId) {
+      const targetRole = await getUserEventGroupRole(targetUserId, groupId);
+      if (targetRole && isAdmin(targetRole)) {
+        return {
+          success: false,
+          error: "Only the group owner can modify admin roles",
+        };
+      }
+    }
+
+    // If not the owner and modifying a user group with admin access, block it
+    if (!isOwner && targetUserGroupId) {
+      const { data: accessData } = await supabaseAdmin
+        .from("event_group_access")
+        .select("role")
+        .eq("event_group_id", groupId)
+        .eq("user_group_id", targetUserGroupId)
+        .maybeSingle();
+      if (accessData && isAdmin(accessData.role as RoleValue)) {
+        return {
+          success: false,
+          error: "Only the group owner can modify admin user groups",
+        };
+      }
+    }
+
+    // Also prevent non-owners from granting admin role
+    if (!isOwner && isAdmin(newRole)) {
+      return {
+        success: false,
+        error: "Only the group owner can grant admin access",
+      };
+    }
+
+    let query = supabaseAdmin
+      .from("event_group_access")
+      .update({ role: newRole })
+      .eq("event_group_id", groupId);
+
+    if (targetUserId) {
+      query = query.eq("user_id", targetUserId);
+    } else if (targetUserGroupId) {
+      query = query.eq("user_group_id", targetUserGroupId);
+    }
+
+    const { error } = await query;
+
+    if (error) {
+      console.error("Error updating access:", error);
+      return { success: false, error: "Failed to update access" };
+    }
+
+    revalidatePath("/app");
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error in updateAccessToEventGroup:", err);
     return { success: false, error: "Internal Server Error" };
   }
 };
@@ -603,6 +719,278 @@ export const getEventGroupAccess = async (
     return { success: true, data: accessData };
   } catch (err) {
     console.error("Unexpected error in getEventGroupAccess:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
+
+/**
+ * Batch update event group access - processes multiple changes in one call
+ * Returns successful and failed changes
+ */
+export const batchUpdateEventGroupAccess = async (
+  groupId: string,
+  changes: EventGroupChange[],
+): Promise<Result<BatchChangeResult<EventGroupChange>>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Check if user has admin access to the group
+    const userRole = await getUserEventGroupRole(session.user.id, groupId);
+    if (!userRole || !isAdmin(userRole)) {
+      return { success: false, error: "Access denied" };
+    }
+
+    // Get the group details
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("event_group")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found" };
+    }
+
+    const isOwner = group.created_by === session.user.id;
+    const successful: EventGroupChange[] = [];
+    const failed: { change: EventGroupChange; error: string }[] = [];
+
+    // Process each change
+    for (const change of changes) {
+      try {
+        let error: string | null = null;
+
+        switch (change.type) {
+          case "add-user": {
+            // Check if user already has access
+            const { data: existing } = await supabaseAdmin
+              .from("event_group_access")
+              .select("id")
+              .eq("event_group_id", groupId)
+              .eq("user_id", change.userId)
+              .maybeSingle();
+
+            if (existing) {
+              error = "User already has access";
+              break;
+            }
+
+            const { error: insertError } = await supabaseAdmin
+              .from("event_group_access")
+              .insert({
+                event_group_id: groupId,
+                user_id: change.userId,
+                role: change.role,
+              });
+
+            if (insertError) {
+              error = "Failed to add user";
+            } else {
+              // Notify user
+              await notifyEventGroupAction(
+                [change.userId],
+                "ADDED_TO_EVENT_GROUP",
+                groupId,
+                group.name,
+                {
+                  id: session.user.id,
+                  name: session.user.name,
+                  email: session.user.email,
+                },
+              );
+            }
+            break;
+          }
+
+          case "add-user-group": {
+            // Check if user group already has access
+            const { data: existing } = await supabaseAdmin
+              .from("event_group_access")
+              .select("id")
+              .eq("event_group_id", groupId)
+              .eq("user_group_id", change.userGroupId)
+              .maybeSingle();
+
+            if (existing) {
+              error = "User group already has access";
+              break;
+            }
+
+            const { error: insertError } = await supabaseAdmin
+              .from("event_group_access")
+              .insert({
+                event_group_id: groupId,
+                user_group_id: change.userGroupId,
+                role: change.role,
+              });
+
+            if (insertError) {
+              error = "Failed to add user group";
+            }
+            break;
+          }
+
+          case "remove-user": {
+            // Cannot remove owner
+            if (change.userId === group.created_by) {
+              error = "Cannot remove the group owner";
+              break;
+            }
+
+            // Check if target is admin (only owner can remove admins)
+            if (!isOwner) {
+              const targetRole = await getUserEventGroupRole(
+                change.userId,
+                groupId,
+              );
+              if (targetRole && isAdmin(targetRole)) {
+                error = "Only the group owner can remove admins";
+                break;
+              }
+            }
+
+            const { error: deleteError } = await supabaseAdmin
+              .from("event_group_access")
+              .delete()
+              .eq("event_group_id", groupId)
+              .eq("user_id", change.userId);
+
+            if (deleteError) {
+              error = "Failed to remove user";
+            } else {
+              // Notify user
+              await notifyEventGroupAction(
+                [change.userId],
+                "REMOVED_FROM_EVENT_GROUP",
+                groupId,
+                group.name,
+                {
+                  id: session.user.id,
+                  name: session.user.name,
+                  email: session.user.email,
+                },
+              );
+            }
+            break;
+          }
+
+          case "remove-user-group": {
+            // If not owner, check if group grants admin access
+            if (!isOwner) {
+              const { data: accessData } = await supabaseAdmin
+                .from("event_group_access")
+                .select("role")
+                .eq("event_group_id", groupId)
+                .eq("user_group_id", change.userGroupId)
+                .maybeSingle();
+
+              if (accessData && isAdmin(accessData.role as RoleValue)) {
+                error = "Only the group owner can remove admin user groups";
+                break;
+              }
+            }
+
+            const { error: deleteError } = await supabaseAdmin
+              .from("event_group_access")
+              .delete()
+              .eq("event_group_id", groupId)
+              .eq("user_group_id", change.userGroupId);
+
+            if (deleteError) {
+              error = "Failed to remove user group";
+            }
+            break;
+          }
+
+          case "update-user-role": {
+            // Cannot modify owner's role
+            if (change.userId === group.created_by) {
+              error = "Cannot modify the group owner's role";
+              break;
+            }
+
+            // Non-owners cannot modify admins or grant admin
+            if (!isOwner) {
+              const targetRole = await getUserEventGroupRole(
+                change.userId,
+                groupId,
+              );
+              if (targetRole && isAdmin(targetRole)) {
+                error = "Only the group owner can modify admin roles";
+                break;
+              }
+              if (isAdmin(change.newRole)) {
+                error = "Only the group owner can grant admin access";
+                break;
+              }
+            }
+
+            const { error: updateError } = await supabaseAdmin
+              .from("event_group_access")
+              .update({ role: change.newRole })
+              .eq("event_group_id", groupId)
+              .eq("user_id", change.userId);
+
+            if (updateError) {
+              error = "Failed to update role";
+            }
+            break;
+          }
+
+          case "update-user-group-role": {
+            // Non-owners cannot modify admin groups or grant admin
+            if (!isOwner) {
+              const { data: accessData } = await supabaseAdmin
+                .from("event_group_access")
+                .select("role")
+                .eq("event_group_id", groupId)
+                .eq("user_group_id", change.userGroupId)
+                .maybeSingle();
+
+              if (accessData && isAdmin(accessData.role as RoleValue)) {
+                error = "Only the group owner can modify admin user groups";
+                break;
+              }
+              if (isAdmin(change.newRole)) {
+                error = "Only the group owner can grant admin access";
+                break;
+              }
+            }
+
+            const { error: updateError } = await supabaseAdmin
+              .from("event_group_access")
+              .update({ role: change.newRole })
+              .eq("event_group_id", groupId)
+              .eq("user_group_id", change.userGroupId);
+
+            if (updateError) {
+              error = "Failed to update role";
+            }
+            break;
+          }
+        }
+
+        if (error) {
+          failed.push({ change, error });
+        } else {
+          successful.push(change);
+        }
+      } catch (err) {
+        console.error("Error processing change:", err);
+        failed.push({ change, error: "Unexpected error" });
+      }
+    }
+
+    revalidatePath("/app");
+    return { success: true, data: { successful, failed } };
+  } catch (err) {
+    console.error("Unexpected error in batchUpdateEventGroupAccess:", err);
     return { success: false, error: "Internal Server Error" };
   }
 };

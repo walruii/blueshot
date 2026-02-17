@@ -20,6 +20,8 @@ import {
 interface EmailCheckResult {
   email: string;
   exist: boolean;
+  userId?: string;
+  name?: string;
 }
 
 export const addEvent = async (
@@ -101,7 +103,7 @@ export const addEvent = async (
     };
     await notifyAffectedUsers(eventDB, "NEW_EVENT", creator, event.permissions);
 
-    revalidatePath("/dashboard");
+    revalidatePath("/app");
     return { success: true, data: eventDB };
   } catch (err) {
     console.error("Unexpected Error in addEvent: ", err);
@@ -155,18 +157,23 @@ export const checkEmailListExist = async (
   try {
     const { data: users, error } = await supabaseAdmin
       .from("user")
-      .select("email")
+      .select("id, email, name")
       .in("email", emails);
     if (error) {
       console.error("Failed to check emails: ", error);
       return { success: false, error: "Failed to validate emails" };
     }
 
-    const foundEmails = new Set(users?.map((u) => u.email) || []);
-    const results: EmailCheckResult[] = emails.map((email) => ({
-      email,
-      exist: foundEmails.has(email),
-    }));
+    const userMap = new Map(users?.map((u) => [u.email, u]) || []);
+    const results: EmailCheckResult[] = emails.map((email) => {
+      const user = userMap.get(email);
+      return {
+        email,
+        exist: !!user,
+        userId: user?.id,
+        name: user?.name ?? undefined,
+      };
+    });
     return { success: true, data: results };
   } catch (err) {
     console.error(err);

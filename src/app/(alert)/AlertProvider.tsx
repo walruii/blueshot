@@ -1,7 +1,7 @@
 "use client";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
+import { toast } from "sonner";
 import { TAlert } from "../../types/alert";
-import Alert from "./Alert";
 
 interface TAlertContext {
   showAlert: (alert: TAlert) => void;
@@ -15,13 +15,25 @@ export default function AlertProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [alert, setAlert] = useState<TAlert | null>(null);
+  const showAlert = (alert: TAlert) => {
+    const toastFn = {
+      success: toast.success,
+      error: toast.error,
+      warning: toast.warning,
+      info: toast.info,
+    }[alert.type];
 
-  const showAlert = (alert: TAlert) => setAlert(alert);
-  const hideAlert = () => setAlert(null);
+    toastFn(alert.title, {
+      description: alert.description,
+    });
+  };
+
+  const hideAlert = () => {
+    toast.dismiss();
+  };
+
   return (
     <AlertContext.Provider value={{ showAlert, hideAlert }}>
-      {alert && <Alert alert={alert} onClose={hideAlert}></Alert>}
       {children}
     </AlertContext.Provider>
   );
