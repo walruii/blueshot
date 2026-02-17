@@ -5,17 +5,29 @@ import { deleteEvent } from "@/server-actions/deleteEvent";
 import { Event } from "@/types/event";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Trash2 } from "lucide-react";
 
 export default function DeleteEvent({ event: e }: { event: Event }) {
   const { showAlert } = useAlert();
   const router = useRouter();
-  const [confirmWin, setConfirmWin] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   const handleDelete = async () => {
     if (isLoading) return;
     try {
       setIsLoading(true);
-      setConfirmWin(false);
       const res = await deleteEvent(e.id);
       if (!res.success) {
         showAlert({
@@ -32,7 +44,6 @@ export default function DeleteEvent({ event: e }: { event: Event }) {
         description: `${e.title}`,
         type: "success",
       });
-      setConfirmWin(false);
       setIsLoading(false);
       router.push("/app");
     } catch (err) {
@@ -47,37 +58,44 @@ export default function DeleteEvent({ event: e }: { event: Event }) {
   };
 
   return (
-    <>
-      <button
-        onClick={() => {
-          if (isLoading) return;
-          setConfirmWin(true);
-        }}
-        disabled={confirmWin || isLoading}
-        className={`bg-red-950 p-2 rounded-lg px-5 mt-5 w-full ${confirmWin ? "" : "hover:bg-red-900 active:bg-red-800"}`}
-      >
-        {isLoading ? "Deleting" : "Delete"}
-      </button>
-      {confirmWin && (
-        <div className="absolute bg-zinc-900 p-5 rounded-xl border border-zinc-700">
-          <p className="font-bold">Are you sure?</p>
-          <p>This action can not be reversed!</p>
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => handleDelete()}
-              className="bg-red-950 p-2 rounded-lg px-5 hover:bg-red-900 active:bg-red-800 w-full"
-            >
-              Confirm
-            </button>
-            <button
-              onClick={() => setConfirmWin(false)}
-              className="bg-zinc-950 p-2 rounded-lg px-5 hover:bg-zinc-800 active:bg-zinc-700 w-full"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-    </>
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="destructive"
+          className="w-full mt-5"
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Deleting
+            </>
+          ) : (
+            <>
+              <Trash2 className="h-4 w-4 mr-2" />
+              Delete
+            </>
+          )}
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be reversed! The event &quot;{e.title}&quot; will
+            be permanently deleted.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Confirm Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

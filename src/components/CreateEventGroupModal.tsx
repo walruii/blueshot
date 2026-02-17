@@ -1,7 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Modal } from "@/components/Modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { PermissionManager } from "@/components/PermissionManager";
 import { usePermissionManager } from "@/hooks/usePermissionManager";
 import { createEventGroup } from "@/server-actions/eventGroup";
@@ -100,75 +109,65 @@ export const CreateEventGroupModal = ({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title="Create Event Group"
-      size="lg"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Group Name */}
-        <div>
-          <label
-            htmlFor="groupName"
-            className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
-          >
-            Group Name
-          </label>
-          <input
-            type="text"
-            id="groupName"
-            value={groupName}
-            onChange={(e) => {
-              setGroupName(e.target.value);
-              if (error) setError(null);
-            }}
-            placeholder="Enter group name"
-            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
-            disabled={isSubmitting}
-          />
-          {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Create Event Group</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Group Name */}
+          <div className="space-y-2">
+            <Label htmlFor="groupName">Group Name</Label>
+            <Input
+              type="text"
+              id="groupName"
+              value={groupName}
+              onChange={(e) => {
+                setGroupName(e.target.value);
+                if (error) setError(null);
+              }}
+              placeholder="Enter group name"
+              disabled={isSubmitting}
+            />
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
 
-        {/* Permissions */}
-        <div className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-600">
-          <h4 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Group Access (Optional)
-          </h4>
-          <PermissionManager
-            permissions={permissions}
-            onAddEmail={addMemberByEmail}
-            onAddUserGroup={addUserGroup}
-            onUpdateRole={updateRole}
-            onRemoveEntry={removeEntry}
-            isValidating={isValidating}
-            validationError={validationError}
-            onClearError={clearValidationError}
-            availableUserGroups={availableUserGroups}
-            allowUserGroups={true}
-            onCreateUserGroup={onCreateUserGroup}
-          />
-        </div>
+          {/* Permissions */}
+          <div className="rounded-lg border p-4">
+            <h4 className="mb-3 text-sm font-medium">
+              Group Access (Optional)
+            </h4>
+            <PermissionManager
+              permissions={permissions}
+              onAddEmail={addMemberByEmail}
+              onAddUserGroup={addUserGroup}
+              onUpdateRole={updateRole}
+              onRemoveEntry={removeEntry}
+              isValidating={isValidating}
+              validationError={validationError}
+              onClearError={clearValidationError}
+              availableUserGroups={availableUserGroups}
+              allowUserGroups={true}
+              onCreateUserGroup={onCreateUserGroup}
+            />
+          </div>
 
-        {/* Actions */}
-        <div className="flex justify-end gap-3 border-t border-zinc-200 pt-4 dark:border-zinc-600">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isSubmitting}
-            className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-700"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting || !groupName.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Creating..." : "Create Group"}
-          </button>
-        </div>
-      </form>
-    </Modal>
+          {/* Actions */}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleClose}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting || !groupName.trim()}>
+              {isSubmitting ? "Creating..." : "Create Group"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };

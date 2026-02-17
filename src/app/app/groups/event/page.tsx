@@ -14,13 +14,23 @@ import {
 import { getAccessibleUserGroups } from "@/server-actions/userGroup";
 import { checkEmailListExist } from "@/server-actions/addEvent";
 import { Role } from "@/types/permission";
-import LoadingCircle from "@/svgs/LoadingCircle";
 import EmailAddForm from "@/components/EmailAddForm";
 import UserGroupDropdown from "@/components/UserGroupDropdown";
 import MemberListItem from "@/components/MemberListItem";
 import { CreateEventGroupModal } from "@/components/CreateEventGroupModal";
 import { CreateUserGroupModal } from "@/components/CreateUserGroupModal";
 import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Plus } from "lucide-react";
 
 export default function ManageEventGroupsPage() {
   const { showAlert } = useAlert();
@@ -242,7 +252,7 @@ export default function ManageEventGroupsPage() {
   if (loadingGroups) {
     return (
       <div className="flex items-center justify-center py-12">
-        <LoadingCircle />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -251,123 +261,122 @@ export default function ManageEventGroupsPage() {
     <div className="space-y-6">
       {/* Header with Create Button */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white">Event Groups</h1>
-        <button
-          onClick={() => setIsCreateEventGroupModalOpen(true)}
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          + Create Event Group
-        </button>
+        <h1 className="text-xl font-semibold">Event Groups</h1>
+        <Button onClick={() => setIsCreateEventGroupModalOpen(true)}>
+          <Plus className="h-4 w-4 mr-2" />
+          Create Event Group
+        </Button>
       </div>
 
       {/* Group Selector */}
-      <div>
-        <label className="mb-2 block text-sm font-medium text-zinc-300">
-          Select Event Group
-        </label>
-        <select
-          value={selectedGroupId}
-          onChange={(e) => setSelectedGroupId(e.target.value)}
-          className="w-full rounded-lg border border-zinc-600 bg-zinc-700 px-4 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="">-- Select a group --</option>
-          {groups.map((group) => (
-            <option key={group.id} value={group.id}>
-              {group.name}
-            </option>
-          ))}
-        </select>
+      <div className="space-y-2">
+        <Label>Select Event Group</Label>
+        <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+          <SelectTrigger>
+            <SelectValue placeholder="-- Select a group --" />
+          </SelectTrigger>
+          <SelectContent>
+            {groups.map((group) => (
+              <SelectItem key={group.id} value={group.id}>
+                {group.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Selected Group Details */}
       {selectedGroup && (
-        <div className="rounded-lg border border-zinc-700 bg-zinc-800 p-6">
-          <h2 className="mb-4 text-xl font-semibold text-white">
-            {selectedGroup.name}
-          </h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>{selectedGroup.name}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Add User Form */}
+            <EmailAddForm onAdd={handleAddUser} label="Add User by Email" />
 
-          {/* Add User Form */}
-          <EmailAddForm onAdd={handleAddUser} label="Add User by Email" />
+            {/* Add User Group */}
+            <UserGroupDropdown
+              groups={availableUserGroups}
+              excludedIds={excludedUserGroupIds}
+              onSelect={handleAddUserGroup}
+              onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
+            />
 
-          {/* Add User Group */}
-          <UserGroupDropdown
-            groups={availableUserGroups}
-            excludedIds={excludedUserGroupIds}
-            onSelect={handleAddUserGroup}
-            onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
-          />
-
-          {loadingAccess ? (
-            <div className="flex justify-center py-4">
-              <LoadingCircle />
-            </div>
-          ) : (
-            <>
-              {/* Users List */}
-              <div className="mb-6">
-                <h3 className="mb-3 text-sm font-medium text-zinc-300">
-                  Users ({accessData?.users.length || 0})
-                </h3>
-                {!accessData?.users.length ? (
-                  <p className="text-sm text-zinc-500">
-                    No individual users have access
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {accessData.users.map((user) => (
-                      <MemberListItem
-                        key={user.userId}
-                        type="user"
-                        name={user.name || user.email}
-                        email={user.name ? user.email : undefined}
-                        onRemove={() =>
-                          handleRemoveUser(user.userId, user.email)
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
+            {loadingAccess ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
+            ) : (
+              <>
+                {/* Users List */}
+                <div>
+                  <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+                    Users ({accessData?.users.length || 0})
+                  </h3>
+                  {!accessData?.users.length ? (
+                    <p className="text-sm text-muted-foreground">
+                      No individual users have access
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {accessData.users.map((user) => (
+                        <MemberListItem
+                          key={user.userId}
+                          type="user"
+                          name={user.name || user.email}
+                          email={user.name ? user.email : undefined}
+                          onRemove={() =>
+                            handleRemoveUser(user.userId, user.email)
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-              {/* User Groups List */}
-              <div>
-                <h3 className="mb-3 text-sm font-medium text-zinc-300">
-                  User Groups ({accessData?.userGroups.length || 0})
-                </h3>
-                {!accessData?.userGroups.length ? (
-                  <p className="text-sm text-zinc-500">
-                    No user groups have access
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {accessData.userGroups.map((group) => (
-                      <MemberListItem
-                        key={group.id}
-                        type="userGroup"
-                        name={group.name}
-                        onRemove={() =>
-                          handleRemoveUserGroup(group.id, group.name)
-                        }
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-        </div>
+                {/* User Groups List */}
+                <div>
+                  <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+                    User Groups ({accessData?.userGroups.length || 0})
+                  </h3>
+                  {!accessData?.userGroups.length ? (
+                    <p className="text-sm text-muted-foreground">
+                      No user groups have access
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {accessData.userGroups.map((group) => (
+                        <MemberListItem
+                          key={group.id}
+                          type="userGroup"
+                          name={group.name}
+                          onRemove={() =>
+                            handleRemoveUserGroup(group.id, group.name)
+                          }
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Empty state */}
       {!selectedGroupId && groups.length === 0 && (
-        <div className="rounded-lg border border-zinc-700 bg-zinc-800 p-8 text-center">
-          <p className="text-zinc-400">
-            You don&apos;t have any event groups yet.
-          </p>
-          <p className="mt-2 text-sm text-zinc-500">
-            Click &quot;Create Event Group&quot; above to get started.
-          </p>
-        </div>
+        <Card className="text-center">
+          <CardContent className="py-8">
+            <p className="text-muted-foreground">
+              You don&apos;t have any event groups yet.
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Click &quot;Create Event Group&quot; above to get started.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
       {/* Create Event Group Modal */}

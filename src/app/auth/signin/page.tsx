@@ -4,6 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAlert } from "@/app/(alert)/AlertProvider";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function Page() {
   const [email, setEmail] = useState("");
@@ -45,50 +55,58 @@ export default function Page() {
   };
 
   return (
-    <div className="flex flex-col justify-center items-center min-h-screen bg-zinc-950">
-      <h1 className="text-4xl font-bold text-blue-500 mb-12">Blueshot</h1>
-      <div className="w-full max-w-md bg-zinc-900 rounded-xl shadow-lg p-8 border border-zinc-800">
-        <h2 className="text-2xl font-bold text-white mb-6">Sign In</h2>
-        {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
-        <form onSubmit={(e) => signIn(e)} className="flex flex-col gap-4">
-          <div>
-            <label className="text-white text-sm block mb-2">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="text-white text-sm block mb-2">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white font-semibold py-2 rounded transition"
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </button>
-        </form>
-        <p className="text-slate-300 text-sm mt-6 text-center">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/auth/register"
-            className="text-blue-400 hover:text-blue-300"
-          >
-            Register
-          </Link>
-        </p>
-      </div>
+    <div className="flex flex-col justify-center items-center min-h-screen bg-background px-4">
+      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8 md:mb-12">
+        Blueshot
+      </h1>
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Sign In</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {error && (
+            <div className="text-destructive text-sm mb-4">{error}</div>
+          )}
+          <form onSubmit={(e) => signIn(e)} className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="you@example.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+              />
+            </div>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+        </CardContent>
+        <CardFooter className="justify-center">
+          <p className="text-muted-foreground text-sm">
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/auth/register"
+              className="text-primary hover:underline"
+            >
+              Register
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

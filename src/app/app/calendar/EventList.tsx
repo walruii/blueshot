@@ -4,6 +4,8 @@ import Event from "./Event";
 import { formatLocalDate, sortEvents } from "@/utils/dateUtil";
 import { useRouter } from "next/navigation";
 import { useAlert } from "@/app/(alert)/AlertProvider";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 export default function EventList({
   selectedDate,
@@ -38,18 +40,16 @@ export default function EventList({
   };
   return (
     <div
-      className={`py-7 bg-zinc-900 rounded-xl h-full min-h-0 flex flex-col ${className}`}
+      className={`py-7 bg-card rounded-xl h-full min-h-0 flex flex-col ${className}`}
     >
       <div className="font-bold pb-3 px-5 flex justify-between items-center">
         <p>{selectedDate.toDateString()}</p>
-        <div
-          onClick={() => handleLink()}
-          className="bg-zinc-800 p-2 rounded-lg px-5 hover:bg-zinc-700 active:bg-blue-700 cursor-pointer"
-        >
+        <Button onClick={() => handleLink()} variant="secondary" size="sm">
+          <Plus className="h-4 w-4 mr-1" />
           Add Event
-        </div>
+        </Button>
       </div>
-      <div className="overflow-y-auto border-t max-h-100 md:max-h-none border-zinc-600">
+      <div className="overflow-y-auto border-t max-h-100 md:max-h-none border-border">
         {hasEvents &&
           eves.map((e) => {
             return <Event key={e.id} e={e} />;

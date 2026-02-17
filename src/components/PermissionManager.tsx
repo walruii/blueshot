@@ -3,7 +3,18 @@
 import { useState, useEffect, useRef } from "react";
 import { PermissionEntry, RoleLabels, RoleValue } from "@/types/permission";
 import { UserGroup } from "@/types/userGroup";
-import LoadingCircle from "@/svgs/LoadingCircle";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, X, Users, User } from "lucide-react";
 
 interface PermissionManagerProps {
   permissions: PermissionEntry[];
@@ -35,19 +46,9 @@ export const PermissionManager = ({
   className = "",
 }: PermissionManagerProps) => {
   const [emailInput, setEmailInput] = useState("");
-  // Debouncing state - reserved for future use
-  const [, setDebouncedEmail] = useState("");
   const [showUserGroupDropdown, setShowUserGroupDropdown] = useState(false);
   const [userGroupSearch, setUserGroupSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Debounce email input for validation feedback
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedEmail(emailInput);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [emailInput]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -94,13 +95,11 @@ export const PermissionManager = ({
   return (
     <div className={`space-y-4 ${className}`}>
       {/* Email Input */}
-      <div>
-        <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Add by Email
-        </label>
+      <div className="space-y-2">
+        <Label>Add by Email</Label>
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <input
+            <Input
               type="email"
               value={emailInput}
               onChange={(e) => {
@@ -109,38 +108,34 @@ export const PermissionManager = ({
               }}
               onKeyDown={handleKeyPress}
               placeholder="Enter email address"
-              className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
               disabled={isValidating}
             />
             {isValidating && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <LoadingCircle />
+                <Loader2 className="size-4 animate-spin" />
               </div>
             )}
           </div>
-          <button
+          <Button
             type="button"
             onClick={handleAddEmail}
             disabled={isValidating || !emailInput.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed"
           >
             Add
-          </button>
+          </Button>
         </div>
         {validationError && (
-          <p className="mt-1 text-sm text-red-500">{validationError}</p>
+          <p className="text-sm text-destructive">{validationError}</p>
         )}
       </div>
 
       {/* User Group Select */}
       {allowUserGroups && (
-        <div ref={dropdownRef} className="relative">
-          <label className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Add User Group
-          </label>
+        <div ref={dropdownRef} className="relative space-y-2">
+          <Label>Add User Group</Label>
           <div className="flex gap-2">
             <div className="relative flex-1">
-              <input
+              <Input
                 type="text"
                 value={userGroupSearch}
                 onChange={(e) => {
@@ -149,23 +144,22 @@ export const PermissionManager = ({
                 }}
                 onFocus={() => setShowUserGroupDropdown(true)}
                 placeholder="Search user groups..."
-                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-zinc-600 dark:bg-zinc-700 dark:text-white"
               />
               {showUserGroupDropdown && (
-                <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-600 dark:bg-zinc-700">
+                <div className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-lg border bg-popover shadow-lg">
                   {filteredUserGroups.length > 0 ? (
                     filteredUserGroups.map((group) => (
                       <button
                         key={group.id}
                         type="button"
                         onClick={() => handleSelectUserGroup(group)}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-600"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
                       >
                         {group.name}
                       </button>
                     ))
                   ) : (
-                    <div className="px-3 py-2 text-sm text-zinc-500">
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
                       No groups found
                     </div>
                   )}
@@ -176,7 +170,7 @@ export const PermissionManager = ({
                         setShowUserGroupDropdown(false);
                         onCreateUserGroup();
                       }}
-                      className="w-full border-t border-zinc-200 px-3 py-2 text-left text-sm font-medium text-blue-600 hover:bg-blue-50 dark:border-zinc-600 dark:text-blue-400 dark:hover:bg-zinc-600"
+                      className="w-full border-t px-3 py-2 text-left text-sm font-medium text-primary hover:bg-accent"
                     >
                       + Create New Group
                     </button>
@@ -190,10 +184,8 @@ export const PermissionManager = ({
 
       {/* Permission List */}
       {permissions.length > 0 && (
-        <div>
-          <label className="mb-2 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-            Members & Groups ({permissions.length})
-          </label>
+        <div className="space-y-2">
+          <Label>Members & Groups ({permissions.length})</Label>
           <div className="space-y-2">
             {permissions.map((entry) => (
               <PermissionRow
@@ -224,60 +216,51 @@ const PermissionRow = ({
   const isUserGroup = entry.type === "userGroup";
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-600 dark:bg-zinc-700">
+    <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
       {/* Type indicator */}
-      <div
-        className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
-          isUserGroup
-            ? "bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
-            : "bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300"
-        }`}
-        title={isUserGroup ? "User Group" : "Individual User"}
-      >
-        {isUserGroup ? "G" : "U"}
-      </div>
+      <Badge variant={isUserGroup ? "secondary" : "outline"} className="shrink-0">
+        {isUserGroup ? (
+          <Users className="size-3 mr-1" />
+        ) : (
+          <User className="size-3 mr-1" />
+        )}
+        {isUserGroup ? "Group" : "User"}
+      </Badge>
 
       {/* Name/Email */}
-      <div className="flex-1 truncate text-sm text-gray-900 dark:text-white">
+      <div className="flex-1 truncate text-sm">
         {entry.name || entry.identifier}
       </div>
 
       {/* Role dropdown */}
-      <select
-        value={entry.role}
-        onChange={(e) =>
-          onUpdateRole(entry.identifier, Number(e.target.value) as RoleValue)
+      <Select
+        value={String(entry.role)}
+        onValueChange={(value) =>
+          onUpdateRole(entry.identifier, Number(value) as RoleValue)
         }
-        className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-sm focus:border-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-600 dark:text-white"
       >
-        {Object.entries(RoleLabels).map(([value, label]) => (
-          <option key={value} value={value}>
-            {label}
-          </option>
-        ))}
-      </select>
+        <SelectTrigger className="w-28">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {Object.entries(RoleLabels).map(([value, label]) => (
+            <SelectItem key={value} value={value}>
+              {label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       {/* Remove button */}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => onRemove(entry.identifier)}
-        className="rounded p-1 text-gray-400 hover:bg-gray-200 hover:text-red-500 dark:hover:bg-gray-600"
-        aria-label="Remove"
+        className="text-muted-foreground hover:text-destructive"
       >
-        <svg
-          className="h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M6 18L18 6M6 6l12 12"
-          />
-        </svg>
-      </button>
+        <X className="size-4" />
+      </Button>
     </div>
   );
 };

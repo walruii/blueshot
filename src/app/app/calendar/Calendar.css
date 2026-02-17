@@ -1,7 +1,8 @@
 @import "tailwindcss";
 /* Custom Modern Overrides */
 .react-calendar {
-  @apply w-full max-w-full dark:bg-zinc-900 border-none rounded-2xl shadow-xl font-sans p-4;
+  @apply w-full max-w-full border-none rounded-2xl shadow-xl font-sans p-4;
+  background-color: hsl(var(--card));
 }
 
 /* Navigation Header */
@@ -10,17 +11,31 @@
 }
 
 .react-calendar__navigation button {
-  @apply min-w-11 bg-transparent text-white font-semibold rounded-lg transition-all
-         hover:bg-blue-600 focus:bg-blue-700 disabled:bg-blue-300;
+  @apply min-w-11 bg-transparent font-semibold rounded-lg transition-all;
+  color: hsl(var(--foreground));
+}
+
+.react-calendar__navigation button:hover {
+  background-color: hsl(var(--primary));
+}
+
+.react-calendar__navigation button:focus {
+  background-color: hsl(var(--primary) / 0.8);
+}
+
+.react-calendar__navigation button:disabled {
+  background-color: hsl(var(--muted));
 }
 
 .react-calendar__navigation__label {
-  @apply text-lg font-bold text-gray-800;
+  @apply text-lg font-bold;
+  color: hsl(var(--foreground));
 }
 
 /* Weekday Labels (M, T, W...) */
 .react-calendar__month-view__weekdays {
-  @apply text-center uppercase font-bold text-xs text-white no-underline mb-2;
+  @apply text-center uppercase font-bold text-xs no-underline mb-2;
+  color: hsl(var(--foreground));
 }
 
 .react-calendar__month-view__weekdays__weekday {
@@ -33,8 +48,13 @@
 
 /* Day Tiles */
 .react-calendar__tile {
-  @apply max-w-full p-3 bg-none text-center font-medium text-sm text-white rounded-xl transition-all
-         hover:bg-zinc-800 hover:text-blue-600;
+  @apply max-w-full p-3 bg-none text-center font-medium text-sm rounded-xl transition-all;
+  color: hsl(var(--foreground));
+}
+
+.react-calendar__tile:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--primary));
 }
 
 /* Weekend Color */
@@ -44,29 +64,36 @@
 
 /* Neighboring Month Days */
 .react-calendar__month-view__days__day--neighboringMonth {
-  @apply text-zinc-600;
+  color: hsl(var(--muted-foreground));
 }
 
 /* Today's Date */
 .react-calendar__tile--now {
-  @apply bg-blue-200 text-blue-700 font-bold border border-blue-200;
+  @apply font-bold;
+  background-color: hsl(var(--primary) / 0.2);
+  color: hsl(var(--primary));
+  border: 1px solid hsl(var(--primary) / 0.3);
 }
 
 .react-calendar__tile--now:enabled:hover {
-  @apply bg-blue-100 dark:bg-zinc-700;
+  background-color: hsl(var(--primary) / 0.3);
 }
 
 /* Active/Selected Date */
 .react-calendar__tile--active {
-  @apply bg-blue-600 text-white shadow-md shadow-blue-200 dark:shadow-blue-800;
+  @apply shadow-md;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
 }
 
 .react-calendar__tile--active:enabled:hover,
 .react-calendar__tile--active:enabled:focus {
-  @apply bg-blue-700;
+  background-color: hsl(var(--primary) / 0.8);
 }
 
 /* Disabled States */
 .react-calendar__tile:disabled {
-  @apply bg-zinc-50 text-zinc-900 dark:text-gray-500 cursor-not-allowed;
+  @apply cursor-not-allowed;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
 }

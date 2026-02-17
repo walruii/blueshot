@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useAlert } from "../(alert)/AlertProvider";
 import { acknowledgeEvent } from "@/server-actions/acknowledge";
+import { Button } from "@/components/ui/button";
 
 export default function AcknowledgementButton({
   eventParticipateId,
@@ -39,12 +40,13 @@ export default function AcknowledgementButton({
   };
 
   return (
-    <button
+    <Button
       onClick={() => handleAck()}
       disabled={isLoading}
-      className={`p-2 rounded-lg px-5 justify-end ${isLoading ? "bg-zinc-800" : "bg-zinc-800 hover:bg-zinc-700 active:bg-blue-700"}`}
+      variant="secondary"
+      size="sm"
     >
       {isLoading ? "ACK..." : "ACK"}
-    </button>
+    </Button>
   );
 }

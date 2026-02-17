@@ -17,12 +17,21 @@ import { getAccessibleEventGroups } from "@/server-actions/eventGroup";
 import { getAccessibleUserGroups } from "@/server-actions/userGroup";
 import { checkEmailListExist } from "@/server-actions/addEvent";
 import { Role } from "@/types/permission";
-import LoadingCircle from "@/svgs/LoadingCircle";
 import EmailAddForm from "@/components/EmailAddForm";
 import UserGroupDropdown from "@/components/UserGroupDropdown";
 import MemberListItem from "@/components/MemberListItem";
 import { CreateUserGroupModal } from "@/components/CreateUserGroupModal";
 import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, X } from "lucide-react";
 
 interface EventEditModeProps {
   event: Event;
@@ -241,81 +250,70 @@ export default function EventEditMode({ event }: EventEditModeProps) {
 
   if (!isEditing) {
     return (
-      <button
-        onClick={() => setIsEditing(true)}
-        className="mb-6 w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 mt-5"
-      >
+      <Button onClick={() => setIsEditing(true)} className="w-full mt-5">
         Edit Permissions
-      </button>
+      </Button>
     );
   }
 
   return (
-    <div className="mb-6 rounded-xl border border-zinc-700 bg-zinc-800 p-6 mt-5">
+    <div className="rounded-xl border bg-card p-6 mt-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Edit Permissions</h2>
-        <button
+        <h2 className="text-xl font-semibold">Edit Permissions</h2>
+        <Button
+          variant="ghost"
+          size="icon"
           onClick={() => setIsEditing(false)}
-          className="rounded p-1 text-zinc-400 hover:bg-zinc-700 hover:text-white"
+          className="h-8 w-8"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+          <X className="h-5 w-5" />
+        </Button>
       </div>
 
       {loading ? (
         <div className="flex justify-center py-8">
-          <LoadingCircle />
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <div className="space-y-6">
           {/* Event Group Selection */}
-          <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-300">
-              Event Group
-            </label>
+          <div className="space-y-2">
+            <Label>Event Group</Label>
             <div className="flex gap-2">
-              <select
+              <Select
                 value={selectedEventGroupId}
-                onChange={(e) => setSelectedEventGroupId(e.target.value)}
-                className="flex-1 rounded-lg border border-zinc-600 bg-zinc-700 px-3 py-2 text-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                onValueChange={setSelectedEventGroupId}
                 disabled={savingEventGroup}
               >
-                {eventGroups.map((group) => (
-                  <option key={group.id} value={group.id}>
-                    {group.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="flex-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {eventGroups.map((group) => (
+                    <SelectItem key={group.id} value={group.id}>
+                      {group.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {selectedEventGroupId !== event.eventGroupId && (
-                <button
+                <Button
                   onClick={handleEventGroupChange}
                   disabled={savingEventGroup}
-                  className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:bg-zinc-600"
+                  variant="secondary"
                 >
                   {savingEventGroup ? "Saving..." : "Save"}
-                </button>
+                </Button>
               )}
             </div>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="mt-1 text-xs text-muted-foreground">
               Changing the event group will update who can see this event
             </p>
           </div>
 
           {/* Direct Access Section */}
-          <div className="border-t border-zinc-700 pt-6">
-            <h3 className="mb-4 text-lg font-medium text-white">
+          <div className="border-t pt-6">
+            <h3 className="mb-4 text-lg font-medium">
               Direct Access (in addition to event group)
             </h3>
 
@@ -341,17 +339,17 @@ export default function EventEditMode({ event }: EventEditModeProps) {
 
             {loadingAccess ? (
               <div className="flex justify-center py-4">
-                <LoadingCircle />
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : (
               <>
                 {/* Users with Direct Access */}
                 <div className="mb-4">
-                  <h4 className="mb-2 text-sm font-medium text-zinc-300">
+                  <h4 className="mb-2 text-sm font-medium text-muted-foreground">
                     Users ({accessData?.users.length || 0})
                   </h4>
                   {!accessData?.users.length ? (
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text-muted-foreground">
                       No individual users have direct access
                     </p>
                   ) : (
@@ -373,11 +371,11 @@ export default function EventEditMode({ event }: EventEditModeProps) {
 
                 {/* User Groups with Direct Access */}
                 <div>
-                  <h4 className="mb-2 text-sm font-medium text-zinc-300">
+                  <h4 className="mb-2 text-sm font-medium text-muted-foreground">
                     User Groups ({accessData?.userGroups.length || 0})
                   </h4>
                   {!accessData?.userGroups.length ? (
-                    <p className="text-sm text-zinc-500">
+                    <p className="text-sm text-muted-foreground">
                       No user groups have direct access
                     </p>
                   ) : (

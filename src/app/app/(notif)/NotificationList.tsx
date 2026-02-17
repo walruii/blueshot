@@ -1,11 +1,12 @@
 "use client";
 import { Notification } from "@/types/notification";
 import { dateToTimeString } from "@/utils/dateUtil";
-import CrossIcon from "@/svgs/CrossIcon";
 import { archiveNotification } from "@/server-actions/notification";
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { X } from "lucide-react";
 
 function NotificationContent({ notification }: { notification: Notification }) {
   const payload = notification.payload;
@@ -15,13 +16,13 @@ function NotificationContent({ notification }: { notification: Notification }) {
     return (
       <div className="flex flex-col gap-1 p-1 px-7 py-2">
         <p className="font-medium">{notification.title}</p>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted-foreground">
           By {payload.eventUserName} ({payload.eventEmail})
         </p>
         {isNewEvent && (
           <Link
             href={`/app/event/${payload.eventId}`}
-            className="text-sm text-blue-400 hover:text-blue-300 underline"
+            className="text-sm text-primary hover:underline"
           >
             View Event
           </Link>
@@ -34,8 +35,10 @@ function NotificationContent({ notification }: { notification: Notification }) {
     return (
       <div className="flex flex-col gap-1 p-1 px-7 py-2">
         <p className="font-medium">{notification.title}</p>
-        <p className="text-sm text-zinc-400">Group: {payload.eventGroupName}</p>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted-foreground">
+          Group: {payload.eventGroupName}
+        </p>
+        <p className="text-sm text-muted-foreground">
           By {payload.eventGroupOwnerName}
         </p>
       </div>
@@ -46,8 +49,12 @@ function NotificationContent({ notification }: { notification: Notification }) {
     return (
       <div className="flex flex-col gap-1 p-1 px-7 py-2">
         <p className="font-medium">{notification.title}</p>
-        <p className="text-sm text-zinc-400">Group: {payload.userGroupName}</p>
-        <p className="text-sm text-zinc-400">By {payload.userGroupOwnerName}</p>
+        <p className="text-sm text-muted-foreground">
+          Group: {payload.userGroupName}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          By {payload.userGroupOwnerName}
+        </p>
       </div>
     );
   }
@@ -81,22 +88,32 @@ export default function NotificationList({
     }
   };
   return (
-    <div className="flex flex-col py-3 border-zinc-600 w-full justify-between items-center overflow-y-auto h-full min-h-0">
+    <div className="flex flex-col py-3 w-full justify-between items-center overflow-y-auto h-full min-h-0">
+      {notifications.length === 0 && (
+        <p className="text-muted-foreground p-4">No notifications</p>
+      )}
       {notifications.map((n: Notification) => (
         <div
           key={n.id}
-          className="flex w-full border-b border-zinc-600 items-center justify-between py-2"
+          className="flex w-full border-b items-center justify-between py-2"
         >
           <NotificationContent notification={n} />
-          <div className="flex flex-col w-40 border-l px-3 py-2 border-zinc-600 min-w-40">
-            <p>{dateToTimeString(new Date(n.createdAt))} </p>
-            <p>{new Date(n.createdAt).toDateString()}</p>
-            <button
-              className="bg-zinc-800 hover:bg-zinc-700 active:bg-red-800 p-2 px-4 rounded-lg flex justify-center items-center"
+          <div className="flex flex-col w-40 border-l px-3 py-2 min-w-40 gap-1">
+            <p className="text-sm text-muted-foreground">
+              {dateToTimeString(new Date(n.createdAt))}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {new Date(n.createdAt).toDateString()}
+            </p>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => handleArchive(n.id)}
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
-              <CrossIcon size={15} />
-            </button>
+              <X className="size-4" />
+              Archive
+            </Button>
           </div>
         </div>
       ))}

@@ -1,6 +1,10 @@
 "use client";
 
 import { FormState } from "@/hooks/useEventForm";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface FormFieldsProps {
   formState: FormState;
@@ -16,87 +20,83 @@ export const FormFields = ({
   return (
     <>
       {/* Title */}
-      <div>
-        <label className="text-white text-sm block mb-2 font-medium">
-          Event Title *
-        </label>
-        <input
+      <div className="space-y-2">
+        <Label htmlFor="title">Event Title *</Label>
+        <Input
+          id="title"
           type="text"
           value={formState.title}
           onChange={(e) => setFormField("title", e.target.value)}
           placeholder="Enter event title"
-          className={`w-full px-4 py-2 rounded bg-zinc-800 text-white placeholder-zinc-500 outline-none focus:ring-2 ${
+          className={
             errors.title
-              ? "focus:ring-red-500 border border-red-500"
-              : "focus:ring-blue-500"
-          }`}
+              ? "border-destructive focus-visible:ring-destructive"
+              : ""
+          }
         />
         {errors.title && (
-          <p className="text-red-400 text-sm mt-1">{errors.title}</p>
+          <p className="text-destructive text-sm">{errors.title}</p>
         )}
       </div>
 
       {/* Description */}
-      <div>
-        <label className="text-white text-sm block mb-2 font-medium">
-          Description *
-        </label>
-        <textarea
+      <div className="space-y-2">
+        <Label htmlFor="description">Description *</Label>
+        <Textarea
+          id="description"
           value={formState.description}
           onChange={(e) => setFormField("description", e.target.value)}
           placeholder="Enter event description"
           rows={4}
-          className={`w-full px-4 py-2 rounded bg-zinc-800 text-white placeholder-zinc-500 outline-none focus:ring-2 resize-none ${
+          className={
             errors.description
-              ? "focus:ring-red-500 border border-red-500"
-              : "focus:ring-blue-500"
-          }`}
+              ? "border-destructive focus-visible:ring-destructive"
+              : ""
+          }
         />
         {errors.description && (
-          <p className="text-red-400 text-sm mt-1">{errors.description}</p>
+          <p className="text-destructive text-sm">{errors.description}</p>
         )}
       </div>
 
-      <div className="flex justify-start items-center gap-3">
-        <label className="text-white text-sm font-medium">All Day Event:</label>
-        <input
-          type="checkbox"
+      <div className="flex items-center gap-3">
+        <Checkbox
+          id="allDay"
           checked={formState.allDay}
-          onChange={() => setFormField("allDay", !formState.allDay)}
-          className="px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
+          onCheckedChange={(checked) => setFormField("allDay", !!checked)}
         />
+        <Label htmlFor="allDay" className="cursor-pointer">
+          All Day Event
+        </Label>
       </div>
 
       {/* Date Range */}
       <div className="grid sm:grid-cols-2 grid-cols-1 gap-4">
-        <div>
-          <label className="text-white text-sm block mb-2 font-medium">
-            From *
-          </label>
-          <input
+        <div className="space-y-2">
+          <Label htmlFor="fromTime">From *</Label>
+          <Input
+            id="fromTime"
             type="datetime-local"
             value={formState.fromTime}
             onChange={(e) => setFormField("fromTime", e.target.value)}
-            className={` px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 ${
+            className={
               errors.fromTime
-                ? "focus:ring-red-500 border border-red-500"
-                : "focus:ring-blue-500"
-            }`}
+                ? "border-destructive focus-visible:ring-destructive"
+                : ""
+            }
           />
           {errors.fromTime && (
-            <p className="text-red-400 text-sm mt-1">{errors.fromTime}</p>
+            <p className="text-destructive text-sm">{errors.fromTime}</p>
           )}
         </div>
         {!formState.allDay && (
-          <div>
-            <label className="text-white text-sm block mb-2 font-medium">
-              To
-            </label>
-            <input
+          <div className="space-y-2">
+            <Label htmlFor="toTime">To</Label>
+            <Input
+              id="toTime"
               type="datetime-local"
               value={formState.toTime}
               onChange={(e) => setFormField("toTime", e.target.value)}
-              className=" px-4 py-2 rounded bg-zinc-800 text-white outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         )}

@@ -17,10 +17,10 @@ export default function GroupsLayout({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold text-white">Manage Groups</h1>
+      <h1 className="mb-6 text-2xl font-bold">Manage Groups</h1>
 
       {/* Tab Navigation */}
-      <div className="mb-6 border-b border-zinc-700">
+      <div className="mb-6 border-b">
         <nav className="-mb-px flex space-x-8">
           {tabs.map((tab) => {
             const isActive = pathname === tab.href;
@@ -30,8 +30,8 @@ export default function GroupsLayout({
                 href={tab.href}
                 className={`border-b-2 px-1 py-4 text-sm font-medium transition-colors ${
                   isActive
-                    ? "border-blue-500 text-blue-500"
-                    : "border-transparent text-zinc-400 hover:border-zinc-500 hover:text-zinc-300"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:border-muted-foreground hover:text-foreground"
                 }`}
               >
                 {tab.name}

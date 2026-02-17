@@ -9,22 +9,28 @@ export default function UpcomingEventList({
   activeEvents: Event[];
 }) {
   return (
-    <div className="flex flex-col py-3 border-zinc-600 w-full justify-between items-center overflow-y-auto h-full min-h-0">
+    <div className="flex flex-col py-3 w-full justify-between items-center overflow-y-auto h-full min-h-0">
+      {activeEvents.length === 0 && (
+        <p className="text-muted-foreground p-4">No upcoming events</p>
+      )}
       {activeEvents.map((e: Event) => (
         <div
           key={e.id}
-          className="flex w-full border-b border-zinc-600 items-center justify-between py-2"
+          className="flex w-full border-b items-center justify-between py-2"
         >
           <div className="flex flex-col p-1 rounded px-7 py-2 gap-2">
-            <Link href={`/app/event/${e.id}`}>{e.title}</Link>
+            <Link
+              href={`/app/event/${e.id}`}
+              className="font-medium hover:text-primary transition-colors"
+            >
+              {e.title}
+            </Link>
             <UpcomingTag from={e.from} />
           </div>
-          <div className="flex flex-col w-40 border-l px-3 py-2 border-zinc-600">
-            <p className="">From: {dateToTimeString(e.from)}</p>
-            {e.to && <p className="">To: {dateToTimeString(e.to)}</p>}
-            <p className="" title={e.eventUserEmail}>
-              by: {e.eventUserName}
-            </p>
+          <div className="flex flex-col w-40 border-l px-3 py-2 text-sm text-muted-foreground">
+            <p>From: {dateToTimeString(e.from)}</p>
+            {e.to && <p>To: {dateToTimeString(e.to)}</p>}
+            <p title={e.eventUserEmail}>by: {e.eventUserName}</p>
           </div>
         </div>
       ))}

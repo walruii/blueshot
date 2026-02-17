@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
-import { Montserrat, Fira_Mono } from "next/font/google";
+import { Montserrat, Fira_Mono, Geist } from "next/font/google";
 import "./globals.css";
 import AlertProvider from "./(alert)/AlertProvider";
+import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "next-themes";
+
+const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 const mont = Montserrat({
   variable: "--font-mont",
@@ -25,9 +29,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={geist.variable} suppressHydrationWarning>
       <body className={`${mont.variable} ${firaMono.variable} antialiased`}>
-        <AlertProvider>{children}</AlertProvider>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          <AlertProvider>{children}</AlertProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
