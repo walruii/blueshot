@@ -1,9 +1,8 @@
 "use client";
 import { authClient } from "@/lib/auth-client";
-import { sendSignupVerificationEmail } from "@/server-actions/email";
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAlert } from "@/app/(alert)/AlertProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,49 +14,60 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CheckCircle } from "lucide-react";
 
-export default function Page() {
+export default function SignIn() {
   const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showAlert } = useAlert();
 
-  const signUp = async (e: React.SubmitEvent<HTMLFormElement>) => {
+  // Check if coming from verified email link
+  const verified = searchParams?.get("verified") === "true";
+
+  const signIn = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     try {
-      if (password !== confirmPassword) {
-        setError("Passwords do not match");
-        return;
-      }
-
-      await authClient.signUp.email(
-        { email, password, name },
+      await authClient.signIn.email(
+        { email, password },
         {
           onRequest: () => {
             setLoading(true);
           },
           onSuccess: async () => {
             setLoading(false);
-            // Send verification email
-            const emailResult = await sendSignupVerificationEmail(email, name);
-            if (!emailResult.success) {
-              showAlert({
-                title: "Warning",
-                description:
-                  "Account created but verification email failed. Please try resending.",
-                type: "error",
-              });
+
+            // Get the current session to check if email is verified
+            try {
+              const sessionData = await authClient.getSession();
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const user = (sessionData as any)?.data?.user as
+                | { email: string; emailVerified: boolean }
+                | undefined;
+
+              if (user && !user.emailVerified) {
+                // Email not verified - redirect to verify-email page
+                if (user.email) {
+                  sessionStorage.setItem("verifyEmail", user.email);
+                }
+                router.push(
+                  `/auth/verify-email?email=${encodeURIComponent(user.email || email)}`,
+                );
+              } else {
+                // Email verified - clear cache and go to app
+                sessionStorage.removeItem("verifyEmail");
+                router.push("/app");
+              }
+            } catch (sessionErr) {
+              console.error("Error getting session:", sessionErr);
+              // Fallback to app if session check fails
+              router.push("/app");
             }
-            // Redirect to verify-email page
-            router.push(
-              `/auth/verify-email?email=${encodeURIComponent(email)}`,
-            );
           },
           onError: (ctx) => {
             setLoading(false);
@@ -82,23 +92,26 @@ export default function Page() {
       </h1>
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl">Create Account</CardTitle>
+          <CardTitle className="text-2xl">Sign In</CardTitle>
         </CardHeader>
         <CardContent>
           {error && (
             <div className="text-destructive text-sm mb-4">{error}</div>
           )}
-          <form onSubmit={(e) => signUp(e)} className="flex flex-col gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
-              />
+          {verified && (
+            <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3 mb-4 flex gap-2">
+              <CheckCircle className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                  Email verified successfully!
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-1">
+                  You can now sign in with your account.
+                </p>
+              </div>
             </div>
+          )}
+          <form onSubmit={(e) => signIn(e)} className="flex flex-col gap-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -121,27 +134,19 @@ export default function Page() {
                 placeholder="••••••••"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                placeholder="••••••••"
-              />
-            </div>
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Registering..." : "Register"}
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
         </CardContent>
         <CardFooter className="justify-center">
           <p className="text-muted-foreground text-sm">
-            Already have an account?{" "}
-            <Link href="/auth/signin" className="text-primary hover:underline">
-              Sign in
+            Don&apos;t have an account?{" "}
+            <Link
+              href="/auth/register"
+              className="text-primary hover:underline"
+            >
+              Register
             </Link>
           </p>
         </CardFooter>

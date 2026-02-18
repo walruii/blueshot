@@ -5,7 +5,13 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Public routes that don't require authentication
-  const publicRoutes = ["/auth/signin", "/auth/register", "/"];
+  const publicRoutes = [
+    "/auth/signin",
+    "/auth/register",
+    "/auth/verify-email",
+    "/api/auth/verify-email",
+    "/",
+  ];
 
   // Check if the route is public
   if (publicRoutes.includes(pathname)) {
@@ -23,6 +29,15 @@ export async function proxy(request: NextRequest) {
       // If no session, redirect to signin
       if (!session) {
         return NextResponse.redirect(new URL("/auth/signin", request.url));
+      }
+
+      // Check if email is verified
+      if (!session.user.emailVerified) {
+        const verifyUrl = new URL("/auth/verify-email", request.url);
+        if (session.user.email) {
+          verifyUrl.searchParams.set("email", session.user.email);
+        }
+        return NextResponse.redirect(verifyUrl);
       }
     } catch (error) {
       // If there's an error getting the session, redirect to signin

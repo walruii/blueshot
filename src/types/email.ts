@@ -4,6 +4,12 @@ export type VerificationEmail = {
   name: string;
 };
 
+export type VerificationEmailLink = {
+  verificationLink: string;
+  email: string;
+  name: string;
+};
+
 export type HelloWorldEmail = {
   email: string;
   msg: string;
@@ -11,6 +17,11 @@ export type HelloWorldEmail = {
 
 export interface VerificationEmailProps {
   verificationCode: string;
+}
+
+export interface VerificationEmailLinkProps {
+  verificationLink: string;
+  name?: string;
 }
 
 export interface HelloWorldEmailProps {
