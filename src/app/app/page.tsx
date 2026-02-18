@@ -12,6 +12,7 @@ import UpcomingEventList from "./(notif)/UpcomingEventList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, Users, FolderOpen } from "lucide-react";
+import TestEmail from "./TestEmail";
 
 export default function Home() {
   return (
@@ -47,6 +48,7 @@ async function DashboardWrapper() {
               Hope you are doing fantastic today!
             </p>
           </div>
+          <TestEmail />
         </CardContent>
       </Card>
 
