@@ -4,6 +4,7 @@ import {
   DayPicker,
   getDefaultClassNames,
   type DayButtonProps,
+  type CaptionProps,
 } from "react-day-picker";
 import { EventMap } from "@/types/event";
 import DotIcon from "@/svgs/DotIcon";
@@ -13,6 +14,28 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const months = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 export default function CalendarView({
   dbEvents: events,
@@ -20,7 +43,104 @@ export default function CalendarView({
   dbEvents: EventMap;
 }) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const defaultClassNames = getDefaultClassNames();
+
+  const CustomCaption = ({ calendarMonth }: CaptionProps) => {
+    const displayMonth = calendarMonth.date;
+    const currentYear = displayMonth.getFullYear();
+    const currentMonthIndex = displayMonth.getMonth();
+
+    // Generate year options (current year +/- 10 years)
+    const yearOptions = Array.from(
+      { length: 21 },
+      (_, i) => currentYear - 10 + i,
+    );
+
+    const handleMonthChange = (value: string) => {
+      const newDate = new Date(displayMonth);
+      newDate.setMonth(parseInt(value));
+      setCurrentMonth(newDate);
+    };
+
+    const handleYearChange = (value: string) => {
+      const newDate = new Date(displayMonth);
+      newDate.setFullYear(parseInt(value));
+      setCurrentMonth(newDate);
+    };
+
+    const goToPreviousMonth = () => {
+      const newDate = new Date(displayMonth);
+      newDate.setMonth(newDate.getMonth() - 1);
+      setCurrentMonth(newDate);
+    };
+
+    const goToNextMonth = () => {
+      const newDate = new Date(displayMonth);
+      newDate.setMonth(newDate.getMonth() + 1);
+      setCurrentMonth(newDate);
+    };
+
+    return (
+      <div className="flex items-center justify-between w-full h-12 mb-2 px-1">
+        <button
+          onClick={goToPreviousMonth}
+          className={cn(
+            buttonVariants({ variant: "ghost" }),
+            "size-10 rounded-lg",
+          )}
+          aria-label="Go to previous month"
+        >
+          <ChevronLeftIcon className="size-5" />
+        </button>
+
+        <div className="flex items-center gap-2">
+          <Select
+            value={currentMonthIndex.toString()}
+            onValueChange={handleMonthChange}
+          >
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {months.map((month, index) => (
+                <SelectItem key={month} value={index.toString()}>
+                  {month}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select
+            value={currentYear.toString()}
+            onValueChange={handleYearChange}
+          >
+            <SelectTrigger className="w-25">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {yearOptions.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <button
+          onClick={goToNextMonth}
+          className={cn(
+            buttonVariants({ variant: "ghost" }),
+            "size-10 rounded-lg",
+          )}
+          aria-label="Go to next month"
+        >
+          <ChevronRightIcon className="size-5" />
+        </button>
+      </div>
+    );
+  };
 
   const CustomDayButton = ({ day, modifiers, ...props }: DayButtonProps) => {
     const date = day.date;
@@ -85,6 +205,8 @@ export default function CalendarView({
         mode="single"
         selected={selectedDate}
         onSelect={(date) => date && setSelectedDate(date)}
+        month={currentMonth}
+        onMonthChange={setCurrentMonth}
         fixedWeeks
         showOutsideDays
         className="lg:col-span-4 lg:row-span-3 w-full max-w-full rounded-2xl shadow-xl p-4 bg-card relative"
@@ -94,27 +216,9 @@ export default function CalendarView({
             "flex flex-col w-full gap-2 relative",
             defaultClassNames.month,
           ),
-          month_caption: cn(
-            "flex items-center justify-center h-12 mb-2 px-1",
-            defaultClassNames.month_caption,
-          ),
-          caption_label: cn(
-            "text-lg font-bold",
-            defaultClassNames.caption_label,
-          ),
           nav: cn(
-            "flex items-center justify-between w-full absolute inset-x-0 top-0",
+            "flex items-center justify-between w-full hidden",
             defaultClassNames.nav,
-          ),
-          button_previous: cn(
-            buttonVariants({ variant: "ghost" }),
-            "size-10 rounded-lg",
-            defaultClassNames.button_previous,
-          ),
-          button_next: cn(
-            buttonVariants({ variant: "ghost" }),
-            "size-10 rounded-lg",
-            defaultClassNames.button_next,
           ),
           weekdays: cn("flex w-full", defaultClassNames.weekdays),
           weekday: cn(
@@ -128,12 +232,7 @@ export default function CalendarView({
           selected: cn("", defaultClassNames.selected),
         }}
         components={{
-          Chevron: ({ orientation }) =>
-            orientation === "left" ? (
-              <ChevronLeftIcon className="size-5" />
-            ) : (
-              <ChevronRightIcon className="size-5" />
-            ),
+          MonthCaption: CustomCaption,
           DayButton: CustomDayButton,
         }}
       />
