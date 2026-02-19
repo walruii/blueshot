@@ -994,3 +994,78 @@ export const batchUpdateEventGroupAccess = async (
     return { success: false, error: "Internal Server Error" };
   }
 };
+
+/**
+ * Transfer ownership of an event group to another user
+ * Only the current owner can transfer ownership
+ * The new owner must have admin access to the group
+ */
+export const transferEventGroupOwnership = async (
+  groupId: string,
+  newOwnerId: string,
+): Promise<Result<EventGroup>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Get the group to verify ownership
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("event_group")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found" };
+    }
+
+    // Only the owner can transfer ownership
+    if (group.created_by !== session.user.id) {
+      return {
+        success: false,
+        error: "Only the group owner can transfer ownership",
+      };
+    }
+
+    // Cannot transfer to the same owner
+    if (newOwnerId === session.user.id) {
+      return {
+        success: false,
+        error: "Cannot transfer ownership to yourself",
+      };
+    }
+
+    // Verify the new owner has admin access (directly or via user group)
+    const userRole = await getUserEventGroupRole(newOwnerId, groupId);
+    if (!userRole || !isAdmin(userRole)) {
+      return {
+        success: false,
+        error: "New owner must have admin access to the group",
+      };
+    }
+
+    // Update the group's owner
+    const { data: updatedGroup, error: updateError } = await supabaseAdmin
+      .from("event_group")
+      .update({ created_by: newOwnerId })
+      .eq("id", groupId)
+      .select()
+      .single();
+
+    if (updateError || !updatedGroup) {
+      console.error("Error transferring ownership:", updateError);
+      return { success: false, error: "Failed to transfer ownership" };
+    }
+
+    revalidatePath("/app");
+    return { success: true, data: formatEventGroup(updatedGroup) };
+  } catch (err) {
+    console.error("Unexpected error in transferEventGroupOwnership:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
