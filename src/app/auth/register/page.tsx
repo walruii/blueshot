@@ -1,4 +1,6 @@
 "use client";
+import { Suspense } from "react";
+import LoadingAuth from "@/components/loading/LoadingAuth";
 import { authClient } from "@/lib/auth-client";
 import { sendSignupVerificationEmail } from "@/server-actions/email";
 import { useState } from "react";
@@ -16,7 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function Page() {
+function RegisterForm() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -147,5 +149,13 @@ export default function Page() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<LoadingAuth />}>
+      <RegisterForm />
+    </Suspense>
   );
 }

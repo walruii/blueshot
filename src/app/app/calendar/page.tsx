@@ -1,14 +1,14 @@
 import CalendarView from "./_components/CalendarView";
 import { Suspense } from "react";
 import { getEvents } from "@/server-actions/event";
-import LoadingGrid from "@/components/loading/LoadingGrid";
+import LoadingCalendar from "@/components/loading/LoadingCalendar";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export default function CalendarPage() {
   return (
-    <Suspense fallback={<LoadingGrid />}>
+    <Suspense fallback={<LoadingCalendar />}>
       <CalendarPageWrapper />
     </Suspense>
   );

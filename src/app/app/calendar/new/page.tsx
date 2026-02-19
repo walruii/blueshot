@@ -1,5 +1,6 @@
 "use client";
 import { Suspense } from "react";
+import LoadingForm from "@/components/loading/LoadingForm";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -215,83 +216,96 @@ function AddEvent() {
   return (
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header with Go Back and Add buttons */}
-        <div className="flex justify-between items-center mb-8">
-          <Button onClick={() => router.back()} variant="secondary">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Go Back
-          </Button>
-          <Button onClick={handleAddEvent} disabled={!isFormValid || isLoading}>
-            {isLoading ? "Adding Event..." : "Add Event"}
-          </Button>
-        </div>
+        {/* Show loading state while groups are loading on first mount */}
+        {isLoadingGroups && eventGroups.length === 0 ? (
+          <LoadingForm />
+        ) : (
+          <>
+            {/* Header with Go Back and Add buttons */}
+            <div className="flex justify-between items-center mb-8">
+              <Button onClick={() => router.back()} variant="secondary">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Go Back
+              </Button>
+              <Button
+                onClick={handleAddEvent}
+                disabled={!isFormValid || isLoading}
+              >
+                {isLoading ? "Adding Event..." : "Add Event"}
+              </Button>
+            </div>
 
-        {/* Form Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-3xl">Create Event</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddEvent} className="flex flex-col gap-6">
-              <FormFields
-                formState={formState}
-                setFormField={setFormField}
-                errors={errors}
-              />
-
-              {/* Event Group Selection */}
-              <EventGroupField
-                value={formState.eventGroupId}
-                onChange={(value) => setFormField("eventGroupId", value)}
-                groups={eventGroups}
-                onCreateNew={() => setIsCreateEventGroupModalOpen(true)}
-                isLoading={isLoadingGroups}
-                error={errors.eventGroupId}
-              />
-
-              <div className="flex items-center gap-3">
-                <Checkbox
-                  id="perEventMembers"
-                  checked={formState.perEventMembers}
-                  onCheckedChange={() =>
-                    setFormField("perEventMembers", !formState.perEventMembers)
-                  }
-                />
-                <Label htmlFor="perEventMembers">
-                  Add Per Event Members and Groups
-                </Label>
-              </div>
-
-              {formState.perEventMembers && (
-                <div className="rounded-lg border bg-muted/50 p-4">
-                  <h3 className="text-sm font-medium mb-4">
-                    Event Permissions
-                  </h3>
-                  <p className="text-muted-foreground text-xs mb-4">
-                    Add users or groups to give them access to this specific
-                    event. If a user is added both individually and via a group,
-                    the higher permission takes precedence.
-                  </p>
-                  <PermissionManager
-                    permissions={permissions}
-                    onAddEmail={addMemberByEmail}
-                    onAddUserGroup={addUserGroup}
-                    onUpdateRole={updateRole}
-                    onRemoveEntry={removeEntry}
-                    isValidating={isValidating}
-                    validationError={validationError}
-                    onClearError={clearValidationError}
-                    availableUserGroups={userGroups}
-                    allowUserGroups={true}
-                    onCreateUserGroup={() =>
-                      setIsCreateUserGroupModalOpen(true)
-                    }
+            {/* Form Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-3xl">Create Event</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddEvent} className="flex flex-col gap-6">
+                  <FormFields
+                    formState={formState}
+                    setFormField={setFormField}
+                    errors={errors}
                   />
-                </div>
-              )}
-            </form>
-          </CardContent>
-        </Card>
+
+                  {/* Event Group Selection */}
+                  <EventGroupField
+                    value={formState.eventGroupId}
+                    onChange={(value) => setFormField("eventGroupId", value)}
+                    groups={eventGroups}
+                    onCreateNew={() => setIsCreateEventGroupModalOpen(true)}
+                    isLoading={isLoadingGroups}
+                    error={errors.eventGroupId}
+                  />
+
+                  <div className="flex items-center gap-3">
+                    <Checkbox
+                      id="perEventMembers"
+                      checked={formState.perEventMembers}
+                      onCheckedChange={() =>
+                        setFormField(
+                          "perEventMembers",
+                          !formState.perEventMembers,
+                        )
+                      }
+                    />
+                    <Label htmlFor="perEventMembers">
+                      Add Per Event Members and Groups
+                    </Label>
+                  </div>
+
+                  {formState.perEventMembers && (
+                    <div className="rounded-lg border bg-muted/50 p-4">
+                      <h3 className="text-sm font-medium mb-4">
+                        Event Permissions
+                      </h3>
+                      <p className="text-muted-foreground text-xs mb-4">
+                        Add users or groups to give them access to this specific
+                        event. If a user is added both individually and via a
+                        group, the higher permission takes precedence.
+                      </p>
+                      <PermissionManager
+                        permissions={permissions}
+                        onAddEmail={addMemberByEmail}
+                        onAddUserGroup={addUserGroup}
+                        onUpdateRole={updateRole}
+                        onRemoveEntry={removeEntry}
+                        isValidating={isValidating}
+                        validationError={validationError}
+                        onClearError={clearValidationError}
+                        availableUserGroups={userGroups}
+                        allowUserGroups={true}
+                        onCreateUserGroup={() =>
+                          setIsCreateUserGroupModalOpen(true)
+                        }
+                      />
+                    </div>
+                  )}
+                </form>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
       {/* Create Event Group Modal */}
@@ -322,7 +336,7 @@ function AddEvent() {
 
 export default function Page() {
   return (
-    <Suspense>
+    <Suspense fallback={<LoadingForm />}>
       <AddEvent />
     </Suspense>
   );

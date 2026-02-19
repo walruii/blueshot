@@ -1,11 +1,16 @@
-export default function LoadingCircle() {
+interface LoadingCircleProps {
+  /** Size of the spinner in pixels - default is 100 */
+  size?: number;
+}
+
+export default function LoadingCircle({ size = 100 }: LoadingCircleProps = {}) {
   return (
     <svg
       viewBox="0 0 16 16"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       className="animate-spin dark:invert"
-      style={{ width: "100px", height: "100px" }} // Optional: adjust size as needed
+      style={{ width: `${size}px`, height: `${size}px` }}
     >
       <g id="SVGRepo_bgCarrier" strokeWidth="0" />
       <g
