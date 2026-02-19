@@ -8,6 +8,7 @@ import {
   getUserGroupMembers,
   batchUpdateUserGroupMembers,
   transferUserGroupOwnership,
+  deleteUserGroup,
 } from "@/server-actions/userGroup";
 import { checkEmailListExist } from "@/server-actions/addEvent";
 import {
@@ -30,7 +31,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Plus, RotateCcw, Save } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Plus, RotateCcw, Save, Trash2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Member {
@@ -78,6 +88,11 @@ export default function ManageUserGroupsPage() {
   // Transfer ownership state
   const [selectedNewOwnerId, setSelectedNewOwnerId] = useState<string>("");
   const [isTransferring, setIsTransferring] = useState(false);
+
+  // Group settings modal state
+  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Load groups on mount
   useEffect(() => {
@@ -337,6 +352,39 @@ export default function ManageUserGroupsPage() {
     setIsTransferring(false);
   }, [selectedGroupId, selectedNewOwnerId, showAlert]);
 
+  const handleDeleteGroup = useCallback(async () => {
+    if (!selectedGroupId) return;
+
+    setIsDeleting(true);
+    const result = await deleteUserGroup(selectedGroupId);
+
+    if (result.success) {
+      showAlert({
+        title: "Group deleted successfully",
+        description: "The user group and all its data has been deleted.",
+        type: "success",
+      });
+
+      // Refresh the groups list and clear selection
+      const groupsResult = await getAccessibleUserGroups();
+      if (groupsResult.success && groupsResult.data) {
+        setGroups(groupsResult.data);
+      }
+
+      setSelectedGroupId("");
+      setIsDeleteConfirmOpen(false);
+      setIsGroupSettingsOpen(false);
+    } else {
+      showAlert({
+        title: "Failed to delete group",
+        description: result.error,
+        type: "error",
+      });
+    }
+
+    setIsDeleting(false);
+  }, [selectedGroupId, showAlert]);
+
   const handleUserGroupCreated = (newGroup: UserGroup) => {
     setGroups((prev) => [...prev, newGroup]);
     setSelectedGroupId(newGroup.id);
@@ -396,58 +444,6 @@ export default function ManageUserGroupsPage() {
             <CardTitle>{selectedGroup.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Transfer Ownership Section - Only show to owner and not for Personal group */}
-            {selectedGroup.createdBy === session?.user?.id &&
-              selectedGroup.name !== "Personal" && (
-                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
-                  <h3 className="mb-3 text-sm font-medium">
-                    Transfer Ownership
-                  </h3>
-                  <div className="space-y-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="new-owner-select">Select New Owner</Label>
-                      <Select
-                        value={selectedNewOwnerId}
-                        onValueChange={setSelectedNewOwnerId}
-                      >
-                        <SelectTrigger id="new-owner-select">
-                          <SelectValue placeholder="Choose new owner from members..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {effectiveState.members &&
-                            effectiveState.members
-                              .filter(
-                                (m) =>
-                                  !effectiveState.removedUserIds?.has(
-                                    m.userId,
-                                  ) && m.userId !== session?.user?.id,
-                              )
-                              .map((member) => (
-                                <SelectItem
-                                  key={member.userId}
-                                  value={member.userId}
-                                >
-                                  {member.name || member.email}
-                                </SelectItem>
-                              ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <Button
-                      onClick={handleTransferOwnership}
-                      disabled={!selectedNewOwnerId || isTransferring}
-                      variant="outline"
-                      size="sm"
-                    >
-                      {isTransferring ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : null}
-                      Transfer Ownership
-                    </Button>
-                  </div>
-                </div>
-              )}
-
             {/* Add Member Form */}
             <EmailAddForm onAdd={handleAddMember} label="Add Member by Email" />
 
@@ -505,6 +501,21 @@ export default function ManageUserGroupsPage() {
               )}
             </div>
           </CardContent>
+          {/* Group Settings Footer - Only show to owner */}
+          {selectedGroup.createdBy === session?.user?.id &&
+            selectedGroup.name !== "Personal" && (
+              <div className="border-t bg-muted/50 px-6 py-4">
+                <Button
+                  onClick={() => setIsGroupSettingsOpen(true)}
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                >
+                  <Settings className="mr-2 h-4 w-4" />
+                  Group Settings
+                </Button>
+              </div>
+            )}
         </Card>
       )}
 
@@ -570,6 +581,112 @@ export default function ManageUserGroupsPage() {
         totalCount={resultData.totalCount}
         failedChanges={resultData.failedChanges}
       />
+
+      {/* Group Settings Modal */}
+      <AlertDialog
+        open={isGroupSettingsOpen}
+        onOpenChange={setIsGroupSettingsOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Group Settings</AlertDialogTitle>
+            <AlertDialogDescription>
+              Manage advanced settings for this user group.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-4">
+            {/* Transfer Ownership Section */}
+            <div className="space-y-3 border-b pb-4">
+              <h4 className="text-sm font-medium">Transfer Ownership</h4>
+              <Select
+                value={selectedNewOwnerId}
+                onValueChange={setSelectedNewOwnerId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose new owner..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {effectiveState.members &&
+                    effectiveState.members
+                      .filter(
+                        (m) =>
+                          !effectiveState.removedUserIds?.has(m.userId) &&
+                          m.userId !== session?.user?.id,
+                      )
+                      .map((member) => (
+                        <SelectItem key={member.userId} value={member.userId}>
+                          {member.name || member.email}
+                        </SelectItem>
+                      ))}
+                </SelectContent>
+              </Select>
+              <Button
+                onClick={handleTransferOwnership}
+                disabled={!selectedNewOwnerId || isTransferring}
+                variant="outline"
+                size="sm"
+                className="w-full"
+              >
+                {isTransferring ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
+                Transfer Ownership
+              </Button>
+            </div>
+
+            {/* Delete Group Section */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-destructive">
+                Delete Group
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                Permanently delete this group and all its data. This action
+                cannot be undone.
+              </p>
+              <Button
+                onClick={() => setIsDeleteConfirmOpen(true)}
+                variant="destructive"
+                size="sm"
+                className="w-full"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Group
+              </Button>
+            </div>
+          </div>
+
+          <AlertDialogCancel>Close</AlertDialogCancel>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={isDeleteConfirmOpen}
+        onOpenChange={setIsDeleteConfirmOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Group?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{selectedGroup?.name}&quot;?
+              This will permanently delete the group and all its data. This
+              action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDeleteGroup}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            Delete
+          </AlertDialogAction>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

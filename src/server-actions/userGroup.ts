@@ -656,3 +656,77 @@ export const transferUserGroupOwnership = async (
     return { success: false, error: "Internal Server Error" };
   }
 };
+
+/**
+ * Delete a user group
+ * Only the owner can delete the group
+ * Cannot delete the Personal group
+ */
+export const deleteUserGroup = async (
+  groupId: string,
+): Promise<Result<null>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Get the group to verify ownership
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("user_group")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found" };
+    }
+
+    // Only the owner can delete the group
+    if (group.created_by !== session.user.id) {
+      return {
+        success: false,
+        error: "Only the group owner can delete this group",
+      };
+    }
+
+    // Cannot delete Personal group
+    if (group.name === "Personal") {
+      return {
+        success: false,
+        error: "Cannot delete the Personal group",
+      };
+    }
+
+    // Delete all members in this group
+    const { error: deleteMembersError } = await supabaseAdmin
+      .from("user_group_member")
+      .delete()
+      .eq("user_group_id", groupId);
+
+    if (deleteMembersError) {
+      console.error("Error deleting group members:", deleteMembersError);
+      return { success: false, error: "Failed to delete group members" };
+    }
+
+    // Delete the group itself
+    const { error: deleteGroupError } = await supabaseAdmin
+      .from("user_group")
+      .delete()
+      .eq("id", groupId);
+
+    if (deleteGroupError) {
+      console.error("Error deleting group:", deleteGroupError);
+      return { success: false, error: "Failed to delete group" };
+    }
+
+    revalidatePath("/app");
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error in deleteUserGroup:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
