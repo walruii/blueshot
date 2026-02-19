@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { createUserGroup } from "@/server-actions/userGroup";
 import { checkEmailListExist } from "@/server-actions/addEvent";
 import { UserGroup } from "@/types/userGroup";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import { Loader2, X } from "lucide-react";
 
 interface CreateUserGroupModalProps {

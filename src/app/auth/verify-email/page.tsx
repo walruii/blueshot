@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, Suspense, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import { authClient } from "@/lib/auth-client";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,98 +12,20 @@ import {
 } from "@/components/ui/card";
 import { AlertCircle, Mail } from "lucide-react";
 import Link from "next/link";
+import useEmailSync from "./_hooks/use-email-sync";
+import useResendVerification from "./_hooks/use-resend-verification";
 
 function VerifyEmailContent() {
+  const { email, signOut, signOutLoading } = useEmailSync();
   const searchParams = useSearchParams();
-  const router = useRouter();
-  const [email, setEmail] = useState("");
   const error = searchParams.get("error");
-  const [resendLoading, setResendLoading] = useState(false);
-  const [resendMessage, setResendMessage] = useState("");
-  const [resendError, setResendError] = useState("");
-  const [resendCountdown, setResendCountdown] = useState(0);
-  const [signOutLoading, setSignOutLoading] = useState(false);
-
-  // Sync email from URL params, sessionStorage, or user session
-  useEffect(() => {
-    const syncEmail = async () => {
-      const urlEmail = searchParams.get("email");
-      if (urlEmail) {
-        setEmail(urlEmail);
-        // Store in sessionStorage for persistence across refreshes
-        sessionStorage.setItem("verifyEmail", urlEmail);
-      } else {
-        // Try to get from sessionStorage if URL param is missing
-        const storedEmail = sessionStorage.getItem("verifyEmail");
-        if (storedEmail) {
-          setEmail(storedEmail);
-        } else {
-          // Try to get from current session if nothing else is available
-          try {
-            const sessionData = await authClient.getSession();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const user = (sessionData as any)?.data?.user as
-              | { email: string }
-              | undefined;
-            if (user?.email) {
-              setEmail(user.email);
-              sessionStorage.setItem("verifyEmail", user.email);
-            }
-          } catch (err) {
-            console.error("Failed to get session email:", err);
-          }
-        }
-      }
-    };
-
-    syncEmail();
-  }, [searchParams]);
-
-  const handleResendEmail = async () => {
-    // This will be implemented in Milestone 4
-    setResendLoading(true);
-    setResendError("");
-    setResendMessage("");
-
-    try {
-      const response = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.retryAfter) {
-          setResendCountdown(data.retryAfter);
-          setResendError(
-            `Please wait ${data.retryAfter} seconds before requesting a new email`,
-          );
-          // Start countdown
-          const interval = setInterval(() => {
-            setResendCountdown((prev) => {
-              if (prev <= 1) {
-                clearInterval(interval);
-                setResendError("");
-                return 0;
-              }
-              return prev - 1;
-            });
-          }, 1000);
-        } else {
-          setResendError(data.error || "Failed to resend email");
-        }
-      } else {
-        setResendMessage("Verification email sent! Check your inbox.");
-      }
-    } catch (err) {
-      console.error("Error resending email:", err);
-      setResendError("An error occurred. Please try again.");
-    } finally {
-      setResendLoading(false);
-    }
-  };
+  const {
+    loading,
+    message,
+    error: resendError,
+    countdown,
+    resend,
+  } = useResendVerification(email);
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-background px-4">
@@ -147,10 +68,10 @@ function VerifyEmailContent() {
           )}
 
           {/* Success Message */}
-          {resendMessage && (
+          {message && (
             <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
               <p className="text-sm text-emerald-700 dark:text-emerald-400 font-medium">
-                {resendMessage}
+                {message}
               </p>
             </div>
           )}
@@ -182,15 +103,15 @@ function VerifyEmailContent() {
               Didn&apos;t receive an email?
             </p>
             <Button
-              onClick={handleResendEmail}
-              disabled={resendLoading || resendCountdown > 0}
+              onClick={resend}
+              disabled={loading || countdown > 0}
               variant="outline"
               className="w-full"
             >
-              {resendLoading
+              {loading
                 ? "Sending..."
-                : resendCountdown > 0
-                  ? `Resend in ${resendCountdown}s`
+                : countdown > 0
+                  ? `Resend in ${countdown}s`
                   : "Resend verification email"}
             </Button>
           </div>
@@ -211,22 +132,7 @@ function VerifyEmailContent() {
         <p className="text-xs text-muted-foreground">
           Wrong account?{" "}
           <button
-            onClick={async () => {
-              setSignOutLoading(true);
-              try {
-                await authClient.signOut({
-                  fetchOptions: {
-                    onSuccess: () => {
-                      sessionStorage.removeItem("verifyEmail");
-                      router.push("/auth/signin");
-                    },
-                  },
-                });
-              } catch (err) {
-                console.error("Sign out error:", err);
-                setSignOutLoading(false);
-              }
-            }}
+            onClick={signOut}
             disabled={signOutLoading}
             className="text-primary hover:underline cursor-pointer font-medium disabled:opacity-50"
           >

@@ -1,9 +1,9 @@
 "use client";
 
-import { useRealtimeInbox } from "@/hooks/useRealtimeInbox";
+import { useRealtimeInbox } from "@/app/app/_hooks/use-realtime-inbox";
 import { authClient } from "@/lib/auth-client";
 
-export default function RealtimeInboxWrapper({
+export default function RealtimeInboxProvider({
   children,
 }: {
   children: React.ReactNode;
