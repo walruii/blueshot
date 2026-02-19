@@ -1,6 +1,6 @@
-import Footer from "../(header-footer)/Footer";
-import NavBar from "../(header-footer)/NavBar";
-import BottomNav from "../(header-footer)/BottomNav";
+import Footer from "./(header-footer)/Footer";
+import NavBar from "./(header-footer)/NavBar";
+import BottomNav from "./(header-footer)/BottomNav";
 import RealtimeInboxWrapper from "./RealtimeInboxWrapper";
 
 export default function RootLayout({

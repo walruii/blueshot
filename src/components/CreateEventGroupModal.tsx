@@ -16,7 +16,7 @@ import { usePermissionManager } from "@/hooks/usePermissionManager";
 import { createEventGroup } from "@/server-actions/eventGroup";
 import { EventGroup } from "@/types/eventGroup";
 import { UserGroup } from "@/types/userGroup";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 
 interface CreateEventGroupModalProps {
   isOpen: boolean;

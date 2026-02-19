@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import LoadingGrid from "../(loading)/LoadingGrid";
+import LoadingGrid from "../../components/loading/LoadingGrid";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

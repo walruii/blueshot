@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useAlert } from "../(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import { acknowledgeEvent } from "@/server-actions/acknowledge";
 import { Button } from "@/components/ui/button";
 

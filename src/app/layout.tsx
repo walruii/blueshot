@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Montserrat, Fira_Mono, Geist } from "next/font/google";
 import "./globals.css";
-import AlertProvider from "./(alert)/AlertProvider";
+import { AlertProvider } from "@/components/AlertProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
 

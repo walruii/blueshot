@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext } from "react";
 import { toast } from "sonner";
-import { TAlert } from "../../types/alert";
+import { TAlert } from "../types/alert";
 
 interface TAlertContext {
   showAlert: (alert: TAlert) => void;
@@ -10,11 +10,7 @@ interface TAlertContext {
 
 const AlertContext = createContext<TAlertContext | undefined>(undefined);
 
-export default function AlertProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function AlertProvider({ children }: { children: React.ReactNode }) {
   const showAlert = (alert: TAlert) => {
     const toastFn = {
       success: toast.success,

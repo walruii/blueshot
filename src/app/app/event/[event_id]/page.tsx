@@ -12,7 +12,7 @@ import {
   getUserEventStates,
 } from "@/server-actions/userStateEvent";
 import { EventMember } from "@/types/userEventState";
-import LoadingEventPage from "@/app/(loading)/LoadingEventPage";
+import LoadingEventPage from "@/components/loading/LoadingEventPage";
 import EventEditMode from "./EventEditMode";
 import { getEventPermissions } from "@/server-actions/utils/permissionUtils";
 import { Button } from "@/components/ui/button";

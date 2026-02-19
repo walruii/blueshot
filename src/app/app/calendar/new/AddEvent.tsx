@@ -3,7 +3,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { formatLocalDateTime, parseLocalDateInput } from "@/utils/dateUtil";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import { useEventForm } from "@/hooks/useEventForm";
 import { usePermissionManager } from "@/hooks/usePermissionManager";
 import { FormFields } from "./FormFields";

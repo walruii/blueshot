@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import { useRouter } from "next/navigation";
 import { Event } from "@/types/event";
 import { EventGroup } from "@/types/eventGroup";

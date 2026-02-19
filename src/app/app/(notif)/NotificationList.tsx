@@ -2,7 +2,7 @@
 import { Notification } from "@/types/notification";
 import { dateToTimeString } from "@/utils/dateUtil";
 import { archiveNotification } from "@/server-actions/notification";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";

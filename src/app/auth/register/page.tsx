@@ -4,7 +4,7 @@ import { sendSignupVerificationEmail } from "@/server-actions/email";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,20 +30,21 @@ export default function Page() {
     e.preventDefault();
     setError("");
 
-    try {
-      if (password !== confirmPassword) {
-        setError("Passwords do not match");
-        return;
-      }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
 
-      await authClient.signUp.email(
-        { email, password, name },
-        {
-          onRequest: () => {
-            setLoading(true);
-          },
-          onSuccess: async () => {
-            setLoading(false);
+    await authClient.signUp.email(
+      { email, password, name },
+      {
+        onRequest: () => setLoading(true),
+        onError: (ctx) => {
+          setLoading(false);
+          setError(ctx.error.message);
+        },
+        onSuccess: async () => {
+          try {
             // Send verification email
             const emailResult = await sendSignupVerificationEmail(email, name);
             if (!emailResult.success) {
@@ -58,21 +59,20 @@ export default function Page() {
             router.push(
               `/auth/verify-email?email=${encodeURIComponent(email)}`,
             );
-          },
-          onError: (ctx) => {
+          } catch (err) {
+            router.push("/app");
+            showAlert({
+              title: "Error",
+              description:
+                "Account created but failed to send verification email. Please try resending.",
+              type: "error",
+            });
+          } finally {
             setLoading(false);
-            setError(ctx.error.message);
-          },
+          }
         },
-      );
-    } catch (err) {
-      console.error(err);
-      showAlert({
-        title: "Internal Server Error",
-        description: "Please Try Again Later.",
-        type: "error",
-      });
-    }
+      },
+    );
   };
 
   return (

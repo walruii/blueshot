@@ -3,7 +3,7 @@ import { EventMap } from "@/types/event";
 import Event from "./Event";
 import { formatLocalDate, sortEvents } from "@/utils/dateUtil";
 import { useRouter } from "next/navigation";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 

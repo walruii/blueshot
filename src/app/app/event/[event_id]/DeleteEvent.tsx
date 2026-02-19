@@ -1,6 +1,6 @@
 "use client";
 
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 import { deleteEvent } from "@/server-actions/deleteEvent";
 import { Event } from "@/types/event";
 import { useRouter } from "next/navigation";

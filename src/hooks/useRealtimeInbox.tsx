@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseAnon } from "@/lib/supabaseAnon";
-import { useAlert } from "@/app/(alert)/AlertProvider";
+import { useAlert } from "@/components/AlertProvider";
 
 export function useRealtimeInbox(userId: string) {
   const router = useRouter();

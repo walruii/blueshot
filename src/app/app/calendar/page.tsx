@@ -1,7 +1,7 @@
 import CalendarView from "./CalendarView";
 import { Suspense } from "react";
 import { getEvents } from "@/server-actions/event";
-import LoadingGrid from "@/app/(loading)/LoadingGrid";
+import LoadingGrid from "@/components/loading/LoadingGrid";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
