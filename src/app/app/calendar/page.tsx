@@ -1,4 +1,4 @@
-import CalendarView from "./CalendarView";
+import CalendarView from "./_components/CalendarView";
 import { Suspense } from "react";
 import { getEvents } from "@/server-actions/event";
 import LoadingGrid from "@/components/loading/LoadingGrid";

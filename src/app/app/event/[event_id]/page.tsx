@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import Link from "next/link";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import AcknowledgementButton from "@/app/app/AcknowledgementButton";
+import AcknowledgementButton from "@/app/app/_components/AcknowledgementButton";
 import DeleteEvent from "./DeleteEvent";
 import {
   getUserEventState,

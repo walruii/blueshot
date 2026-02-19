@@ -4,7 +4,7 @@ import {
   DayPicker,
   getDefaultClassNames,
   type DayButtonProps,
-  type CaptionProps,
+  type MonthCaptionProps,
 } from "react-day-picker";
 import { EventMap } from "@/types/event";
 import DotIcon from "@/svgs/DotIcon";
@@ -46,7 +46,7 @@ export default function CalendarView({
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date());
   const defaultClassNames = getDefaultClassNames();
 
-  const CustomCaption = ({ calendarMonth }: CaptionProps) => {
+  const CustomCaption = ({ calendarMonth }: MonthCaptionProps) => {
     const displayMonth = calendarMonth.date;
     const currentYear = displayMonth.getFullYear();
     const currentMonthIndex = displayMonth.getMonth();
