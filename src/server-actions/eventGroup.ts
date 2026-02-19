@@ -1069,3 +1069,88 @@ export const transferEventGroupOwnership = async (
     return { success: false, error: "Internal Server Error" };
   }
 };
+
+/**
+ * Delete an event group
+ * Only the owner can delete the group
+ * Cannot delete the Personal group
+ */
+export const deleteEventGroup = async (
+  groupId: string,
+): Promise<Result<null>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Get the group to verify ownership
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("event_group")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found" };
+    }
+
+    // Only the owner can delete the group
+    if (group.created_by !== session.user.id) {
+      return {
+        success: false,
+        error: "Only the group owner can delete this group",
+      };
+    }
+
+    // Cannot delete Personal group
+    if (group.name === "Personal") {
+      return {
+        success: false,
+        error: "Cannot delete the Personal group",
+      };
+    }
+
+    // Delete all access records for this group
+    const { error: deleteAccessError } = await supabaseAdmin
+      .from("event_group_access")
+      .delete()
+      .eq("event_group_id", groupId);
+
+    if (deleteAccessError) {
+      console.error("Error deleting event group access:", deleteAccessError);
+      return { success: false, error: "Failed to delete group access records" };
+    }
+
+    // Delete all events in this group
+    const { error: deleteEventsError } = await supabaseAdmin
+      .from("event")
+      .delete()
+      .eq("event_group_id", groupId);
+
+    if (deleteEventsError) {
+      console.error("Error deleting events:", deleteEventsError);
+      return { success: false, error: "Failed to delete group events" };
+    }
+
+    // Delete the group itself
+    const { error: deleteGroupError } = await supabaseAdmin
+      .from("event_group")
+      .delete()
+      .eq("id", groupId);
+
+    if (deleteGroupError) {
+      console.error("Error deleting group:", deleteGroupError);
+      return { success: false, error: "Failed to delete group" };
+    }
+
+    revalidatePath("/app");
+    return { success: true };
+  } catch (err) {
+    console.error("Unexpected error in deleteEventGroup:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};
