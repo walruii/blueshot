@@ -13,20 +13,10 @@ import {
   EventGroupAccessResult,
 } from "@/server-actions/eventGroup";
 import { getAccessibleUserGroups } from "@/server-actions/userGroup";
-import { checkEmailListExist } from "@/server-actions/addEvent";
-import { Role, RoleValue } from "@/types/permission";
-import {
-  EventGroupChange,
-  AddUserChange,
-  AddUserGroupChange,
-  RemoveUserChange,
-  RemoveUserGroupChange,
-  UpdateUserRoleChange,
-  UpdateUserGroupRoleChange,
-} from "@/types/pendingChanges";
+import { RoleValue } from "@/types/permission";
+import { EventGroupChange, AddUserGroupChange } from "@/types/pendingChanges";
 import EmailAddForm from "@/components/EmailAddForm";
 import UserGroupDropdown from "@/components/UserGroupDropdown";
-import MemberListItem from "@/components/MemberListItem";
 import { CreateEventGroupModal } from "@/components/CreateEventGroupModal";
 import { CreateUserGroupModal } from "@/components/CreateUserGroupModal";
 import { BatchResultDialog } from "@/components/BatchResultDialog";
@@ -41,54 +31,36 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Loader2, Plus, RotateCcw, Save, Trash2, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-// Helper to generate unique IDs for changes
-let changeIdCounter = 0;
-const generateChangeId = () => `change-${++changeIdCounter}`;
+import { Loader2, Plus, Settings } from "lucide-react";
+// New hooks for refactored logic
+import { useGroupManagement } from "@/app/app/groups/_hooks/useGroupManagement";
+import { usePendingChanges } from "@/app/app/groups/_hooks/usePendingChanges";
+import { useSaveAndRefresh } from "@/app/app/groups/_hooks/useSaveAndRefresh";
+import { useEventGroupForm } from "@/app/app/groups/event/_hooks/useEventGroupForm";
+// New shared components
+import { PendingChangeFooter } from "@/app/app/groups/_components/PendingChangeFooter";
+import { GroupSettingsModal } from "@/app/app/groups/_components/GroupSettingsModal";
+import { GroupEmptyState } from "@/app/app/groups/_components/GroupEmptyState";
+// New page-specific components
+import { EventGroupAccessView } from "@/app/app/groups/event/_components/EventGroupAccessView";
 
 export default function ManageEventGroupsPage() {
   const { showAlert } = useAlert();
   const { data: session } = authClient.useSession();
 
-  // Modal state
+  // Use group management hook for core group/modal state
+  const groupManagement = useGroupManagement(getAccessibleEventGroups);
+
+  // Local modal states for create operations (page-specific)
   const [isCreateEventGroupModalOpen, setIsCreateEventGroupModalOpen] =
     useState(false);
   const [isCreateUserGroupModalOpen, setIsCreateUserGroupModalOpen] =
     useState(false);
-  const [isResultDialogOpen, setIsResultDialogOpen] = useState(false);
-
-  // Group selection state
-  const [groups, setGroups] = useState<EventGroup[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string>("");
-  const [loadingGroups, setLoadingGroups] = useState(true);
 
   // Selected group data (original from server)
-  const [selectedGroup, setSelectedGroup] = useState<EventGroup | null>(null);
   const [originalAccessData, setOriginalAccessData] =
     useState<EventGroupAccessResult | null>(null);
   const [loadingAccess, setLoadingAccess] = useState(false);
-
-  // Pending changes
-  const [pendingChanges, setPendingChanges] = useState<EventGroupChange[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-
-  // Result dialog state
-  const [resultData, setResultData] = useState<{
-    successCount: number;
-    totalCount: number;
-    failedChanges: { description: string; error: string }[];
-  }>({ successCount: 0, totalCount: 0, failedChanges: [] });
 
   // Available user groups for adding
   const [availableUserGroups, setAvailableUserGroups] = useState<UserGroup[]>(
@@ -100,48 +72,33 @@ export default function ManageEventGroupsPage() {
   const [isTransferring, setIsTransferring] = useState(false);
 
   // Group settings modal state
-  const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Load groups on mount
+  // Load available user groups (not managed by group management hook)
   useEffect(() => {
-    async function loadGroups() {
-      setLoadingGroups(true);
-      const [groupsResult, userGroupsResult] = await Promise.all([
-        getAccessibleEventGroups(),
-        getAccessibleUserGroups(),
-      ]);
-
-      if (groupsResult.success && groupsResult.data) {
-        setGroups(groupsResult.data);
+    async function loadAvailableUserGroups() {
+      const result = await getAccessibleUserGroups();
+      if (result.success && result.data) {
+        setAvailableUserGroups(result.data);
       }
-      if (userGroupsResult.success && userGroupsResult.data) {
-        setAvailableUserGroups(userGroupsResult.data);
-      }
-      setLoadingGroups(false);
     }
-    loadGroups();
+    loadAvailableUserGroups();
   }, []);
 
   // Load access when group is selected
   useEffect(() => {
     async function loadAccess() {
-      if (!selectedGroupId) {
-        setSelectedGroup(null);
+      if (!groupManagement.selectedGroupId) {
         setOriginalAccessData(null);
-        setPendingChanges([]);
+        pendingChangesManager.discardAll();
         return;
       }
 
       setLoadingAccess(true);
-      const group = groups.find((g) => g.id === selectedGroupId);
-      setSelectedGroup(group || null);
-
-      const result = await getEventGroupAccess(selectedGroupId);
+      const result = await getEventGroupAccess(groupManagement.selectedGroupId);
       if (result.success && result.data) {
         setOriginalAccessData(result.data);
-        setPendingChanges([]); // Reset pending changes when switching groups
+        pendingChangesManager.discardAll(); // Reset pending changes when switching groups
       } else {
         showAlert({
           title: "Failed to load access",
@@ -153,10 +110,10 @@ export default function ManageEventGroupsPage() {
       setLoadingAccess(false);
     }
     loadAccess();
-  }, [selectedGroupId, groups, showAlert]);
+  }, [groupManagement.selectedGroupId, showAlert]);
 
   // Compute effective state (original + pending changes)
-  const effectiveState = useMemo(() => {
+  const computeEffectiveState = (changes: EventGroupChange[]) => {
     if (!originalAccessData)
       return { users: [], userGroups: [], pendingUserIds: new Set<string>() };
 
@@ -171,9 +128,13 @@ export default function ManageEventGroupsPage() {
       string,
       { oldRole: RoleValue; newRole: RoleValue }
     >();
+    const groupRoleChanges = new Map<
+      string,
+      { oldRole: RoleValue; newRole: RoleValue }
+    >();
 
     // Apply pending changes
-    for (const change of pendingChanges) {
+    for (const change of changes) {
       switch (change.type) {
         case "add-user":
           if (!users.some((u) => u.userId === change.userId)) {
@@ -217,7 +178,7 @@ export default function ManageEventGroupsPage() {
           const group = userGroups.find((g) => g.id === change.userGroupId);
           if (group) {
             group.role = change.newRole;
-            roleChanges.set(change.userGroupId, {
+            groupRoleChanges.set(change.userGroupId, {
               oldRole: change.oldRole,
               newRole: change.newRole,
             });
@@ -235,286 +196,79 @@ export default function ManageEventGroupsPage() {
       addedUserIds,
       addedUserGroupIds,
       roleChanges,
+      groupRoleChanges,
     };
-  }, [originalAccessData, pendingChanges]);
+  };
 
-  const hasPendingChanges = pendingChanges.length > 0;
+  // Use pending changes hook with custom effective state computation
+  const pendingChangesManager = usePendingChanges(computeEffectiveState);
 
-  const handleAddUser = useCallback(
-    async (email: string): Promise<{ success: boolean; error?: string }> => {
-      if (!selectedGroupId)
-        return { success: false, error: "No group selected" };
+  // Use save and refresh hook
+  const saveManager = useSaveAndRefresh();
 
-      const normalizedEmail = email.toLowerCase();
-
-      // Check if already in original data
-      if (
-        originalAccessData?.users.some(
-          (u) => u.email.toLowerCase() === normalizedEmail,
-        )
-      ) {
-        return { success: false, error: "This user already has access" };
-      }
-
-      // Check if already in pending additions
-      if (
-        pendingChanges.some(
-          (c) =>
-            c.type === "add-user" && c.email.toLowerCase() === normalizedEmail,
-        )
-      ) {
-        return {
-          success: false,
-          error: "This user is already pending addition",
-        };
-      }
-
-      // Validate email exists and get user info
-      const checkResult = await checkEmailListExist([email]);
-      if (!checkResult?.success || !checkResult.data?.[0]?.exist) {
-        return { success: false, error: "User not found with this email" };
-      }
-
-      const userData = checkResult.data[0];
-
-      // Add to pending changes
-      const change: AddUserChange = {
-        id: generateChangeId(),
-        type: "add-user",
-        email: userData.email,
-        userId: userData.userId!,
-        name: userData.name || userData.email,
-        role: Role.READ,
-      };
-
-      setPendingChanges((prev) => [...prev, change]);
-      return { success: true };
+  // Event-specific form logic
+  const formHandlers = useEventGroupForm(
+    groupManagement.selectedGroupId,
+    {
+      originalAccessData: originalAccessData
+        ? {
+            users: originalAccessData.users.map((u) => ({
+              userId: u.userId,
+              email: u.email,
+              name: u.name,
+              role: u.role as RoleValue,
+            })),
+            userGroups: originalAccessData.userGroups.map((g) => ({
+              id: g.id,
+              name: g.name,
+              role: g.role as RoleValue,
+            })),
+          }
+        : undefined,
+      pendingChanges: pendingChangesManager.pendingChanges,
     },
-    [selectedGroupId, originalAccessData, pendingChanges],
+    pendingChangesManager.addChange,
+    pendingChangesManager.removeChange,
+    pendingChangesManager.updateChange,
   );
 
-  const handleAddUserGroup = useCallback(
-    (userGroup: { id: string; name: string }) => {
-      if (!selectedGroupId) return;
+  const {
+    handleAddUser,
+    handleAddUserGroup,
+    handleRemoveUser,
+    handleRemoveUserGroup,
+    handleUpdateUserRole,
+    handleUpdateUserGroupRole,
+  } = formHandlers;
 
-      // Check if already in original data
-      if (originalAccessData?.userGroups.some((g) => g.id === userGroup.id)) {
+  // Wrapper for handleAddUserGroup to match UserGroupDropdown signature
+  const onSelectUserGroup = useCallback(
+    (userGroup: { id: string; name: string }) => {
+      handleAddUserGroup(userGroup, (errorMsg) => {
         showAlert({
           title: "Already has access",
-          description: "This user group already has access",
+          description: errorMsg,
           type: "error",
         });
-        return;
-      }
-
-      // Check if already in pending additions
-      if (
-        pendingChanges.some(
-          (c) => c.type === "add-user-group" && c.userGroupId === userGroup.id,
-        )
-      ) {
-        showAlert({
-          title: "Already pending",
-          description: "This user group is already pending addition",
-          type: "error",
-        });
-        return;
-      }
-
-      const change: AddUserGroupChange = {
-        id: generateChangeId(),
-        type: "add-user-group",
-        userGroupId: userGroup.id,
-        name: userGroup.name,
-        role: Role.READ,
-      };
-
-      setPendingChanges((prev) => [...prev, change]);
+      });
     },
-    [selectedGroupId, originalAccessData, pendingChanges, showAlert],
-  );
-
-  const handleRemoveUser = useCallback(
-    (userId: string, email: string) => {
-      // Check if this is a pending addition - just remove the pending change
-      const pendingAddIndex = pendingChanges.findIndex(
-        (c) => c.type === "add-user" && c.userId === userId,
-      );
-      if (pendingAddIndex !== -1) {
-        setPendingChanges((prev) =>
-          prev.filter((_, i) => i !== pendingAddIndex),
-        );
-        return;
-      }
-
-      // Check if already pending removal
-      if (
-        pendingChanges.some(
-          (c) => c.type === "remove-user" && c.userId === userId,
-        )
-      ) {
-        return;
-      }
-
-      const change: RemoveUserChange = {
-        id: generateChangeId(),
-        type: "remove-user",
-        userId,
-        email,
-      };
-
-      setPendingChanges((prev) => [...prev, change]);
-    },
-    [pendingChanges],
-  );
-
-  const handleRemoveUserGroup = useCallback(
-    (userGroupId: string, name: string) => {
-      // Check if this is a pending addition - just remove the pending change
-      const pendingAddIndex = pendingChanges.findIndex(
-        (c) => c.type === "add-user-group" && c.userGroupId === userGroupId,
-      );
-      if (pendingAddIndex !== -1) {
-        setPendingChanges((prev) =>
-          prev.filter((_, i) => i !== pendingAddIndex),
-        );
-        return;
-      }
-
-      // Check if already pending removal
-      if (
-        pendingChanges.some(
-          (c) =>
-            c.type === "remove-user-group" && c.userGroupId === userGroupId,
-        )
-      ) {
-        return;
-      }
-
-      const change: RemoveUserGroupChange = {
-        id: generateChangeId(),
-        type: "remove-user-group",
-        userGroupId,
-        name,
-      };
-
-      setPendingChanges((prev) => [...prev, change]);
-    },
-    [pendingChanges],
-  );
-
-  const handleUpdateUserRole = useCallback(
-    (
-      userId: string,
-      email: string,
-      currentRole: RoleValue,
-      newRole: RoleValue,
-    ) => {
-      if (currentRole === newRole) return;
-
-      // Check if there's already a role change pending for this user
-      const existingChangeIndex = pendingChanges.findIndex(
-        (c) => c.type === "update-user-role" && c.userId === userId,
-      );
-
-      // Get the original role
-      const originalUser = originalAccessData?.users.find(
-        (u) => u.userId === userId,
-      );
-      const originalRole = originalUser?.role as RoleValue | undefined;
-
-      // If new role equals original, remove the pending change
-      if (originalRole !== undefined && newRole === originalRole) {
-        if (existingChangeIndex !== -1) {
-          setPendingChanges((prev) =>
-            prev.filter((_, i) => i !== existingChangeIndex),
-          );
-        }
-        return;
-      }
-
-      const change: UpdateUserRoleChange = {
-        id: generateChangeId(),
-        type: "update-user-role",
-        userId,
-        email,
-        oldRole: originalRole ?? currentRole,
-        newRole,
-      };
-
-      if (existingChangeIndex !== -1) {
-        setPendingChanges((prev) =>
-          prev.map((c, i) => (i === existingChangeIndex ? change : c)),
-        );
-      } else {
-        setPendingChanges((prev) => [...prev, change]);
-      }
-    },
-    [pendingChanges, originalAccessData],
-  );
-
-  const handleUpdateUserGroupRole = useCallback(
-    (
-      userGroupId: string,
-      name: string,
-      currentRole: RoleValue,
-      newRole: RoleValue,
-    ) => {
-      if (currentRole === newRole) return;
-
-      // Check if there's already a role change pending for this group
-      const existingChangeIndex = pendingChanges.findIndex(
-        (c) =>
-          c.type === "update-user-group-role" && c.userGroupId === userGroupId,
-      );
-
-      // Get the original role
-      const originalGroup = originalAccessData?.userGroups.find(
-        (g) => g.id === userGroupId,
-      );
-      const originalRole = originalGroup?.role as RoleValue | undefined;
-
-      // If new role equals original, remove the pending change
-      if (originalRole !== undefined && newRole === originalRole) {
-        if (existingChangeIndex !== -1) {
-          setPendingChanges((prev) =>
-            prev.filter((_, i) => i !== existingChangeIndex),
-          );
-        }
-        return;
-      }
-
-      const change: UpdateUserGroupRoleChange = {
-        id: generateChangeId(),
-        type: "update-user-group-role",
-        userGroupId,
-        name,
-        oldRole: originalRole ?? currentRole,
-        newRole,
-      };
-
-      if (existingChangeIndex !== -1) {
-        setPendingChanges((prev) =>
-          prev.map((c, i) => (i === existingChangeIndex ? change : c)),
-        );
-      } else {
-        setPendingChanges((prev) => [...prev, change]);
-      }
-    },
-    [pendingChanges, originalAccessData],
+    [handleAddUserGroup, showAlert],
   );
 
   const handleDiscardChanges = useCallback(() => {
-    setPendingChanges([]);
-  }, []);
+    pendingChangesManager.discardAll();
+  }, [pendingChangesManager]);
 
   const handleSaveChanges = useCallback(async () => {
-    if (!selectedGroupId || pendingChanges.length === 0) return;
+    if (
+      !groupManagement.selectedGroupId ||
+      pendingChangesManager.pendingChanges.length === 0
+    )
+      return;
 
-    setIsSaving(true);
     const result = await batchUpdateEventGroupAccess(
-      selectedGroupId,
-      pendingChanges,
+      groupManagement.selectedGroupId,
+      pendingChangesManager.pendingChanges,
     );
 
     if (result.success && result.data) {
@@ -546,25 +300,23 @@ export default function ManageEventGroupsPage() {
         return { description, error };
       });
 
-      setResultData({
+      saveManager.displayResult({
         successCount: successful.length,
-        totalCount: pendingChanges.length,
+        totalCount: pendingChangesManager.pendingChanges.length,
         failedChanges,
       });
 
       // Refresh data from server
-      const refreshResult = await getEventGroupAccess(selectedGroupId);
+      const refreshResult = await getEventGroupAccess(
+        groupManagement.selectedGroupId,
+      );
       if (refreshResult.success && refreshResult.data) {
         setOriginalAccessData(refreshResult.data);
       }
 
       // Keep only failed changes as pending
       const failedChangeIds = new Set(failed.map((f) => f.change.id));
-      setPendingChanges((prev) =>
-        prev.filter((c) => failedChangeIds.has(c.id)),
-      );
-
-      setIsResultDialogOpen(true);
+      pendingChangesManager.keepOnly((c) => failedChangeIds.has(c.id));
     } else if (!result.success) {
       showAlert({
         title: "Failed to save changes",
@@ -572,16 +324,19 @@ export default function ManageEventGroupsPage() {
         type: "error",
       });
     }
-
-    setIsSaving(false);
-  }, [selectedGroupId, pendingChanges, showAlert]);
+  }, [
+    groupManagement.selectedGroupId,
+    pendingChangesManager,
+    saveManager,
+    showAlert,
+  ]);
 
   const handleTransferOwnership = useCallback(async () => {
-    if (!selectedGroupId || !selectedNewOwnerId) return;
+    if (!groupManagement.selectedGroupId || !selectedNewOwnerId) return;
 
     setIsTransferring(true);
     const result = await transferEventGroupOwnership(
-      selectedGroupId,
+      groupManagement.selectedGroupId,
       selectedNewOwnerId,
     );
 
@@ -595,10 +350,10 @@ export default function ManageEventGroupsPage() {
       // Refresh the groups list and clear selection
       const groupsResult = await getAccessibleEventGroups();
       if (groupsResult.success && groupsResult.data) {
-        setGroups(groupsResult.data);
+        groupManagement.handleGroupsRefresh(groupsResult.data);
       }
 
-      setSelectedGroupId("");
+      groupManagement.clearSelection();
       setSelectedNewOwnerId("");
     } else {
       showAlert({
@@ -609,13 +364,13 @@ export default function ManageEventGroupsPage() {
     }
 
     setIsTransferring(false);
-  }, [selectedGroupId, selectedNewOwnerId, showAlert]);
+  }, [groupManagement.selectedGroupId, selectedNewOwnerId, showAlert]);
 
   const handleDeleteGroup = useCallback(async () => {
-    if (!selectedGroupId) return;
+    if (!groupManagement.selectedGroupId) return;
 
     setIsDeleting(true);
-    const result = await deleteEventGroup(selectedGroupId);
+    const result = await deleteEventGroup(groupManagement.selectedGroupId);
 
     if (result.success) {
       showAlert({
@@ -627,12 +382,12 @@ export default function ManageEventGroupsPage() {
       // Refresh the groups list and clear selection
       const groupsResult = await getAccessibleEventGroups();
       if (groupsResult.success && groupsResult.data) {
-        setGroups(groupsResult.data);
+        groupManagement.handleGroupsRefresh(groupsResult.data);
       }
 
-      setSelectedGroupId("");
-      setIsDeleteConfirmOpen(false);
-      setIsGroupSettingsOpen(false);
+      groupManagement.clearSelection();
+      groupManagement.setIsDeleteConfirmOpen(false);
+      groupManagement.setIsGroupSettingsOpen(false);
     } else {
       showAlert({
         title: "Failed to delete group",
@@ -642,20 +397,19 @@ export default function ManageEventGroupsPage() {
     }
 
     setIsDeleting(false);
-  }, [selectedGroupId, showAlert]);
+  }, [groupManagement.selectedGroupId, showAlert]);
 
   // Get IDs of already-added user groups (including pending)
   const excludedUserGroupIds = useMemo(() => {
     const ids = originalAccessData?.userGroups.map((g) => g.id) || [];
-    const pendingIds = pendingChanges
+    const pendingIds = pendingChangesManager.pendingChanges
       .filter((c) => c.type === "add-user-group")
       .map((c) => (c as AddUserGroupChange).userGroupId);
     return [...ids, ...pendingIds];
-  }, [originalAccessData, pendingChanges]);
+  }, [originalAccessData, pendingChangesManager.pendingChanges]);
 
   const handleEventGroupCreated = (newGroup: EventGroup) => {
-    setGroups((prev) => [...prev, newGroup]);
-    setSelectedGroupId(newGroup.id);
+    groupManagement.handleGroupCreated(newGroup);
     setIsCreateEventGroupModalOpen(false);
   };
 
@@ -664,7 +418,7 @@ export default function ManageEventGroupsPage() {
     setIsCreateUserGroupModalOpen(false);
   };
 
-  if (loadingGroups) {
+  if (groupManagement.loadingGroups) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -687,21 +441,21 @@ export default function ManageEventGroupsPage() {
       <div className="space-y-2">
         <Label>Select Event Group</Label>
         <Select
-          value={selectedGroupId}
-          onValueChange={setSelectedGroupId}
-          disabled={groups.length === 0}
+          value={groupManagement.selectedGroupId}
+          onValueChange={groupManagement.setSelectedGroupId}
+          disabled={groupManagement.groups.length === 0}
         >
           <SelectTrigger>
             <SelectValue
               placeholder={
-                groups.length === 0
+                groupManagement.groups.length === 0
                   ? `No groups available`
                   : `-- Select a group --`
               }
             />
           </SelectTrigger>
           <SelectContent>
-            {groups.map((group) => (
+            {groupManagement.groups.map((group) => (
               <SelectItem key={group.id} value={group.id}>
                 {group.name}
               </SelectItem>
@@ -711,10 +465,10 @@ export default function ManageEventGroupsPage() {
       </div>
 
       {/* Selected Group Details */}
-      {selectedGroup && (
+      {groupManagement.selectedGroup && (
         <Card>
           <CardHeader>
-            <CardTitle>{selectedGroup.name}</CardTitle>
+            <CardTitle>{groupManagement.selectedGroup.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Add User Form */}
@@ -724,160 +478,48 @@ export default function ManageEventGroupsPage() {
             <UserGroupDropdown
               groups={availableUserGroups}
               excludedIds={excludedUserGroupIds}
-              onSelect={handleAddUserGroup}
+              onSelect={onSelectUserGroup}
               onCreateUserGroup={() => setIsCreateUserGroupModalOpen(true)}
             />
 
-            {loadingAccess ? (
-              <div className="flex justify-center py-4">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <>
-                {/* Users List */}
-                <div>
-                  <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-                    Users (
-                    {
-                      effectiveState.users.filter(
-                        (u) => !effectiveState.removedUserIds?.has(u.userId),
-                      ).length
-                    }
-                    )
-                  </h3>
-                  {effectiveState.users.filter(
-                    (u) => !effectiveState.removedUserIds?.has(u.userId),
-                  ).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No individual users have access
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {effectiveState.users.map((user) => {
-                        const isRemoved = effectiveState.removedUserIds?.has(
-                          user.userId,
-                        );
-                        const isAdded = effectiveState.addedUserIds?.has(
-                          user.userId,
-                        );
-                        const roleChange = effectiveState.roleChanges?.get(
-                          user.userId,
-                        );
-
-                        if (isRemoved) return null;
-
-                        return (
-                          <div
-                            key={user.userId}
-                            className={cn(
-                              "rounded-lg transition-colors",
-                              isAdded &&
-                                "ring-2 ring-green-500/50 bg-green-500/5",
-                              roleChange &&
-                                !isAdded &&
-                                "ring-2 ring-yellow-500/50 bg-yellow-500/5",
-                            )}
-                          >
-                            <MemberListItem
-                              type="user"
-                              name={user.name || user.email}
-                              email={user.name ? user.email : undefined}
-                              role={user.role as RoleValue}
-                              canEditRole={true}
-                              onRoleChange={(newRole) =>
-                                handleUpdateUserRole(
-                                  user.userId,
-                                  user.email,
-                                  user.role as RoleValue,
-                                  newRole,
-                                )
-                              }
-                              onRemove={() =>
-                                handleRemoveUser(user.userId, user.email)
-                              }
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {/* User Groups List */}
-                <div>
-                  <h3 className="mb-3 text-sm font-medium text-muted-foreground">
-                    User Groups (
-                    {
-                      effectiveState.userGroups.filter(
-                        (g) => !effectiveState.removedUserGroupIds?.has(g.id),
-                      ).length
-                    }
-                    )
-                  </h3>
-                  {effectiveState.userGroups.filter(
-                    (g) => !effectiveState.removedUserGroupIds?.has(g.id),
-                  ).length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      No user groups have access
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {effectiveState.userGroups.map((group) => {
-                        const isRemoved =
-                          effectiveState.removedUserGroupIds?.has(group.id);
-                        const isAdded = effectiveState.addedUserGroupIds?.has(
-                          group.id,
-                        );
-                        const roleChange = effectiveState.roleChanges?.get(
-                          group.id,
-                        );
-
-                        if (isRemoved) return null;
-
-                        return (
-                          <div
-                            key={group.id}
-                            className={cn(
-                              "rounded-lg transition-colors",
-                              isAdded &&
-                                "ring-2 ring-green-500/50 bg-green-500/5",
-                              roleChange &&
-                                !isAdded &&
-                                "ring-2 ring-yellow-500/50 bg-yellow-500/5",
-                            )}
-                          >
-                            <MemberListItem
-                              type="userGroup"
-                              name={group.name}
-                              role={group.role as RoleValue}
-                              canEditRole={true}
-                              onRoleChange={(newRole) =>
-                                handleUpdateUserGroupRole(
-                                  group.id,
-                                  group.name,
-                                  group.role as RoleValue,
-                                  newRole,
-                                )
-                              }
-                              onRemove={() =>
-                                handleRemoveUserGroup(group.id, group.name)
-                              }
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+            {/* Access View */}
+            <EventGroupAccessView
+              loading={loadingAccess}
+              users={pendingChangesManager.effectiveState.users || []}
+              userGroups={pendingChangesManager.effectiveState.userGroups || []}
+              removedUserIds={
+                pendingChangesManager.effectiveState.removedUserIds || new Set()
+              }
+              removedUserGroupIds={
+                pendingChangesManager.effectiveState.removedUserGroupIds ||
+                new Set()
+              }
+              addedUserIds={
+                pendingChangesManager.effectiveState.addedUserIds || new Set()
+              }
+              addedUserGroupIds={
+                pendingChangesManager.effectiveState.addedUserGroupIds ||
+                new Set()
+              }
+              roleChanges={
+                pendingChangesManager.effectiveState.roleChanges || new Map()
+              }
+              groupRoleChanges={
+                pendingChangesManager.effectiveState.groupRoleChanges ||
+                new Map()
+              }
+              onRemoveUser={handleRemoveUser}
+              onRemoveUserGroup={handleRemoveUserGroup}
+              onUpdateUserRole={handleUpdateUserRole}
+              onUpdateUserGroupRole={handleUpdateUserGroupRole}
+            />
           </CardContent>
           {/* Group Settings Footer - Only show to owner */}
-          {selectedGroup.createdBy === session?.user?.id &&
-            selectedGroup.name !== "Personal" && (
+          {groupManagement.selectedGroup.createdBy === session?.user?.id &&
+            groupManagement.selectedGroup.name !== "Personal" && (
               <div className="border-t bg-muted/50 px-6 py-4">
                 <Button
-                  onClick={() => setIsGroupSettingsOpen(true)}
+                  onClick={() => groupManagement.setIsGroupSettingsOpen(true)}
                   variant="outline"
                   size="sm"
                   className="w-full"
@@ -891,47 +533,22 @@ export default function ManageEventGroupsPage() {
       )}
 
       {/* Empty state */}
-      {!selectedGroupId && groups.length === 0 && (
-        <Card className="text-center">
-          <CardContent className="py-8">
-            <p className="text-muted-foreground">
-              You don&apos;t have any event groups yet.
-            </p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Click &quot;Create Event Group&quot; above to get started.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+      {!groupManagement.selectedGroupId &&
+        groupManagement.groups.length === 0 && (
+          <GroupEmptyState
+            message="You don't have any event groups yet."
+            actionPrompt='Click "Create Event Group" above to get started.'
+          />
+        )}
 
-      {/* Sticky Footer for Save/Discard */}
-      {hasPendingChanges && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/80">
-          <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-6 py-4">
-            <p className="text-sm text-muted-foreground">
-              {pendingChanges.length} pending change
-              {pendingChanges.length !== 1 ? "s" : ""}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={handleDiscardChanges}
-                disabled={isSaving}
-              >
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Discard
-              </Button>
-              <Button onClick={handleSaveChanges} disabled={isSaving}>
-                {isSaving ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="mr-2 h-4 w-4" />
-                )}
-                Save Changes
-              </Button>
-            </div>
-          </div>
-        </div>
+      {/* Pending Changes Footer */}
+      {pendingChangesManager.hasPendingChanges && (
+        <PendingChangeFooter
+          pendingChangesCount={pendingChangesManager.pendingChanges.length}
+          onSave={handleSaveChanges}
+          onDiscard={handleDiscardChanges}
+          isSaving={saveManager.isSaving}
+        />
       )}
 
       {/* Create Event Group Modal */}
@@ -959,118 +576,34 @@ export default function ManageEventGroupsPage() {
 
       {/* Result Dialog */}
       <BatchResultDialog
-        isOpen={isResultDialogOpen}
-        onClose={() => setIsResultDialogOpen(false)}
-        successCount={resultData.successCount}
-        totalCount={resultData.totalCount}
-        failedChanges={resultData.failedChanges}
+        isOpen={saveManager.isResultDialogOpen}
+        onClose={saveManager.closeResultDialog}
+        successCount={saveManager.resultData.successCount}
+        totalCount={saveManager.resultData.totalCount}
+        failedChanges={saveManager.resultData.failedChanges}
       />
 
       {/* Group Settings Modal */}
-      <AlertDialog
-        open={isGroupSettingsOpen}
-        onOpenChange={setIsGroupSettingsOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Group Settings</AlertDialogTitle>
-            <AlertDialogDescription>
-              Manage advanced settings for this event group.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-
-          <div className="space-y-4">
-            {/* Transfer Ownership Section */}
-            <div className="space-y-3 border-b pb-4">
-              <h4 className="text-sm font-medium">Transfer Ownership</h4>
-              <Select
-                value={selectedNewOwnerId}
-                onValueChange={setSelectedNewOwnerId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose new owner..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {effectiveState.users &&
-                    effectiveState.users
-                      .filter(
-                        (u) =>
-                          !effectiveState.removedUserIds?.has(u.userId) &&
-                          u.userId !== session?.user?.id,
-                      )
-                      .map((user) => (
-                        <SelectItem key={user.userId} value={user.userId}>
-                          {user.name || user.email}
-                        </SelectItem>
-                      ))}
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handleTransferOwnership}
-                disabled={!selectedNewOwnerId || isTransferring}
-                variant="outline"
-                size="sm"
-                className="w-full"
-              >
-                {isTransferring ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                Transfer Ownership
-              </Button>
-            </div>
-
-            {/* Delete Group Section */}
-            <div className="space-y-3">
-              <h4 className="text-sm font-medium text-destructive">
-                Delete Group
-              </h4>
-              <p className="text-xs text-muted-foreground">
-                Permanently delete this group and all its data. This action
-                cannot be undone.
-              </p>
-              <Button
-                onClick={() => setIsDeleteConfirmOpen(true)}
-                variant="destructive"
-                size="sm"
-                className="w-full"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete Group
-              </Button>
-            </div>
-          </div>
-
-          <AlertDialogCancel>Close</AlertDialogCancel>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={isDeleteConfirmOpen}
-        onOpenChange={setIsDeleteConfirmOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Group?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete &quot;{selectedGroup?.name}&quot;?
-              This will permanently delete the group and all its data, including
-              all events in this group. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDeleteGroup}
-            disabled={isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {isDeleting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : null}
-            Delete
-          </AlertDialogAction>
-        </AlertDialogContent>
-      </AlertDialog>
+      {groupManagement.selectedGroup && session?.user?.id && (
+        <GroupSettingsModal
+          isOpen={groupManagement.isGroupSettingsOpen}
+          onOpenChange={groupManagement.setIsGroupSettingsOpen}
+          groupName={groupManagement.selectedGroup.name}
+          currentUserId={session.user.id}
+          members={pendingChangesManager.effectiveState.users || []}
+          removedMemberIds={
+            pendingChangesManager.effectiveState.removedUserIds || new Set()
+          }
+          selectedNewOwnerId={selectedNewOwnerId}
+          onNewOwnerSelect={setSelectedNewOwnerId}
+          isTransferring={isTransferring}
+          onTransferOwnership={handleTransferOwnership}
+          isDeleteConfirmOpen={groupManagement.isDeleteConfirmOpen}
+          onDeleteConfirmOpenChange={groupManagement.setIsDeleteConfirmOpen}
+          isDeleting={isDeleting}
+          onDeleteGroup={handleDeleteGroup}
+        />
+      )}
     </div>
   );
 }
