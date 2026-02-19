@@ -36,9 +36,9 @@ export default function MemberListItem({
 
   return (
     <div className="flex items-center justify-between rounded-lg border bg-card px-4 py-3">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 min-w-0">
         <div
-          className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium ${
+          className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium shrink-0 ${
             isUser
               ? "bg-primary/20 text-primary"
               : "bg-purple-500/20 text-purple-400"
@@ -50,14 +50,14 @@ export default function MemberListItem({
             <Users className="h-4 w-4" />
           )}
         </div>
-        <div>
-          <p className="text-sm font-medium">{name}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-medium truncate">{name}</p>
           {email && isUser && (
-            <p className="text-xs text-muted-foreground">{email}</p>
+            <p className="text-xs text-muted-foreground truncate">{email}</p>
           )}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         {role !== undefined &&
           (canEditRole && onRoleChange ? (
             <Select

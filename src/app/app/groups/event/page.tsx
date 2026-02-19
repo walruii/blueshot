@@ -598,9 +598,19 @@ export default function ManageEventGroupsPage() {
       {/* Group Selector */}
       <div className="space-y-2">
         <Label>Select Event Group</Label>
-        <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+        <Select
+          value={selectedGroupId}
+          onValueChange={setSelectedGroupId}
+          disabled={groups.length === 0}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="-- Select a group --" />
+            <SelectValue
+              placeholder={
+                groups.length === 0
+                  ? `No groups available`
+                  : `-- Select a group --`
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {groups.map((group) => (

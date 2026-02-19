@@ -216,9 +216,12 @@ const PermissionRow = ({
   const isUserGroup = entry.type === "userGroup";
 
   return (
-    <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2">
+    <div className="flex flex-col sm:flex-row sm:items-center gap-2 rounded-lg border bg-card px-3 py-2">
       {/* Type indicator */}
-      <Badge variant={isUserGroup ? "secondary" : "outline"} className="shrink-0">
+      <Badge
+        variant={isUserGroup ? "secondary" : "outline"}
+        className="shrink-0 w-fit"
+      >
         {isUserGroup ? (
           <Users className="size-3 mr-1" />
         ) : (
@@ -228,39 +231,41 @@ const PermissionRow = ({
       </Badge>
 
       {/* Name/Email */}
-      <div className="flex-1 truncate text-sm">
+      <div className="flex-1 truncate text-sm min-w-0">
         {entry.name || entry.identifier}
       </div>
 
-      {/* Role dropdown */}
-      <Select
-        value={String(entry.role)}
-        onValueChange={(value) =>
-          onUpdateRole(entry.identifier, Number(value) as RoleValue)
-        }
-      >
-        <SelectTrigger className="w-28">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {Object.entries(RoleLabels).map(([value, label]) => (
-            <SelectItem key={value} value={value}>
-              {label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Role dropdown & Remove button */}
+      <div className="flex gap-2 w-full sm:w-auto">
+        <Select
+          value={String(entry.role)}
+          onValueChange={(value) =>
+            onUpdateRole(entry.identifier, Number(value) as RoleValue)
+          }
+        >
+          <SelectTrigger className="flex-1 sm:flex-none sm:w-28">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(RoleLabels).map(([value, label]) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      {/* Remove button */}
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => onRemove(entry.identifier)}
-        className="text-muted-foreground hover:text-destructive"
-      >
-        <X className="size-4" />
-      </Button>
+        {/* Remove button */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => onRemove(entry.identifier)}
+          className="text-muted-foreground hover:text-destructive shrink-0"
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
     </div>
   );
 };
