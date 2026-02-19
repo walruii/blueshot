@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
+import LoadingAuthPage from "@/components/loading/LoadingAuthPage";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
@@ -146,7 +147,7 @@ function VerifyEmailContent() {
 
 export default function Page() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<LoadingAuthPage />}>
       <VerifyEmailContent />
     </Suspense>
   );

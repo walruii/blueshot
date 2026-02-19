@@ -1,5 +1,6 @@
 "use client";
 import { Suspense } from "react";
+import LoadingAuth from "@/components/loading/LoadingAuth";
 import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import Link from "next/link";
@@ -142,7 +143,7 @@ function SignInForm() {
 
 export default function Page() {
   return (
-    <Suspense>
+    <Suspense fallback={<LoadingAuth />}>
       <SignInForm />
     </Suspense>
   );
