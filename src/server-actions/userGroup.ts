@@ -576,3 +576,83 @@ export const batchUpdateUserGroupMembers = async (
     return { success: false, error: "Internal Server Error" };
   }
 };
+
+/**
+ * Transfer ownership of a user group to another user
+ * Only the current owner can transfer ownership
+ */
+export const transferUserGroupOwnership = async (
+  groupId: string,
+  newOwnerId: string,
+): Promise<Result<UserGroup>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+
+    if (!session?.user) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    // Get the group to verify ownership
+    const { data: group, error: groupError } = await supabaseAdmin
+      .from("user_group")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+    if (groupError || !group) {
+      return { success: false, error: "Group not found" };
+    }
+
+    // Only the owner can transfer ownership
+    if (group.created_by !== session.user.id) {
+      return {
+        success: false,
+        error: "Only the group owner can transfer ownership",
+      };
+    }
+
+    // Cannot transfer to the same owner
+    if (newOwnerId === session.user.id) {
+      return {
+        success: false,
+        error: "Cannot transfer ownership to yourself",
+      };
+    }
+
+    // Verify the new owner is a member of the group
+    const { data: isMember } = await supabaseAdmin
+      .from("user_group_member")
+      .select("id")
+      .eq("user_group_id", groupId)
+      .eq("user_id", newOwnerId)
+      .maybeSingle();
+
+    if (!isMember) {
+      return {
+        success: false,
+        error: "New owner must be a member of the group",
+      };
+    }
+
+    // Update the group's owner
+    const { data: updatedGroup, error: updateError } = await supabaseAdmin
+      .from("user_group")
+      .update({ created_by: newOwnerId })
+      .eq("id", groupId)
+      .select()
+      .single();
+
+    if (updateError || !updatedGroup) {
+      console.error("Error transferring ownership:", updateError);
+      return { success: false, error: "Failed to transfer ownership" };
+    }
+
+    revalidatePath("/app");
+    return { success: true, data: formatUserGroup(updatedGroup) };
+  } catch (err) {
+    console.error("Unexpected error in transferUserGroupOwnership:", err);
+    return { success: false, error: "Internal Server Error" };
+  }
+};

@@ -8,6 +8,7 @@ import {
   getAccessibleEventGroups,
   getEventGroupAccess,
   batchUpdateEventGroupAccess,
+  transferEventGroupOwnership,
   EventGroupAccessResult,
 } from "@/server-actions/eventGroup";
 import { getAccessibleUserGroups } from "@/server-actions/userGroup";
@@ -83,6 +84,10 @@ export default function ManageEventGroupsPage() {
   const [availableUserGroups, setAvailableUserGroups] = useState<UserGroup[]>(
     [],
   );
+
+  // Transfer ownership state
+  const [selectedNewOwnerId, setSelectedNewOwnerId] = useState<string>("");
+  const [isTransferring, setIsTransferring] = useState(false);
 
   // Load groups on mount
   useEffect(() => {
@@ -556,6 +561,41 @@ export default function ManageEventGroupsPage() {
     setIsSaving(false);
   }, [selectedGroupId, pendingChanges, showAlert]);
 
+  const handleTransferOwnership = useCallback(async () => {
+    if (!selectedGroupId || !selectedNewOwnerId) return;
+
+    setIsTransferring(true);
+    const result = await transferEventGroupOwnership(
+      selectedGroupId,
+      selectedNewOwnerId,
+    );
+
+    if (result.success) {
+      showAlert({
+        title: "Ownership transferred successfully",
+        description: `The group is now owned by the selected user.`,
+        type: "success",
+      });
+
+      // Refresh the groups list and clear selection
+      const groupsResult = await getAccessibleEventGroups();
+      if (groupsResult.success && groupsResult.data) {
+        setGroups(groupsResult.data);
+      }
+
+      setSelectedGroupId("");
+      setSelectedNewOwnerId("");
+    } else {
+      showAlert({
+        title: "Failed to transfer ownership",
+        description: result.error,
+        type: "error",
+      });
+    }
+
+    setIsTransferring(false);
+  }, [selectedGroupId, selectedNewOwnerId, showAlert]);
+
   // Get IDs of already-added user groups (including pending)
   const excludedUserGroupIds = useMemo(() => {
     const ids = originalAccessData?.userGroups.map((g) => g.id) || [];
@@ -598,9 +638,19 @@ export default function ManageEventGroupsPage() {
       {/* Group Selector */}
       <div className="space-y-2">
         <Label>Select Event Group</Label>
-        <Select value={selectedGroupId} onValueChange={setSelectedGroupId}>
+        <Select
+          value={selectedGroupId}
+          onValueChange={setSelectedGroupId}
+          disabled={groups.length === 0}
+        >
           <SelectTrigger>
-            <SelectValue placeholder="-- Select a group --" />
+            <SelectValue
+              placeholder={
+                groups.length === 0
+                  ? `No groups available`
+                  : `-- Select a group --`
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {groups.map((group) => (
@@ -619,6 +669,58 @@ export default function ManageEventGroupsPage() {
             <CardTitle>{selectedGroup.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Transfer Ownership Section - Only show to owner and not for Personal group */}
+            {selectedGroup.createdBy === session?.user?.id &&
+              selectedGroup.name !== "Personal" && (
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950">
+                  <h3 className="mb-3 text-sm font-medium">
+                    Transfer Ownership
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="new-owner-select">Select New Owner</Label>
+                      <Select
+                        value={selectedNewOwnerId}
+                        onValueChange={setSelectedNewOwnerId}
+                      >
+                        <SelectTrigger id="new-owner-select">
+                          <SelectValue placeholder="Choose new owner from users..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {effectiveState.users &&
+                            effectiveState.users
+                              .filter(
+                                (u) =>
+                                  !effectiveState.removedUserIds?.has(
+                                    u.userId,
+                                  ) && u.userId !== session?.user?.id,
+                              )
+                              .map((user) => (
+                                <SelectItem
+                                  key={user.userId}
+                                  value={user.userId}
+                                >
+                                  {user.name || user.email}
+                                </SelectItem>
+                              ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button
+                      onClick={handleTransferOwnership}
+                      disabled={!selectedNewOwnerId || isTransferring}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {isTransferring ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Transfer Ownership
+                    </Button>
+                  </div>
+                </div>
+              )}
+
             {/* Add User Form */}
             <EmailAddForm onAdd={handleAddUser} label="Add User by Email" />
 
