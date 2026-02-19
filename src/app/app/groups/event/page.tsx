@@ -399,39 +399,6 @@ export default function ManageEventGroupsPage() {
     setIsDeleting(false);
   }, [groupManagement.selectedGroupId, showAlert]);
 
-  const handleDeleteGroup = useCallback(async () => {
-    if (!selectedGroupId) return;
-
-    setIsDeleting(true);
-    const result = await deleteEventGroup(selectedGroupId);
-
-    if (result.success) {
-      showAlert({
-        title: "Group deleted successfully",
-        description: "The event group and all its data has been deleted.",
-        type: "success",
-      });
-
-      // Refresh the groups list and clear selection
-      const groupsResult = await getAccessibleEventGroups();
-      if (groupsResult.success && groupsResult.data) {
-        setGroups(groupsResult.data);
-      }
-
-      setSelectedGroupId("");
-      setIsDeleteConfirmOpen(false);
-      setIsGroupSettingsOpen(false);
-    } else {
-      showAlert({
-        title: "Failed to delete group",
-        description: result.error,
-        type: "error",
-      });
-    }
-
-    setIsDeleting(false);
-  }, [selectedGroupId, showAlert]);
-
   // Get IDs of already-added user groups (including pending)
   const excludedUserGroupIds = useMemo(() => {
     const ids = originalAccessData?.userGroups.map((g) => g.id) || [];
