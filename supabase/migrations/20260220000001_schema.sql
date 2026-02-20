@@ -322,6 +322,24 @@ CREATE TABLE IF NOT EXISTS "public"."notifications" (
 ALTER TABLE "public"."notifications" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."passkey" (
+    "id" "text" NOT NULL,
+    "name" "text",
+    "publicKey" "text" NOT NULL,
+    "userId" "text" NOT NULL,
+    "credentialID" "text" NOT NULL,
+    "counter" integer NOT NULL,
+    "deviceType" "text" NOT NULL,
+    "backedUp" boolean NOT NULL,
+    "transports" "text",
+    "createdAt" timestamp with time zone,
+    "aaguid" "text"
+);
+
+
+ALTER TABLE "public"."passkey" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."session" (
     "id" "text" NOT NULL,
     "expiresAt" timestamp with time zone NOT NULL,
@@ -337,6 +355,17 @@ CREATE TABLE IF NOT EXISTS "public"."session" (
 ALTER TABLE "public"."session" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."twoFactor" (
+    "id" "text" NOT NULL,
+    "secret" "text" NOT NULL,
+    "backupCodes" "text" NOT NULL,
+    "userId" "text" NOT NULL
+);
+
+
+ALTER TABLE "public"."twoFactor" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."user" (
     "id" "text" NOT NULL,
     "name" "text" NOT NULL,
@@ -344,7 +373,8 @@ CREATE TABLE IF NOT EXISTS "public"."user" (
     "emailVerified" boolean NOT NULL,
     "image" "text",
     "createdAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
-    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+    "updatedAt" timestamp with time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "twoFactorEnabled" boolean
 );
 
 
@@ -450,6 +480,11 @@ ALTER TABLE ONLY "public"."notifications"
 
 
 
+ALTER TABLE ONLY "public"."passkey"
+    ADD CONSTRAINT "passkey_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."session"
     ADD CONSTRAINT "session_pkey" PRIMARY KEY ("id");
 
@@ -457,6 +492,11 @@ ALTER TABLE ONLY "public"."session"
 
 ALTER TABLE ONLY "public"."session"
     ADD CONSTRAINT "session_token_key" UNIQUE ("token");
+
+
+
+ALTER TABLE ONLY "public"."twoFactor"
+    ADD CONSTRAINT "twoFactor_pkey" PRIMARY KEY ("id");
 
 
 
@@ -489,7 +529,23 @@ CREATE INDEX "account_userId_idx" ON "public"."account" USING "btree" ("userId")
 
 
 
+CREATE INDEX "passkey_credentialID_idx" ON "public"."passkey" USING "btree" ("credentialID");
+
+
+
+CREATE INDEX "passkey_userId_idx" ON "public"."passkey" USING "btree" ("userId");
+
+
+
 CREATE INDEX "session_userId_idx" ON "public"."session" USING "btree" ("userId");
+
+
+
+CREATE INDEX "twoFactor_secret_idx" ON "public"."twoFactor" USING "btree" ("secret");
+
+
+
+CREATE INDEX "twoFactor_userId_idx" ON "public"."twoFactor" USING "btree" ("userId");
 
 
 
@@ -562,8 +618,18 @@ ALTER TABLE ONLY "public"."notifications"
 
 
 
+ALTER TABLE ONLY "public"."passkey"
+    ADD CONSTRAINT "passkey_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."session"
     ADD CONSTRAINT "session_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."twoFactor"
+    ADD CONSTRAINT "twoFactor_userId_fkey" FOREIGN KEY ("userId") REFERENCES "public"."user"("id") ON DELETE CASCADE;
 
 
 
@@ -895,9 +961,23 @@ GRANT ALL ON TABLE "public"."notifications" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."passkey" TO "postgres";
+GRANT ALL ON TABLE "public"."passkey" TO "anon";
+GRANT ALL ON TABLE "public"."passkey" TO "authenticated";
+GRANT ALL ON TABLE "public"."passkey" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."session" TO "anon";
 GRANT ALL ON TABLE "public"."session" TO "authenticated";
 GRANT ALL ON TABLE "public"."session" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."twoFactor" TO "postgres";
+GRANT ALL ON TABLE "public"."twoFactor" TO "anon";
+GRANT ALL ON TABLE "public"."twoFactor" TO "authenticated";
+GRANT ALL ON TABLE "public"."twoFactor" TO "service_role";
 
 
 

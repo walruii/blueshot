@@ -1,17 +1,49 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { authClient } from "@/lib/auth-client";
 import { UpdateNameCard } from "./_components/UpdateNameCard";
 import { UpdateEmailCard } from "./_components/UpdateEmailCard";
+import { ChangePasswordCard } from "./_components/ChangePasswordCard";
 import { PasskeyManagementCard } from "./_components/PasskeyManagementCard";
 import { Enable2FACard } from "./_components/Enable2FACard";
 import { Disable2FACard } from "./_components/Disable2FACard";
 import { DeleteAccountCard } from "./_components/DeleteAccountCard";
 import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 export default function SettingsPage() {
   const { data: session, isPending } = authClient.useSession();
   const user = session?.user;
+  const [hasPassword, setHasPassword] = useState(true);
+  const [checkingPassword, setCheckingPassword] = useState(true);
+
+  useEffect(() => {
+    const checkPasswordStatus = async () => {
+      try {
+        // Check if user has an email/password account
+        const accounts = await authClient.listAccounts();
+
+        // Check if any account has providerId 'credential' (email/password)
+        const hasCredentialAccount = accounts?.data?.some(
+          (account: any) => account.providerId === "credential",
+        );
+
+        setHasPassword(!!hasCredentialAccount);
+      } catch (err) {
+        console.error("Failed to check password status:", err);
+        // Default to true to be safe
+        setHasPassword(true);
+      } finally {
+        setCheckingPassword(false);
+      }
+    };
+
+    if (user) {
+      checkPasswordStatus();
+    }
+  }, [user]);
 
   if (isPending) {
     return (
@@ -46,6 +78,19 @@ export default function SettingsPage() {
         </p>
       </div>
 
+      {/* OAuth User Banner */}
+      {!checkingPassword && !hasPassword && (
+        <>
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              <strong>Signed in with Google.</strong> Set up a password below to
+              enable email/password sign-in and access all security features.
+            </AlertDescription>
+          </Alert>
+        </>
+      )}
+
       <Separator />
 
       {/* Profile Section */}
@@ -70,8 +115,14 @@ export default function SettingsPage() {
             Manage your authentication methods and security settings.
           </p>
         </div>
+        {!checkingPassword && <ChangePasswordCard hasPassword={hasPassword} />}
         <PasskeyManagementCard />
-        {user.twoFactorEnabled ? <Disable2FACard /> : <Enable2FACard />}
+        {!checkingPassword &&
+          (user.twoFactorEnabled ? (
+            <Disable2FACard />
+          ) : (
+            <Enable2FACard hasPassword={hasPassword} />
+          ))}
       </section>
 
       <Separator />
@@ -86,7 +137,7 @@ export default function SettingsPage() {
             Irreversible actions for your account.
           </p>
         </div>
-        <DeleteAccountCard />
+        {!checkingPassword && <DeleteAccountCard hasPassword={hasPassword} />}
       </section>
     </div>
   );

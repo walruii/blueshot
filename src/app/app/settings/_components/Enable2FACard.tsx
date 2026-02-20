@@ -24,11 +24,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle, Copy, Shield } from "lucide-react";
+import { CheckCircle, Copy, Shield, AlertTriangle } from "lucide-react";
 
 type SetupStep = "initial" | "password" | "qrcode" | "verify" | "complete";
 
-export function Enable2FACard() {
+interface Enable2FACardProps {
+  hasPassword: boolean;
+}
+
+export function Enable2FACard({ hasPassword }: Enable2FACardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [step, setStep] = useState<SetupStep>("initial");
   const [password, setPassword] = useState("");
@@ -40,6 +44,14 @@ export function Enable2FACard() {
   const { showAlert } = useAlert();
 
   const handleStartSetup = () => {
+    if (!hasPassword) {
+      showAlert({
+        title: "Password required",
+        description: "Please set up a password before enabling 2FA.",
+        type: "error",
+      });
+      return;
+    }
     setIsDialogOpen(true);
     setStep("password");
     setError("");

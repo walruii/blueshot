@@ -26,7 +26,11 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trash2, AlertTriangle } from "lucide-react";
 
-export function DeleteAccountCard() {
+interface DeleteAccountCardProps {
+  hasPassword: boolean;
+}
+
+export function DeleteAccountCard({ hasPassword }: DeleteAccountCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [password, setPassword] = useState("");
@@ -37,9 +41,14 @@ export function DeleteAccountCard() {
   const router = useRouter();
 
   const handleOpenDialog = () => {
-    setIsDialogOpen(true);
-    setPassword("");
-    setError("");
+    // If no password, skip straight to confirmation
+    if (!hasPassword) {
+      setIsConfirmDialogOpen(true);
+    } else {
+      setIsDialogOpen(true);
+      setPassword("");
+      setError("");
+    }
   };
 
   const handleCloseDialog = () => {
@@ -80,9 +89,9 @@ export function DeleteAccountCard() {
 
     try {
       // Call delete account endpoint
-      const result = await authClient.deleteUser({
-        password: password,
-      });
+      const result = await authClient.deleteUser(
+        hasPassword ? { password: password } : {},
+      );
 
       if (result.error) {
         setError(result.error.message || "Failed to delete account");
