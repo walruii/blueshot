@@ -5,7 +5,6 @@ import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useAlert } from "@/components/AlertProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,10 +22,10 @@ function SignInForm() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { showAlert } = useAlert();
 
   // Check if coming from verified email link
   const isVerifiedRedirect = searchParams?.get("verified") === "true";
@@ -41,6 +40,61 @@ function SignInForm() {
       setError("Google sign-in failed. Please try again.");
     } finally {
       setGoogleLoading(false);
+    }
+  };
+
+  const handlePasskeySignIn = async () => {
+    setPasskeyLoading(true);
+    setError("");
+
+    try {
+      await authClient.signIn.passkey({
+        fetchOptions: {
+          onSuccess: async () => {
+            try {
+              const { data } = await authClient.getSession();
+              const user = data?.user;
+
+              if (user && !user.emailVerified) {
+                if (user.email)
+                  sessionStorage.setItem("verifyEmail", user.email);
+                router.push(
+                  `/auth/verify-email?email=${encodeURIComponent(user.email || "")}`,
+                );
+              } else {
+                sessionStorage.removeItem("verifyEmail");
+                router.push("/app");
+              }
+            } catch (err) {
+              router.push("/app");
+            }
+          },
+          onError: (ctx) => {
+            console.log("Passkey onError callback triggered", ctx);
+            const error = ctx.error;
+
+            // Better Auth standardizes the "User Cancelled" error here
+            if (
+              error.status === 403 ||
+              error.code === "NOT_ALLOWED" ||
+              error.message.includes("not allowed")
+            ) {
+              console.log(
+                "User cancelled the prompt. No need to show a scary error message.",
+              );
+              // Just stop loading, don't set an error message
+            } else {
+              console.error("Actual Passkey Error:", error);
+              setError(error.message || "Passkey sign-in failed.");
+            }
+            setPasskeyLoading(false); // Make sure to turn off loading on error!
+          },
+        },
+      });
+    } catch (err) {
+      console.error("Unexpected error during Passkey sign-in:", err);
+    } finally {
+      setPasskeyLoading(false);
     }
   };
 
@@ -108,6 +162,15 @@ function SignInForm() {
               </div>
             </div>
           )}
+          {/* Passkey Button */}
+          <Button
+            onClick={handlePasskeySignIn}
+            disabled={passkeyLoading}
+            variant="outline"
+            className="w-full mb-4"
+          >
+            {passkeyLoading ? "Signing in..." : "Sign in with Passkey"}
+          </Button>
 
           {/* Google OAuth Button */}
           <Button
@@ -142,6 +205,7 @@ function SignInForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 placeholder="you@example.com"
+                autoComplete="email webauthn"
               />
             </div>
             <div className="space-y-2">
@@ -153,6 +217,7 @@ function SignInForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
+                autoComplete="current-password webauthn"
               />
             </div>
             <Button type="submit" disabled={loading} className="w-full">
