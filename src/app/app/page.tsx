@@ -12,6 +12,7 @@ import UpcomingEventList from "./_components/UpcomingEventList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, Users, FolderOpen } from "lucide-react";
+import Image from "next/image";
 
 export default function Page() {
   return (
@@ -40,7 +41,17 @@ async function Dashboard() {
         </CardHeader>
         <CardContent className="flex flex-col sm:flex-row gap-4">
           <div className="flex justify-center items-center rounded-full overflow-clip h-20 w-20 bg-muted shrink-0">
-            <UserIcon />
+            {session.user.image ? (
+              <Image
+                src={session.user.image}
+                alt={session.user.name}
+                width={100}
+                height={100}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <UserIcon />
+            )}
           </div>
           <div className="flex items-center">
             <p className="text-muted-foreground">
