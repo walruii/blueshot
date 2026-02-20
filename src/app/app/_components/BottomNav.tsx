@@ -2,7 +2,13 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Calendar, Users, LogOut } from "lucide-react";
+import {
+  LayoutDashboard,
+  Calendar,
+  Users,
+  Settings,
+  LogOut,
+} from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
 export default function BottomNav() {
@@ -27,6 +33,12 @@ export default function BottomNav() {
       label: "Groups",
       icon: Users,
       isActive: pathname?.startsWith("/app/groups"),
+    },
+    {
+      href: "/app/settings",
+      label: "Settings",
+      icon: Settings,
+      isActive: pathname?.startsWith("/app/settings"),
     },
   ];
 

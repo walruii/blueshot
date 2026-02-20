@@ -354,6 +354,56 @@ export type Database = {
           },
         ]
       }
+      passkey: {
+        Row: {
+          aaguid: string | null
+          backedUp: boolean
+          counter: number
+          createdAt: string | null
+          credentialID: string
+          deviceType: string
+          id: string
+          name: string | null
+          publicKey: string
+          transports: string | null
+          userId: string
+        }
+        Insert: {
+          aaguid?: string | null
+          backedUp: boolean
+          counter: number
+          createdAt?: string | null
+          credentialID: string
+          deviceType: string
+          id: string
+          name?: string | null
+          publicKey: string
+          transports?: string | null
+          userId: string
+        }
+        Update: {
+          aaguid?: string | null
+          backedUp?: boolean
+          counter?: number
+          createdAt?: string | null
+          credentialID?: string
+          deviceType?: string
+          id?: string
+          name?: string | null
+          publicKey?: string
+          transports?: string | null
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passkey_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       session: {
         Row: {
           createdAt: string
@@ -395,6 +445,35 @@ export type Database = {
           },
         ]
       }
+      twoFactor: {
+        Row: {
+          backupCodes: string
+          id: string
+          secret: string
+          userId: string
+        }
+        Insert: {
+          backupCodes: string
+          id: string
+          secret: string
+          userId: string
+        }
+        Update: {
+          backupCodes?: string
+          id?: string
+          secret?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "twoFactor_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user: {
         Row: {
           createdAt: string
@@ -403,6 +482,7 @@ export type Database = {
           id: string
           image: string | null
           name: string
+          twoFactorEnabled: boolean | null
           updatedAt: string
         }
         Insert: {
@@ -412,6 +492,7 @@ export type Database = {
           id: string
           image?: string | null
           name: string
+          twoFactorEnabled?: boolean | null
           updatedAt?: string
         }
         Update: {
@@ -421,6 +502,7 @@ export type Database = {
           id?: string
           image?: string | null
           name?: string
+          twoFactorEnabled?: boolean | null
           updatedAt?: string
         }
         Relationships: []
