@@ -22,6 +22,7 @@ function SignInForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -29,6 +30,19 @@ function SignInForm() {
 
   // Check if coming from verified email link
   const isVerifiedRedirect = searchParams?.get("verified") === "true";
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+      });
+    } catch (err) {
+      setError("Google sign-in failed. Please try again.");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSignIn = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -94,6 +108,27 @@ function SignInForm() {
               </div>
             </div>
           )}
+
+          {/* Google OAuth Button */}
+          <Button
+            onClick={handleGoogleSignIn}
+            disabled={googleLoading}
+            variant="outline"
+            className="w-full mb-4"
+          >
+            {googleLoading ? "Signing in..." : "Sign in with Google"}
+          </Button>
+
+          {/* Divider */}
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-muted" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
+            </div>
+          </div>
+
           <form
             onSubmit={(e) => handleSignIn(e)}
             className="flex flex-col gap-4"
