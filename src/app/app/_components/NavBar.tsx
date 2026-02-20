@@ -50,6 +50,16 @@ export default function NavBar() {
             >
               Groups
             </Link>
+            <Link
+              href="/app/settings"
+              className={`text-sm font-medium transition ${
+                pathname?.startsWith("/app/settings")
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Settings
+            </Link>
           </div>
         )}
         <Button

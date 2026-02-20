@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { passkey } from "@better-auth/passkey";
 import { Pool } from "pg";
+import { twoFactor } from "better-auth/plugins";
 
 export const auth = betterAuth({
   database: new Pool({
@@ -15,5 +16,5 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
-  plugins: [passkey()],
+  plugins: [passkey(), twoFactor()],
 });

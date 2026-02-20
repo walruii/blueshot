@@ -5,6 +5,7 @@ import { authClient } from "@/lib/auth-client";
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { TOTPVerificationDialog } from "@/components/TOTPVerificationDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,9 @@ function SignInForm() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showTOTPModal, setShowTOTPModal] = useState(false);
+  const [totpError, setTotpError] = useState("");
+  const [totpLoading, setTotpLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -98,6 +102,38 @@ function SignInForm() {
     }
   };
 
+  const handleVerifyTOTP = async (code: string) => {
+    setTotpError("");
+    setTotpLoading(true);
+
+    try {
+      const result = await authClient.twoFactor.verifyTotp({ code });
+
+      if (result.error) {
+        setTotpError(result.error.message || "Invalid code. Please try again.");
+        setTotpLoading(false);
+        return;
+      }
+
+      // Success - redirect to app
+      sessionStorage.removeItem("verifyEmail");
+      setShowTOTPModal(false);
+      router.push("/app");
+    } catch (err: any) {
+      setTotpError(err?.message || "Invalid code. Please try again.");
+      setTotpLoading(false);
+    }
+  };
+
+  const handleCancelTOTP = async () => {
+    // Sign out the user when they cancel 2FA
+    await authClient.signOut();
+    setShowTOTPModal(false);
+    setTotpError("");
+    setEmail("");
+    setPassword("");
+  };
+
   const handleSignIn = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -111,8 +147,15 @@ function SignInForm() {
           setLoading(false);
           setError(ctx.error.message);
         },
-        onSuccess: async () => {
+        onSuccess: async (ctx) => {
           setLoading(false);
+
+          // Check if 2FA is required
+          if (ctx.data?.twoFactorRedirect) {
+            setShowTOTPModal(true);
+            return;
+          }
+
           try {
             const { data } = await authClient.getSession();
             const user = data?.user;
@@ -237,6 +280,15 @@ function SignInForm() {
           </p>
         </CardFooter>
       </Card>
+
+      {/* TOTP Verification Modal */}
+      <TOTPVerificationDialog
+        isOpen={showTOTPModal}
+        onVerify={handleVerifyTOTP}
+        onCancel={handleCancelTOTP}
+        error={totpError}
+        loading={totpLoading}
+      />
     </div>
   );
 }
