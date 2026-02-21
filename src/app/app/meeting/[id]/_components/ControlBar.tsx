@@ -40,7 +40,7 @@ export default function ControlBar() {
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 bg-background/80 backdrop-blur-sm border-t border-border z-50">
+    <div className="fixed bottom-0 inset-x-0 bg-background/80 backdrop-blur-sm border-t border-border z-30">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-center gap-4">
           {/* Mic Toggle */}
