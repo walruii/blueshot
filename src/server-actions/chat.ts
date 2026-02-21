@@ -6,7 +6,12 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { headers } from "next/headers";
 import type { Result } from "@/types/returnType";
-import type { Conversation, ConversationWithMetadata } from "@/types/chat";
+import type {
+  Conversation,
+  ConversationWithMetadata,
+  Message,
+  MessageWithSender,
+} from "@/types/chat";
 
 type ConversationUpdate = {
   name?: string;
@@ -661,5 +666,352 @@ export async function deleteConversation(
   } catch (err) {
     console.error("Unexpected error in deleteConversation:", err);
     return { success: false, error: "Unexpected error deleting conversation" };
+  }
+}
+
+// -----------------------------
+// Message helpers & operations
+// -----------------------------
+
+async function buildMessageWithSender(
+  message: Message,
+): Promise<MessageWithSender> {
+  // fetch sender basic info
+  const { data: senderData, error: senderError } = await supabaseAdmin
+    .from("user")
+    .select("id, name, image")
+    .eq("id", message.sender_id)
+    .maybeSingle();
+
+  if (senderError) {
+    console.error("Error fetching sender:", senderError);
+  }
+
+  const sender = senderData || {
+    id: message.sender_id,
+    name: "",
+    image: null,
+  };
+
+  let replyInfo;
+  if (message.reply_to_id) {
+    const { data: replyRow, error: replyError } = await supabaseAdmin
+      .from("messages")
+      .select("content, sender_id")
+      .eq("id", message.reply_to_id)
+      .maybeSingle();
+
+    if (replyError) {
+      console.error("Error fetching reply message:", replyError);
+    }
+
+    if (replyRow) {
+      const { data: replySender, error: replySenderError } = await supabaseAdmin
+        .from("user")
+        .select("name")
+        .eq("id", replyRow.sender_id)
+        .maybeSingle();
+      if (replySenderError) {
+        console.error("Error fetching reply sender:", replySenderError);
+      }
+
+      replyInfo = {
+        content: replyRow.content,
+        sender_name: replySender?.name || "",
+      };
+    }
+  }
+
+  const result: MessageWithSender = {
+    ...message,
+    sender: { id: sender.id, name: sender.name, image: sender.image || null },
+    ...(replyInfo ? { reply_to_message: replyInfo } : {}),
+  };
+
+  return result;
+}
+
+export async function sendMessage(
+  conversationId: string,
+  content: string,
+  options?: {
+    replyToId?: string;
+    meetingId?: string;
+    contentType?: "text" | "image" | "file";
+  },
+): Promise<Result<MessageWithSender>> {
+  try {
+    if (!conversationId) {
+      return { success: false, error: "Conversation ID is required" };
+    }
+
+    if (!content) {
+      return { success: false, error: "Message content is required" };
+    }
+
+    const sessionResult = await getSessionUserId();
+    if (!sessionResult.success || !sessionResult.data) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    const userId = sessionResult.data;
+
+    const { data: participant, error: participantError } = await supabaseAdmin
+      .from("conversation_participants")
+      .select("can_send_messages")
+      .eq("conversation_id", conversationId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (participantError) {
+      console.error(
+        "Error checking participant permissions:",
+        participantError,
+      );
+      return { success: false, error: "Failed to send message" };
+    }
+
+    if (!participant || !participant.can_send_messages) {
+      return { success: false, error: "Access denied" };
+    }
+
+    const { data: newMessage, error: insertError } = await supabaseAdmin
+      .from("messages")
+      .insert({
+        conversation_id: conversationId,
+        sender_id: userId,
+        content,
+        content_type: options?.contentType ?? "text",
+        reply_to_id: options?.replyToId ?? null,
+        meeting_id: options?.meetingId ?? null,
+      })
+      .select("*")
+      .single();
+
+    if (insertError) {
+      console.error("Error inserting message:", insertError);
+      return { success: false, error: "Failed to send message" };
+    }
+
+    const withSender = await buildMessageWithSender(newMessage as Message);
+
+    return { success: true, data: withSender };
+  } catch (err) {
+    console.error("Unexpected error in sendMessage:", err);
+    return { success: false, error: "Unexpected error sending message" };
+  }
+}
+
+export async function getMessageById(
+  messageId: string,
+): Promise<Result<MessageWithSender>> {
+  try {
+    if (!messageId) {
+      return { success: false, error: "Message ID is required" };
+    }
+
+    const sessionResult = await getSessionUserId();
+    if (!sessionResult.success || !sessionResult.data) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    const { data: message, error } = await supabaseAdmin
+      .from("messages")
+      .select("*")
+      .eq("id", messageId)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error fetching message:", error);
+      return { success: false, error: "Failed to fetch message" };
+    }
+
+    if (!message) {
+      return { success: false, error: "Message not found" };
+    }
+
+    const withSender = await buildMessageWithSender(message as Message);
+    return { success: true, data: withSender };
+  } catch (err) {
+    console.error("Unexpected error in getMessageById:", err);
+    return { success: false, error: "Unexpected error fetching message" };
+  }
+}
+
+export async function getMessages(
+  conversationId: string,
+  options?: { limit?: number; before?: string },
+): Promise<
+  Result<{
+    messages: MessageWithSender[];
+    hasMore: boolean;
+    oldestMessageDate: string | null;
+  }>
+> {
+  try {
+    if (!conversationId) {
+      return { success: false, error: "Conversation ID is required" };
+    }
+
+    const sessionResult = await getSessionUserId();
+    if (!sessionResult.success || !sessionResult.data) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    const limit = options?.limit ?? 50;
+    const before = options?.before;
+
+    let query = supabaseAdmin
+      .from("messages")
+      .select("*")
+      .eq("conversation_id", conversationId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+
+    if (before) {
+      query = query.lt("created_at", before);
+    }
+
+    query = query.limit(limit + 1);
+
+    const { data: rows, error } = await query;
+
+    if (error) {
+      console.error("Error fetching messages:", error);
+      return { success: false, error: "Failed to fetch messages" };
+    }
+
+    const messageList = (rows || []) as Message[];
+    const hasMore = messageList.length > limit;
+    const sliced = messageList.slice(0, limit);
+    const messagesWithSender = await Promise.all(
+      sliced.map((m) => buildMessageWithSender(m)),
+    );
+
+    const oldestMessageDate = messagesWithSender.length
+      ? messagesWithSender[messagesWithSender.length - 1].created_at
+      : null;
+
+    return {
+      success: true,
+      data: {
+        messages: messagesWithSender,
+        hasMore,
+        oldestMessageDate,
+      },
+    };
+  } catch (err) {
+    console.error("Unexpected error in getMessages:", err);
+    return { success: false, error: "Unexpected error fetching messages" };
+  }
+}
+
+export async function editMessage(
+  messageId: string,
+  newContent: string,
+): Promise<Result<Message>> {
+  try {
+    if (!messageId) {
+      return { success: false, error: "Message ID is required" };
+    }
+    if (!newContent) {
+      return { success: false, error: "New content is required" };
+    }
+
+    const sessionResult = await getSessionUserId();
+    if (!sessionResult.success || !sessionResult.data) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    const userId = sessionResult.data;
+
+    const { data: updated, error } = await supabaseAdmin
+      .from("messages")
+      .update({ content: newContent, edited_at: new Date().toISOString() })
+      .eq("id", messageId)
+      .eq("sender_id", userId)
+      .select("*")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Error editing message:", error);
+      return { success: false, error: "Failed to edit message" };
+    }
+
+    if (!updated) {
+      return { success: false, error: "Message not found or access denied" };
+    }
+
+    return { success: true, data: updated as Message };
+  } catch (err) {
+    console.error("Unexpected error in editMessage:", err);
+    return { success: false, error: "Unexpected error editing message" };
+  }
+}
+
+export async function deleteMessage(messageId: string): Promise<Result<void>> {
+  try {
+    if (!messageId) {
+      return { success: false, error: "Message ID is required" };
+    }
+
+    const sessionResult = await getSessionUserId();
+    if (!sessionResult.success || !sessionResult.data) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    const userId = sessionResult.data;
+
+    const { error } = await supabaseAdmin
+      .from("messages")
+      .update({ deleted_at: new Date().toISOString() })
+      .eq("id", messageId)
+      .eq("sender_id", userId);
+
+    if (error) {
+      console.error("Error deleting message:", error);
+      return { success: false, error: "Failed to delete message" };
+    }
+
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error("Unexpected error in deleteMessage:", err);
+    return { success: false, error: "Unexpected error deleting message" };
+  }
+}
+
+export async function markConversationAsRead(
+  conversationId: string,
+): Promise<Result<void>> {
+  try {
+    if (!conversationId) {
+      return { success: false, error: "Conversation ID is required" };
+    }
+
+    const sessionResult = await getSessionUserId();
+    if (!sessionResult.success || !sessionResult.data) {
+      return { success: false, error: "Invalid session" };
+    }
+
+    const userId = sessionResult.data;
+
+    const { error } = await supabaseAdmin
+      .from("conversation_participants")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("conversation_id", conversationId)
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Error marking conversation read:", error);
+      return { success: false, error: "Failed to mark as read" };
+    }
+
+    return { success: true, data: undefined };
+  } catch (err) {
+    console.error("Unexpected error in markConversationAsRead:", err);
+    return {
+      success: false,
+      error: "Unexpected error marking conversation as read",
+    };
   }
 }
