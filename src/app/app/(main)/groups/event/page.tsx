@@ -33,16 +33,16 @@ import {
 } from "@/components/ui/select";
 import { Loader2, Plus, Settings } from "lucide-react";
 // New hooks for refactored logic
-import { useGroupManagement } from "@/app/app/groups/_hooks/useGroupManagement";
-import { usePendingChanges } from "@/app/app/groups/_hooks/usePendingChanges";
-import { useSaveAndRefresh } from "@/app/app/groups/_hooks/useSaveAndRefresh";
-import { useEventGroupForm } from "@/app/app/groups/event/_hooks/useEventGroupForm";
+import { useGroupManagement } from "../_hooks/useGroupManagement";
+import { usePendingChanges } from "../_hooks/usePendingChanges";
+import { useSaveAndRefresh } from "../_hooks/useSaveAndRefresh";
+import { useEventGroupForm } from "./_hooks/useEventGroupForm";
 // New shared components
-import { PendingChangeFooter } from "@/app/app/groups/_components/PendingChangeFooter";
-import { GroupSettingsModal } from "@/app/app/groups/_components/GroupSettingsModal";
-import { GroupEmptyState } from "@/app/app/groups/_components/GroupEmptyState";
+import { PendingChangeFooter } from "../_components/PendingChangeFooter";
+import { GroupSettingsModal } from "../_components/GroupSettingsModal";
+import { GroupEmptyState } from "../_components/GroupEmptyState";
 // New page-specific components
-import { EventGroupAccessView } from "@/app/app/groups/event/_components/EventGroupAccessView";
+import { EventGroupAccessView } from "./_components/EventGroupAccessView";
 
 export default function ManageEventGroupsPage() {
   const { showAlert } = useAlert();
