@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import LoadingGrid from "../../components/loading/LoadingGrid";
+import LoadingGrid from "@/components/loading/LoadingGrid";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
@@ -7,8 +7,8 @@ import { getActiveEvents } from "@/server-actions/activeEvents";
 import { getNotifications } from "@/server-actions/notification";
 import UserIcon from "@/svgs/UserIcon";
 import Link from "next/link";
-import NotificationList from "./_components/NotificationList";
-import UpcomingEventList from "./_components/UpcomingEventList";
+import NotificationList from "../_components/NotificationList";
+import UpcomingEventList from "../_components/UpcomingEventList";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Plus, Users, FolderOpen } from "lucide-react";

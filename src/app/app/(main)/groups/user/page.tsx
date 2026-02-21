@@ -28,18 +28,17 @@ import {
 import { Loader2, Plus, RotateCcw, Save, Trash2, Settings } from "lucide-react";
 
 // New hooks for refactored logic
-import { useGroupManagement } from "@/app/app/groups/_hooks/useGroupManagement";
-import { usePendingChanges } from "@/app/app/groups/_hooks/usePendingChanges";
-import { useSaveAndRefresh } from "@/app/app/groups/_hooks/useSaveAndRefresh";
-import { useUserGroupForm } from "@/app/app/groups/user/_hooks/useUserGroupForm";
+import { useGroupManagement } from "../_hooks/useGroupManagement";
+import { usePendingChanges } from "../_hooks/usePendingChanges";
+import { useSaveAndRefresh } from "../_hooks/useSaveAndRefresh";
+import { useUserGroupForm } from "./_hooks/useUserGroupForm";
 
 // New shared components
-import { PendingChangeFooter } from "@/app/app/groups/_components/PendingChangeFooter";
-import { GroupSettingsModal } from "@/app/app/groups/_components/GroupSettingsModal";
-import { GroupEmptyState } from "@/app/app/groups/_components/GroupEmptyState";
+import { PendingChangeFooter } from "../_components/PendingChangeFooter";
+import { GroupSettingsModal } from "../_components/GroupSettingsModal";
 
 // New page-specific components
-import { UserGroupMembersView } from "@/app/app/groups/user/_components/UserGroupMembersView";
+import { UserGroupMembersView } from "./_components/UserGroupMembersView";
 
 interface Member {
   userId: string;
