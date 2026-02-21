@@ -313,6 +313,143 @@ export type Database = {
           },
         ]
       }
+      meeting_events: {
+        Row: {
+          created_at: string
+          event_data: Json | null
+          event_type: string
+          id: string
+          meeting_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json | null
+          event_type: string
+          id?: string
+          meeting_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json | null
+          event_type?: string
+          id?: string
+          meeting_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_events_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_participants: {
+        Row: {
+          camera_enabled_at_join: boolean
+          created_at: string
+          duration_seconds: number | null
+          id: string
+          is_moderator: boolean
+          joined_at: string
+          left_at: string | null
+          meeting_id: string
+          mic_enabled_at_join: boolean
+          user_id: string
+        }
+        Insert: {
+          camera_enabled_at_join?: boolean
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_moderator?: boolean
+          joined_at?: string
+          left_at?: string | null
+          meeting_id: string
+          mic_enabled_at_join?: boolean
+          user_id: string
+        }
+        Update: {
+          camera_enabled_at_join?: boolean
+          created_at?: string
+          duration_seconds?: number | null
+          id?: string
+          is_moderator?: boolean
+          joined_at?: string
+          left_at?: string | null
+          meeting_id?: string
+          mic_enabled_at_join?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meeting_participants_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meetings: {
+        Row: {
+          created_at: string
+          creator_id: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          started_at: string
+          updated_at: string
+          video_sdk_meeting_id: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          updated_at?: string
+          video_sdk_meeting_id: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          started_at?: string
+          updated_at?: string
+          video_sdk_meeting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           archived: string | null
