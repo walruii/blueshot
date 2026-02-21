@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useAlert } from "@/components/AlertProvider";
 import {
@@ -24,6 +24,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, Info } from "lucide-react";
+import { addPasswordAction } from "@/server-actions/user";
+import { useRouter } from "next/navigation";
 
 interface ChangePasswordCardProps {
   hasPassword: boolean;
@@ -37,6 +39,7 @@ export function ChangePasswordCard({ hasPassword }: ChangePasswordCardProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { showAlert } = useAlert();
+  const router = useRouter();
 
   const handleOpenDialog = () => {
     setIsDialogOpen(true);
@@ -56,12 +59,6 @@ export function ChangePasswordCard({ hasPassword }: ChangePasswordCardProps) {
 
   const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Submitting password change", {
-      hasPassword,
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
 
     // Validation
     if (hasPassword && !currentPassword.trim()) {
@@ -88,47 +85,41 @@ export function ChangePasswordCard({ hasPassword }: ChangePasswordCardProps) {
     setLoading(true);
 
     try {
-      // Both setting and changing password use the same method
-      const payload: any = {
-        currentPassword,
-        newPassword: newPassword,
-        revokeOtherSessions: false,
-      };
-
-      // Only include current password if user has one
       if (hasPassword) {
-        payload.currentPassword = currentPassword;
+        const payload: any = {
+          currentPassword: currentPassword,
+          newPassword: newPassword,
+          revokeOtherSessions: false,
+        };
+        const result = await authClient.changePassword(payload);
+        if (result.error) {
+          setError(result.error.message || "Failed to change password");
+          return;
+        }
+
+        showAlert({
+          title: "Password changed successfully",
+          type: "success",
+        });
+        handleCloseDialog();
+        router.refresh();
+      } else {
+        const result = await addPasswordAction(newPassword);
+
+        if (!result.status) {
+          setError("Failed to set password");
+          return;
+        }
+        showAlert({
+          title: "Password set successfully",
+          type: "success",
+        });
+        handleCloseDialog();
+        router.refresh();
       }
-
-      const result = await authClient.changePassword(payload);
-      authClient.resetPassword;
-
-      if (result.error) {
-        setError(
-          result.error.message ||
-            (hasPassword
-              ? "Failed to change password"
-              : "Failed to set password"),
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Success!
-      showAlert({
-        title: hasPassword
-          ? "Password changed successfully"
-          : "Password set successfully",
-        type: "success",
-      });
-      handleCloseDialog();
-
-      // Refresh to update hasPassword status
-      setTimeout(() => {
-        window.location.reload();
-      }, 500);
     } catch (err: any) {
       setError(err?.message || "Failed to update password");
+    } finally {
       setLoading(false);
     }
   };
