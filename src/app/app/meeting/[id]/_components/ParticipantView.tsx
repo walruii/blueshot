@@ -23,6 +23,7 @@ export default function ParticipantView({
     micOn,
     isActiveSpeaker,
     displayName,
+    isLocal,
   } = useParticipant(participantId);
 
   // Attach video stream to video element
@@ -79,7 +80,8 @@ export default function ParticipantView({
       />
 
       {/* Audio element (hidden, just for playback) */}
-      <audio ref={micRef} autoPlay playsInline />
+      {/* Mute audio for local participant to prevent echo */}
+      <audio ref={micRef} autoPlay playsInline muted={isLocal} />
 
       {/* Placeholder when camera is off */}
       {!webcamOn && (

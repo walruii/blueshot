@@ -4,23 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Video, VideoOff, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import {
-  createMeeting,
-  addParticipant,
-  recordMeetingEvent,
-} from "@/server-actions/meeting";
 
 interface PreJoinScreenProps {
   participantName: string;
-  meetingId: string;
-  userId: string;
   onJoin: (settings: { cameraOn: boolean; micOn: boolean }) => void;
 }
 
 export default function PreJoinScreen({
   participantName,
-  meetingId,
-  userId,
   onJoin,
 }: PreJoinScreenProps) {
   const { join, enableWebcam, unmuteMic } = useMeeting();
@@ -123,52 +114,18 @@ export default function PreJoinScreen({
     setIsMicOn((prev) => !prev);
   };
 
-  const handleJoin = async () => {
+  const handleJoin = () => {
     setIsJoining(true);
 
-    try {
-      // 1. Create meeting record (or get existing)
-      const meetingResult = await createMeeting(meetingId, userId);
-      if (!meetingResult.success) {
-        console.error("Failed to create meeting:", meetingResult.error);
-        setIsJoining(false);
-        return;
-      }
-      const meetingDbId = meetingResult.data!.id;
-
-      // 2. Add participant to meeting
-      const participantResult = await addParticipant(
-        meetingDbId,
-        userId,
-        isMicOn,
-        isCameraOn,
-      );
-      if (!participantResult.success) {
-        console.error("Failed to add participant:", participantResult.error);
-        setIsJoining(false);
-        return;
-      }
-
-      // 3. Record join event
-      await recordMeetingEvent(meetingDbId, userId, "join", {
-        micEnabled: isMicOn,
-        cameraEnabled: isCameraOn,
-        participantName,
-      });
-
-      // 4. Stop preview stream
-      if (previewStream) {
-        previewStream.getTracks().forEach((track) => track.stop());
-        setPreviewStream(null);
-      }
-
-      // 5. Join the meeting and pass the device settings
-      join();
-      onJoin({ cameraOn: isCameraOn, micOn: isMicOn });
-    } catch (error) {
-      console.error("Error joining meeting:", error);
-      setIsJoining(false);
+    // Stop preview stream
+    if (previewStream) {
+      previewStream.getTracks().forEach((track) => track.stop());
+      setPreviewStream(null);
     }
+
+    // Join the meeting and pass the device settings
+    join();
+    onJoin({ cameraOn: isCameraOn, micOn: isMicOn });
   };
 
   return (
