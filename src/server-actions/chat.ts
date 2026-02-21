@@ -5,7 +5,6 @@ import "server-only";
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { headers } from "next/headers";
-import type { Result } from "@/types/returnType";
 import type {
   Conversation,
   ConversationWithMetadata,
@@ -192,7 +191,7 @@ async function getDirectConversationId(
 
 export async function createDirectConversation(
   otherUserId: string,
-): Promise<Result<Conversation>> {
+): Promise<ActionResult<Conversation>> {
   try {
     if (!otherUserId) {
       return { success: false, error: "Other user ID is required" };
@@ -211,9 +210,25 @@ export async function createDirectConversation(
       };
     }
 
+    // ensure the other user exists before proceeding
+    const { data: otherUser, error: otherUserError } = await supabaseAdmin
+      .from("user")
+      .select("id")
+      .eq("id", otherUserId)
+      .maybeSingle();
+
+    if (otherUserError) {
+      console.error("Error checking other user existence:", otherUserError);
+      return { success: false, error: "Failed to verify user" };
+    }
+
+    if (!otherUser) {
+      return { success: false, error: "User not found" };
+    }
+
     const existingIdResult = await getDirectConversationId(userId, otherUserId);
     if (!existingIdResult.success) {
-      return existingIdResult as Result<Conversation>;
+      return existingIdResult as ActionResult<Conversation>;
     }
 
     if (existingIdResult.data) {
@@ -272,6 +287,11 @@ export async function createDirectConversation(
         "Error adding direct conversation participants:",
         participantError,
       );
+      // clean up partial conversation if insertion failed
+      await supabaseAdmin
+        .from("conversations")
+        .delete()
+        .eq("id", newConversation.id);
       return {
         success: false,
         error: "Failed to add conversation participants",
@@ -287,7 +307,7 @@ export async function createDirectConversation(
 
 export async function getConversation(
   conversationId: string,
-): Promise<Result<ConversationWithMetadata>> {
+): Promise<ActionResult<ConversationWithMetadata>> {
   try {
     if (!conversationId) {
       return { success: false, error: "Conversation ID is required" };
@@ -337,7 +357,7 @@ export async function getConversation(
 }
 
 export async function getUserConversations(): Promise<
-  Result<ConversationWithMetadata[]>
+  ActionResult<ConversationWithMetadata[]>
 > {
   try {
     const sessionResult = await getSessionUserId();
@@ -521,7 +541,7 @@ export async function getUserConversations(): Promise<
 export async function updateConversation(
   conversationId: string,
   updates: ConversationUpdate,
-): Promise<Result<Conversation>> {
+): Promise<ActionResult<Conversation>> {
   try {
     if (!conversationId) {
       return { success: false, error: "Conversation ID is required" };
@@ -601,7 +621,7 @@ export async function updateConversation(
 
 export async function deleteConversation(
   conversationId: string,
-): Promise<Result<void>> {
+): Promise<ActionResult<void>> {
   try {
     if (!conversationId) {
       return { success: false, error: "Conversation ID is required" };
@@ -739,7 +759,7 @@ export async function sendMessage(
     meetingId?: string;
     contentType?: "text" | "image" | "file";
   },
-): Promise<Result<MessageWithSender>> {
+): Promise<ActionResult<MessageWithSender>> {
   try {
     if (!conversationId) {
       return { success: false, error: "Conversation ID is required" };
@@ -804,7 +824,7 @@ export async function sendMessage(
 
 export async function getMessageById(
   messageId: string,
-): Promise<Result<MessageWithSender>> {
+): Promise<ActionResult<MessageWithSender>> {
   try {
     if (!messageId) {
       return { success: false, error: "Message ID is required" };
@@ -842,7 +862,7 @@ export async function getMessages(
   conversationId: string,
   options?: { limit?: number; before?: string },
 ): Promise<
-  Result<{
+  ActionResult<{
     messages: MessageWithSender[];
     hasMore: boolean;
     oldestMessageDate: string | null;
@@ -909,7 +929,7 @@ export async function getMessages(
 export async function editMessage(
   messageId: string,
   newContent: string,
-): Promise<Result<Message>> {
+): Promise<ActionResult<Message>> {
   try {
     if (!messageId) {
       return { success: false, error: "Message ID is required" };
@@ -949,7 +969,9 @@ export async function editMessage(
   }
 }
 
-export async function deleteMessage(messageId: string): Promise<Result<void>> {
+export async function deleteMessage(
+  messageId: string,
+): Promise<ActionResult<void>> {
   try {
     if (!messageId) {
       return { success: false, error: "Message ID is required" };
@@ -982,7 +1004,7 @@ export async function deleteMessage(messageId: string): Promise<Result<void>> {
 
 export async function markConversationAsRead(
   conversationId: string,
-): Promise<Result<void>> {
+): Promise<ActionResult<void>> {
   try {
     if (!conversationId) {
       return { success: false, error: "Conversation ID is required" };
