@@ -90,6 +90,124 @@ export type Database = {
           },
         ]
       }
+      conversation_participants: {
+        Row: {
+          can_add_participants: boolean | null
+          can_send_messages: boolean | null
+          conversation_id: string
+          id: string
+          joined_at: string
+          last_read_message_id: string | null
+          last_seen_at: string | null
+          muted_until: string | null
+          notifications_enabled: boolean | null
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          can_add_participants?: boolean | null
+          can_send_messages?: boolean | null
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          last_read_message_id?: string | null
+          last_seen_at?: string | null
+          muted_until?: string | null
+          notifications_enabled?: boolean | null
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          can_add_participants?: boolean | null
+          can_send_messages?: boolean | null
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          last_read_message_id?: string | null
+          last_seen_at?: string | null
+          muted_until?: string | null
+          notifications_enabled?: boolean | null
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversations: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          event_id: string | null
+          id: string
+          last_message_at: string | null
+          name: string | null
+          type: string
+          updated_at: string
+          user_group_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          name?: string | null
+          type: string
+          updated_at?: string
+          user_group_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          name?: string | null
+          type?: string
+          updated_at?: string
+          user_group_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_user_group_id_fkey"
+            columns: ["user_group_id"]
+            isOneToOne: false
+            referencedRelation: "user_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event: {
         Row: {
           created_at: string
@@ -359,7 +477,6 @@ export type Database = {
         Row: {
           camera_enabled_at_join: boolean
           created_at: string
-          duration_seconds: number | null
           id: string
           is_moderator: boolean
           joined_at: string
@@ -371,7 +488,6 @@ export type Database = {
         Insert: {
           camera_enabled_at_join?: boolean
           created_at?: string
-          duration_seconds?: number | null
           id?: string
           is_moderator?: boolean
           joined_at?: string
@@ -383,7 +499,6 @@ export type Database = {
         Update: {
           camera_enabled_at_join?: boolean
           created_at?: string
-          duration_seconds?: number | null
           id?: string
           is_moderator?: boolean
           joined_at?: string
@@ -413,7 +528,6 @@ export type Database = {
         Row: {
           created_at: string
           creator_id: string
-          duration_seconds: number | null
           ended_at: string | null
           id: string
           started_at: string
@@ -423,7 +537,6 @@ export type Database = {
         Insert: {
           created_at?: string
           creator_id: string
-          duration_seconds?: number | null
           ended_at?: string | null
           id?: string
           started_at?: string
@@ -433,7 +546,6 @@ export type Database = {
         Update: {
           created_at?: string
           creator_id?: string
-          duration_seconds?: number | null
           ended_at?: string | null
           id?: string
           started_at?: string
@@ -444,6 +556,77 @@ export type Database = {
           {
             foreignKeyName: "meetings_creator_id_fkey"
             columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          content_type: string | null
+          conversation_id: string
+          created_at: string
+          deleted_at: string | null
+          edited_at: string | null
+          id: string
+          meeting_id: string | null
+          reply_to_id: string | null
+          sender_id: string
+          sent_during_meeting: boolean | null
+        }
+        Insert: {
+          content: string
+          content_type?: string | null
+          conversation_id: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          meeting_id?: string | null
+          reply_to_id?: string | null
+          sender_id: string
+          sent_during_meeting?: boolean | null
+        }
+        Update: {
+          content?: string
+          content_type?: string | null
+          conversation_id?: string
+          created_at?: string
+          deleted_at?: string | null
+          edited_at?: string | null
+          id?: string
+          meeting_id?: string | null
+          reply_to_id?: string | null
+          sender_id?: string
+          sent_during_meeting?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meetings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
@@ -747,6 +930,10 @@ export type Database = {
       }
     }
     Functions: {
+      check_conversation_access: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: boolean
+      }
       get_active_events: {
         Args: { requesting_user_id: string }
         Returns: {
