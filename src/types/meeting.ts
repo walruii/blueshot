@@ -8,6 +8,7 @@ export interface Meeting {
   creator_id: string;
   started_at: string;
   ended_at: string | null;
+  duration_seconds: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +22,7 @@ export interface MeetingParticipant {
   is_moderator: boolean;
   mic_enabled_at_join: boolean;
   camera_enabled_at_join: boolean;
+  duration_seconds: number | null;
   created_at: string;
   user?: {
     name: string;
