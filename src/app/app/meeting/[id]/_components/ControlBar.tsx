@@ -10,26 +10,76 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import {
+  recordMeetingEvent,
+  recordParticipantLeave,
+  getMeetingByVideoSdkId,
+} from "@/server-actions/meeting";
 
-export default function ControlBar() {
-  const { toggleMic, toggleWebcam, leave, localMicOn, localWebcamOn } =
-    useMeeting();
+interface ControlBarProps {
+  meetingId: string;
+  userId: string;
+}
+
+export default function ControlBar({ meetingId, userId }: ControlBarProps) {
+  const {
+    toggleMic,
+    toggleWebcam,
+    leave,
+    localMicOn,
+    localWebcamOn,
+    meetingId: videoSdkMeetingId,
+  } = useMeeting();
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [meetingDbId, setMeetingDbId] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleLeave = () => {
+  // Get meeting DB ID on mount
+  useEffect(() => {
+    const fetchMeetingDbId = async () => {
+      const result = await getMeetingByVideoSdkId(meetingId);
+      if (result.success && result.data) {
+        setMeetingDbId(result.data.id);
+      }
+    };
+    fetchMeetingDbId();
+  }, [meetingId]);
+
+  const handleLeave = async () => {
+    if (meetingDbId) {
+      // Record participant leave
+      await recordParticipantLeave(meetingDbId, userId);
+      // Record leave event
+      await recordMeetingEvent(meetingDbId, userId, "leave");
+    }
     leave();
     router.push("/app"); // Redirect to app home after leaving
   };
 
-  const handleToggleMic = () => {
+  const handleToggleMic = async () => {
     toggleMic();
+    if (meetingDbId) {
+      // Record event after toggle (state will flip)
+      await recordMeetingEvent(
+        meetingDbId,
+        userId,
+        localMicOn ? "mic_off" : "mic_on",
+      );
+    }
   };
 
-  const handleToggleWebcam = () => {
+  const handleToggleWebcam = async () => {
     toggleWebcam();
+    if (meetingDbId) {
+      // Record event after toggle (state will flip)
+      await recordMeetingEvent(
+        meetingDbId,
+        userId,
+        localWebcamOn ? "camera_off" : "camera_on",
+      );
+    }
   };
 
   const handleSummarize = async () => {

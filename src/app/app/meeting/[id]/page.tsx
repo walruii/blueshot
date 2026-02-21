@@ -32,6 +32,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
   // Get session
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string>("Anonymous");
+  const [userId, setUserId] = useState<string>("");
   const [meetingId, setMeetingId] = useState<string>("");
   const [token, setToken] = useState<string>("");
 
@@ -40,6 +41,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       const session = await authClient.getSession();
       if (session && session.data && session.data.user) {
         setUsername(session.data.user.name || "Anonymous");
+        setUserId(session.data.user.id);
       }
       const { id: meetingId } = await params;
       const meetingResult = await generateMeeting(meetingId);
@@ -109,6 +111,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       meetingId={meetingId}
       token={token}
       participantName={username}
+      userId={userId}
     />
   );
 }
