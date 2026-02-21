@@ -10,76 +10,26 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  recordMeetingEvent,
-  recordParticipantLeave,
-  getMeetingByVideoSdkId,
-} from "@/server-actions/meeting";
 
-interface ControlBarProps {
-  meetingId: string;
-  userId: string;
-}
-
-export default function ControlBar({ meetingId, userId }: ControlBarProps) {
-  const {
-    toggleMic,
-    toggleWebcam,
-    leave,
-    localMicOn,
-    localWebcamOn,
-    meetingId: videoSdkMeetingId,
-  } = useMeeting();
+export default function ControlBar() {
+  const { toggleMic, toggleWebcam, leave, localMicOn, localWebcamOn } =
+    useMeeting();
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const [meetingDbId, setMeetingDbId] = useState<string | null>(null);
   const router = useRouter();
 
-  // Get meeting DB ID on mount
-  useEffect(() => {
-    const fetchMeetingDbId = async () => {
-      const result = await getMeetingByVideoSdkId(meetingId);
-      if (result.success && result.data) {
-        setMeetingDbId(result.data.id);
-      }
-    };
-    fetchMeetingDbId();
-  }, [meetingId]);
-
-  const handleLeave = async () => {
-    if (meetingDbId) {
-      // Record participant leave
-      await recordParticipantLeave(meetingDbId, userId);
-      // Record leave event
-      await recordMeetingEvent(meetingDbId, userId, "leave");
-    }
+  const handleLeave = () => {
     leave();
     router.push("/app"); // Redirect to app home after leaving
   };
 
-  const handleToggleMic = async () => {
+  const handleToggleMic = () => {
     toggleMic();
-    if (meetingDbId) {
-      // Record event after toggle (state will flip)
-      await recordMeetingEvent(
-        meetingDbId,
-        userId,
-        localMicOn ? "mic_off" : "mic_on",
-      );
-    }
   };
 
-  const handleToggleWebcam = async () => {
+  const handleToggleWebcam = () => {
     toggleWebcam();
-    if (meetingDbId) {
-      // Record event after toggle (state will flip)
-      await recordMeetingEvent(
-        meetingDbId,
-        userId,
-        localWebcamOn ? "camera_off" : "camera_on",
-      );
-    }
   };
 
   const handleSummarize = async () => {
@@ -90,7 +40,7 @@ export default function ControlBar({ meetingId, userId }: ControlBarProps) {
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 bg-background/80 backdrop-blur-sm border-t border-border z-30">
+    <div className="fixed bottom-0 inset-x-0 bg-background/80 backdrop-blur-sm border-t border-border z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-center gap-4">
           {/* Mic Toggle */}

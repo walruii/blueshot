@@ -108,7 +108,7 @@ export async function generateMeeting(
     // Return the token
     return {
       success: true,
-      data: data.roomId, // returns the meeting ID which is used as token in the frontend
+      data: data.apiKey, // VideoSDK returns a token in the response
     };
   } catch (error) {
     console.error("Error generating VideoSDK token:", error);
