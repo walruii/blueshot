@@ -30,7 +30,7 @@ async function insertNotifications(
   }));
 
   const { error } = await supabaseAdmin
-    .from("notifications")
+    .from("notification")
     .insert(notifications);
 
   if (error) {
@@ -46,7 +46,7 @@ export const getNotifications = async () => {
     if (!session) return [];
 
     const { data, error } = await supabaseAdmin
-      .from("notifications")
+      .from("notification")
       .select("*")
       .eq("user_id", session.user.id!)
       .is("archived", null)
@@ -164,7 +164,7 @@ export const archiveNotification = async (
       return { success: false, error: "Invalid session. Try again later." };
 
     const { error } = await supabaseAdmin
-      .from("notifications")
+      .from("notification")
       .update({ archived: new Date().toISOString() })
       .eq("id", id)
       .eq("user_id", session.user.id);
@@ -195,7 +195,9 @@ interface AccessNotificationConfig {
   payload: NotificationJSON;
 }
 
-async function notifyAccessChange(config: AccessNotificationConfig): Promise<void> {
+async function notifyAccessChange(
+  config: AccessNotificationConfig,
+): Promise<void> {
   const { userIds, owner, action, title, payload } = config;
 
   try {

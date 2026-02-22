@@ -4,12 +4,7 @@ import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { headers } from "next/headers";
 import { Result } from "@/types/returnType";
-import {
-  Meeting,
-  MeetingParticipant,
-  MeetingEvent,
-  ParticipantDisplayData,
-} from "@/types/meeting";
+import { Meeting, MeetingParticipant, MeetingEvent } from "@/types/meeting";
 
 /**
  * Create a new meeting record when first participant joins
@@ -39,7 +34,7 @@ export const createMeeting = async (
 
     // Check if meeting already exists
     const { data: existingMeeting } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .select("*")
       .eq("video_sdk_meeting_id", videoSdkMeetingId)
       .maybeSingle();
@@ -53,7 +48,7 @@ export const createMeeting = async (
 
     // Create new meeting
     const { data: newMeeting, error } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .insert({
         video_sdk_meeting_id: videoSdkMeetingId,
         creator_id: userId,
@@ -99,7 +94,7 @@ export const addParticipant = async (
   try {
     // Check if user is already in the meeting (NULL left_at means still active)
     const { data: activeParticipant } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .eq("user_id", userId)
@@ -116,7 +111,7 @@ export const addParticipant = async (
 
     // Create new participant record (supports rejoins as separate sessions)
     const { data: newParticipant, error } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .insert({
         meeting_id: meetingId,
         user_id: userId,
@@ -160,7 +155,7 @@ export const recordParticipantLeave = async (
   try {
     // Find active participant session (NULL left_at)
     const { data: activeParticipant, error: fetchError } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .eq("user_id", userId)
@@ -184,7 +179,7 @@ export const recordParticipantLeave = async (
 
     // Update participant record
     const { data: updatedParticipant, error: updateError } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .update({
         left_at: new Date().toISOString(),
       })
@@ -239,7 +234,7 @@ export const recordMeetingEvent = async (
 ): Promise<Result<MeetingEvent>> => {
   try {
     const { data: newEvent, error } = await supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .insert({
         meeting_id: meetingId,
         user_id: userId,
@@ -280,7 +275,7 @@ export const getMeetingById = async (
 ): Promise<Result<Meeting>> => {
   try {
     const { data: meeting, error } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .select("*")
       .eq("id", meetingId)
       .maybeSingle();
@@ -323,7 +318,7 @@ export const getMeetingByVideoSdkId = async (
 ): Promise<Result<Meeting>> => {
   try {
     const { data: meeting, error } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .select("*")
       .eq("video_sdk_meeting_id", videoSdkMeetingId)
       .maybeSingle();
@@ -366,7 +361,7 @@ export const getParticipants = async (
 ): Promise<Result<MeetingParticipant[]>> => {
   try {
     const { data: participants, error } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .order("joined_at", { ascending: true });
@@ -402,7 +397,7 @@ export const getActiveParticipants = async (
 ): Promise<Result<MeetingParticipant[]>> => {
   try {
     const { data: participants, error } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .is("left_at", null)
@@ -441,7 +436,7 @@ export const getMeetingEvents = async (
 ): Promise<Result<MeetingEvent[]>> => {
   try {
     let query = supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .select("*")
       .eq("meeting_id", meetingId);
 
@@ -486,7 +481,7 @@ export const getMeetingEventsByType = async (
 ): Promise<Result<MeetingEvent[]>> => {
   try {
     const { data: events, error } = await supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .select("*")
       .eq("meeting_id", meetingId)
       .eq("event_type", eventType)
@@ -524,7 +519,7 @@ export const endMeeting = async (
   try {
     // Update meeting with end time
     const { data: updatedMeeting, error: updateError } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .update({
         ended_at: new Date().toISOString(),
       })
@@ -570,7 +565,7 @@ export const getMeetingStats = async (
   try {
     // Get all participant sessions
     const { data: participants, error: participantError } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("user_id")
       .eq("meeting_id", meetingId);
 
@@ -588,7 +583,7 @@ export const getMeetingStats = async (
 
     // Get event count
     const { count: eventCount, error: eventError } = await supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .select("*", { count: "exact", head: true })
       .eq("meeting_id", meetingId);
 

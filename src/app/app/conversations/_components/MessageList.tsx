@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import type { MessageWithSender } from "@/types/chat";
 
 interface MessageListProps {
   messages: MessageWithSender[];

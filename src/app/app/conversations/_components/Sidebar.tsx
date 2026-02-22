@@ -7,19 +7,24 @@ import { Button } from "@/components/ui/button";
 import { UserIcon } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InboxDirect, InboxGroup } from "@/types/chat";
+import { useState } from "react";
 
 export default function Sidebar({
-  conversations,
+  directConversations,
+  groupConversations,
   selectedId,
   onSelect,
   session,
 }: {
-  conversations: any[];
-  selectedId: string;
-  onSelect: (id: string) => void;
+  directConversations: InboxDirect[];
+  groupConversations: InboxGroup[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
   session: Session;
 }) {
   const router = useRouter();
+  const [selectedTab, setSelectedTab] = useState("conversations");
   return (
     <aside className="w-80 bg-card border-r border-border flex flex-col">
       <header className="p-4 border-b border-border flex items-center gap-3 justify-between">
@@ -47,21 +52,22 @@ export default function Sidebar({
           Go Back
         </Button>
       </header>
-      <Tabs defaultValue="conversations" className="w-full">
+      <Tabs defaultValue={selectedTab} className="w-full">
         <TabsList className="bg-transparent border-b border-border w-full">
           <TabsTrigger
             value="conversations"
             className="data-[state=active]:border-blue-500 data-[state=active]:border-b-2 text-sm font-medium text-muted-foreground"
+            onClick={() => setSelectedTab("conversations")}
           >
             Conversations
           </TabsTrigger>
           <TabsTrigger
             value="groups"
             className="data-[state=active]:border-blue-500 data-[state=active]:border-b-2 text-sm font-medium text-muted-foreground"
+            onClick={() => setSelectedTab("groups")}
           >
             Groups
           </TabsTrigger>
-          {/* Future tabs for Groups, Contacts, etc. */}
         </TabsList>
       </Tabs>
       <Button
@@ -72,11 +78,19 @@ export default function Sidebar({
         + New Conversation
       </Button>
       <ScrollArea className="flex-1">
-        <ConversationList
-          conversations={conversations}
-          selectedId={selectedId}
-          onSelect={onSelect}
-        />
+        {selectedTab === "conversations" ? (
+          <ConversationList
+            conversations={directConversations}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        ) : (
+          <ConversationList
+            conversations={groupConversations}
+            selectedId={selectedId}
+            onSelect={onSelect}
+          />
+        )}
       </ScrollArea>
       <footer className="p-4 text-center text-sm text-muted-foreground">
         Blueshot Conversations

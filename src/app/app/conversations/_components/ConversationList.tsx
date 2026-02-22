@@ -1,11 +1,11 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
-import type { ConversationWithMetadata } from "@/types/chat";
+import { InboxDirect, InboxGroup } from "@/types/chat";
 
 interface ConversationListProps {
-  conversations: ConversationWithMetadata[];
-  selectedId: string;
-  onSelect: (id: string) => void;
+  conversations: InboxDirect[] | InboxGroup[];
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
 }
 
 export function ConversationList({
@@ -43,9 +43,6 @@ export function ConversationList({
                   : ""}
               </span>
             </div>
-            <span className="text-muted-foreground text-sm truncate block">
-              {c.last_message_preview}
-            </span>
           </div>
         </li>
       ))}
