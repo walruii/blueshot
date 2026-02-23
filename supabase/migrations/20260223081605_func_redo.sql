@@ -1,5 +1,7 @@
 drop function if exists "public"."get_event"(request_id uuid);
 
+drop function if exists "public"."get_active_events"(requesting_user_id text);
+
 drop function if exists "public"."get_user_events"(request_id text);
 
 drop index if exists "public"."meetings_video_sdk_meeting_id_key";
@@ -19,18 +21,28 @@ alter table "public"."event" validate constraint "event_meeting_id_fkey";
 set check_function_bodies = off;
 
 CREATE OR REPLACE FUNCTION public.get_event(target_event_id uuid, requesting_user_id text)
- RETURNS TABLE(id uuid, title text, description text, "from" timestamp with time zone, "to" timestamp with time zone, created_by uuid, created_at timestamp with time zone, type public.event_type, status public.event_status, event_group_id uuid, event_user_name text, event_user_email text, user_role integer)
+ RETURNS TABLE(id uuid, title text, description text, "from" timestamp with time zone, "to" timestamp with time zone, created_by text, created_at timestamp with time zone, type public.event_type, status public.event_status, event_group_id uuid, event_user_name text, event_user_email text, event_meeting_id uuid, user_role integer)
  LANGUAGE plpgsql
 AS $function$
 BEGIN
     RETURN QUERY
     SELECT 
-        e.id, e.title, e.description, e.from, e.to, e.created_by, e.created_at, e.type, e.status, e.event_group_id, 
-        u.name as event_user_name, u.email as event_user_email,
+        e.id, 
+        e.title, 
+        e.description, 
+        e.from, 
+        e.to, 
+        e.created_by::TEXT, -- Explicitly cast to TEXT just in case
+        e.created_at, 
+        e.type, 
+        e.status, 
+        e.event_group_id, 
+        u.name as event_user_name, 
+        u.email as event_user_email,
+        e.meeting_id as event_meeting_id,
         vae.role as user_role
     FROM event e
     LEFT JOIN "user" u ON e.created_by = u.id
-    -- This INNER JOIN is your security gate
     INNER JOIN view_all_event_access vae ON e.id = vae.event_id
     WHERE e.id = target_event_id
       AND vae.user_id = requesting_user_id
@@ -39,21 +51,64 @@ END;
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.get_active_events(requesting_user_id text)
+ RETURNS TABLE(id uuid, title text, description text, "from" timestamp with time zone, "to" timestamp with time zone, created_by text, created_at timestamp with time zone, type public.event_type, status public.event_status, event_group_id uuid, event_meeting_id uuid, event_user_name text, event_user_email text, user_role integer)
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        e.id, 
+        e.title, 
+        e.description, 
+        e.from, 
+        e.to, 
+        e.created_by, 
+        e.created_at, 
+        e.type, 
+        e.status, 
+        e.event_group_id,
+        e.meeting_id as event_meeting_id,
+        u.name as event_user_name, 
+        u.email as event_user_email,
+        vae.role as user_role
+    FROM event e
+    LEFT JOIN "user" u ON e.created_by = u.id
+    -- Securely join to the access view
+    INNER JOIN view_all_event_access vae ON e.id = vae.event_id
+    WHERE vae.user_id::TEXT = requesting_user_id
+      AND (e."to" > NOW() OR e."to" IS NULL)
+    ORDER BY e."from" ASC;
+END;
+$function$
+;
+
 CREATE OR REPLACE FUNCTION public.get_user_events(request_id text)
- RETURNS TABLE(id uuid, title text, description text, "from" timestamp with time zone, "to" timestamp with time zone, created_by text, created_at timestamp with time zone, type public.event_type, status public.event_status, event_group_id uuid, event_user_name text, event_user_email text, user_role integer)
+ RETURNS TABLE(id uuid, title text, description text, "from" timestamp with time zone, "to" timestamp with time zone, created_by text, created_at timestamp with time zone, type public.event_type, status public.event_status, event_group_id uuid, event_meeting_id uuid, event_user_name text, event_user_email text, user_role integer)
  LANGUAGE plpgsql
 AS $function$
 BEGIN
     RETURN QUERY
     SELECT DISTINCT 
-        e.id, e.title, e.description, e.from, e.to, e.created_by, e.created_at, e.type, e.status, e.event_group_id, 
-        u.name as event_user_name, u.email as event_user_email,
+        e.id, 
+        e.title, 
+        e.description, 
+        e.from, 
+        e.to, 
+        e.created_by, 
+        e.created_at, 
+        e.type, 
+        e.status, 
+        e.event_group_id,
+        e.meeting_id as event_meeting_id, -- Mapping meeting_id
+        u.name as event_user_name, 
+        u.email as event_user_email,
         vae.role as user_role
     FROM event e
     LEFT JOIN "user" u ON e.created_by = u.id
-    -- JOIN TO THE VIEW INSTEAD OF MANUAL LOGIC
+    -- JOIN to your unified access view
     INNER JOIN view_all_event_access vae ON e.id = vae.event_id
-    WHERE vae.user_id = request_id;
+    WHERE vae.user_id::TEXT = request_id; -- Ensuring text comparison
 END;
 $function$
 ;
