@@ -13,9 +13,9 @@ import {
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
+  getMeetingByRoomId,
   recordMeetingEvent,
   recordParticipantLeave,
-  getMeetingByVideoSdkId,
 } from "@/server-actions/meeting";
 
 interface ControlBarProps {
@@ -39,7 +39,7 @@ export default function ControlBar({ meetingId, userId }: ControlBarProps) {
   // Get meeting DB ID on mount
   useEffect(() => {
     const fetchMeetingDbId = async () => {
-      const result = await getMeetingByVideoSdkId(meetingId);
+      const result = await getMeetingByRoomId(videoSdkMeetingId);
       if (result.success && result.data) {
         setMeetingDbId(result.data.id);
       }

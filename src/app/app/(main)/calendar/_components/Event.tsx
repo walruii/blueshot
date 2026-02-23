@@ -3,6 +3,7 @@ import { Event as TEvent } from "@/types/event";
 import { dateToTimeString } from "@/utils/dateUtil";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { MeetingLink } from "@/app/app/_components/MeetingLink";
 
 export default function Event({ e }: { e: TEvent }) {
   return (
@@ -21,7 +22,10 @@ export default function Event({ e }: { e: TEvent }) {
             )}
           </Badge>
         )}
-        <Button asChild size="sm" className="ml-auto">
+        <div className="ml-auto">
+          {e.eventMeetingId && <MeetingLink event={e} />}
+        </div>
+        <Button asChild size="sm" className="">
           <Link href={`/app/event/${e.id}`}>view</Link>
         </Button>
       </div>

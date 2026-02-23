@@ -2,6 +2,7 @@ import { dateToTimeString } from "@/utils/dateUtil";
 import Link from "next/link";
 import UpcomingTag from "./UpcomingTag";
 import { Event } from "@/types/event";
+import { MeetingLink } from "./MeetingLink";
 
 export default function UpcomingEventList({
   activeEvents,
@@ -26,6 +27,7 @@ export default function UpcomingEventList({
               {e.title}
             </Link>
             <UpcomingTag from={e.from} />
+            {e.eventMeetingId && <MeetingLink event={e} />}
           </div>
           <div className="flex flex-col w-40 border-l px-3 py-2 text-sm text-muted-foreground">
             <p>From: {dateToTimeString(e.from)}</p>

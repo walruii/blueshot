@@ -5,9 +5,9 @@ import { Users } from "lucide-react";
 import { useEffect, useRef } from "react";
 import {
   addParticipant,
+  getMeetingByRoomId,
   recordMeetingEvent,
   recordParticipantLeave,
-  getMeetingByVideoSdkId,
 } from "@/server-actions/meeting";
 
 interface VideoGridProps {
@@ -21,7 +21,7 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
   // Get meeting DB ID on mount
   useEffect(() => {
     const fetchMeetingDbId = async () => {
-      const result = await getMeetingByVideoSdkId(meetingId);
+      const result = await getMeetingByRoomId(meetingId);
       if (result.success && result.data) {
         meetingDbIdRef.current = result.data.id;
       }

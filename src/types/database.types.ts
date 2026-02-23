@@ -244,6 +244,7 @@ export type Database = {
           event_group_id: string
           from: string
           id: string
+          meeting_id: string | null
           status: Database["public"]["Enums"]["event_status"]
           title: string
           to: string | null
@@ -256,6 +257,7 @@ export type Database = {
           event_group_id: string
           from: string
           id?: string
+          meeting_id?: string | null
           status: Database["public"]["Enums"]["event_status"]
           title: string
           to?: string | null
@@ -268,6 +270,7 @@ export type Database = {
           event_group_id?: string
           from?: string
           id?: string
+          meeting_id?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
           to?: string | null
@@ -293,6 +296,13 @@ export type Database = {
             columns: ["event_group_id"]
             isOneToOne: false
             referencedRelation: "event_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting"
             referencedColumns: ["id"]
           },
         ]
@@ -500,27 +510,27 @@ export type Database = {
           creator_id: string
           ended_at: string | null
           id: string
+          room_id: string
           started_at: string
           updated_at: string
-          video_sdk_meeting_id: string
         }
         Insert: {
           created_at?: string
           creator_id: string
           ended_at?: string | null
           id?: string
+          room_id: string
           started_at?: string
           updated_at?: string
-          video_sdk_meeting_id: string
         }
         Update: {
           created_at?: string
           creator_id?: string
           ended_at?: string | null
           id?: string
+          room_id?: string
           started_at?: string
           updated_at?: string
-          video_sdk_meeting_id?: string
         }
         Relationships: [
           {
@@ -1166,6 +1176,7 @@ export type Database = {
       view_all_event_access: {
         Row: {
           event_id: string | null
+          role: number | null
           user_id: string | null
         }
         Relationships: []
@@ -1183,6 +1194,7 @@ export type Database = {
           created_by: string
           description: string
           event_group_id: string
+          event_meeting_id: string
           event_user_email: string
           event_user_name: string
           from: string
@@ -1191,15 +1203,17 @@ export type Database = {
           title: string
           to: string
           type: Database["public"]["Enums"]["event_type"]
+          user_role: number
         }[]
       }
       get_event: {
-        Args: { request_id: string }
+        Args: { requesting_user_id: string; target_event_id: string }
         Returns: {
           created_at: string
           created_by: string
           description: string
           event_group_id: string
+          event_meeting_id: string
           event_user_email: string
           event_user_name: string
           from: string
@@ -1208,6 +1222,7 @@ export type Database = {
           title: string
           to: string
           type: Database["public"]["Enums"]["event_type"]
+          user_role: number
         }[]
       }
       get_event_members: {
@@ -1247,6 +1262,7 @@ export type Database = {
           created_by: string
           description: string
           event_group_id: string
+          event_meeting_id: string
           event_user_email: string
           event_user_name: string
           from: string
@@ -1255,6 +1271,7 @@ export type Database = {
           title: string
           to: string
           type: Database["public"]["Enums"]["event_type"]
+          user_role: number
         }[]
       }
     }

@@ -13,6 +13,8 @@ export type Event = {
   to: Date | null;
   eventUserName: string;
   eventUserEmail: string;
+  eventMeetingId?: string;
+  role: number;
 };
 
 export type EventInput = {
@@ -24,6 +26,7 @@ export type EventInput = {
   to: Date | null;
   type: "allday" | "default";
   permissions: PermissionEntry[]; // per-event permissions
+  withMeeting: boolean;
 };
 
 export type EventDB =
@@ -47,6 +50,8 @@ export const formatEvent = (dbEvent: EventDB): Event => ({
   eventGroupId: dbEvent.event_group_id,
   eventUserName: dbEvent.event_user_name,
   eventUserEmail: dbEvent.event_user_email,
+  eventMeetingId: dbEvent.event_meeting_id || undefined,
+  role: dbEvent.user_role,
 });
 
 /**

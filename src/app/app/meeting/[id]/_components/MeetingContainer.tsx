@@ -6,8 +6,8 @@ import ControlBar from "./ControlBar";
 import IntegratedSidebar from "./IntegratedSidebar";
 import PreJoinScreen from "./PreJoinScreen";
 import {
+  getMeetingByRoomId,
   recordParticipantLeave,
-  getMeetingByVideoSdkId,
 } from "@/server-actions/meeting";
 
 interface MeetingContainerProps {
@@ -81,7 +81,7 @@ function MeetingContentWithDevices({
     return () => {
       // Cleanup when component unmounts (user navigates away or closes tab)
       const cleanup = async () => {
-        const result = await getMeetingByVideoSdkId(meetingId);
+        const result = await getMeetingByRoomId(meetingId);
         if (result.success && result.data) {
           await recordParticipantLeave(result.data.id, userId);
         }

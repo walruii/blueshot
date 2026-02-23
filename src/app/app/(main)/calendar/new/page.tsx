@@ -194,6 +194,7 @@ function AddEvent() {
         createdBy: session.user.id,
         eventGroupId: formState.eventGroupId,
         permissions: formState.perEventMembers ? permissions : [],
+        withMeeting: formState.withMeeting,
       };
 
       const response = await addEvent(sendEvent);

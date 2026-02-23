@@ -4,7 +4,7 @@
 
 export interface Meeting {
   id: string;
-  video_sdk_meeting_id: string;
+  room_id: string;
   creator_id: string;
   started_at: string;
   ended_at: string | null;
