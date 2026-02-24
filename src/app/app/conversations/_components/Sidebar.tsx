@@ -1,6 +1,5 @@
 "use client";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ConversationList } from "./ConversationList";
 import { useRouter } from "next/navigation";
 import { Session } from "@/types/sessionType";
 import { Button } from "@/components/ui/button";
@@ -8,23 +7,32 @@ import { UserIcon } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InboxDirect, InboxGroup } from "@/types/chat";
-import { useState } from "react";
+import NewConversation from "./NewConversation";
+import { DirectConversationList } from "./DirectConversationList";
+import { GroupConversationList } from "./GroupConversationList";
 
 export default function Sidebar({
   directConversations,
   groupConversations,
-  selectedId,
-  onSelect,
+  selected,
+  onSelectDirect,
+  onSelectGroup,
+  onConversationCreated,
   session,
+  setSelectedTab,
+  selectedTab,
 }: {
   directConversations: InboxDirect[];
   groupConversations: InboxGroup[];
-  selectedId: string | null;
-  onSelect: (id: string | null) => void;
+  selected: { kind: "direct" | "group"; id: string } | null;
+  onSelectDirect: (id: string) => void;
+  onSelectGroup: (id: string) => void;
+  onConversationCreated?: (conversationId: string) => void;
   session: Session;
+  setSelectedTab: (tab: string) => void;
+  selectedTab: string;
 }) {
   const router = useRouter();
-  const [selectedTab, setSelectedTab] = useState("conversations");
   return (
     <aside className="w-80 bg-card border-r border-border flex flex-col">
       <header className="p-4 border-b border-border flex items-center gap-3 justify-between">
@@ -52,7 +60,7 @@ export default function Sidebar({
           Go Back
         </Button>
       </header>
-      <Tabs defaultValue={selectedTab} className="w-full">
+      <Tabs value={selectedTab} className="w-full">
         <TabsList className="bg-transparent border-b border-border w-full">
           <TabsTrigger
             value="conversations"
@@ -70,25 +78,19 @@ export default function Sidebar({
           </TabsTrigger>
         </TabsList>
       </Tabs>
-      <Button
-        className="w-full rounded-none bg-muted hover:bg-accent text-sm font-medium border-t border-border transition-colors h-10"
-        onClick={() => router.push("/app/conversations/new")}
-        type="button"
-      >
-        + New Conversation
-      </Button>
+      <NewConversation onConversationCreated={onConversationCreated} />
       <ScrollArea className="flex-1">
         {selectedTab === "conversations" ? (
-          <ConversationList
+          <DirectConversationList
             conversations={directConversations}
-            selectedId={selectedId}
-            onSelect={onSelect}
+            selectedId={selected?.kind === "direct" ? selected.id : null}
+            onSelect={onSelectDirect}
           />
         ) : (
-          <ConversationList
+          <GroupConversationList
             conversations={groupConversations}
-            selectedId={selectedId}
-            onSelect={onSelect}
+            selectedId={selected?.kind === "group" ? selected.id : null}
+            onSelect={onSelectGroup}
           />
         )}
       </ScrollArea>

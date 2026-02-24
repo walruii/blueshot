@@ -33,3 +33,29 @@ export type MessageWithSender = {
     image: string | null;
   };
 };
+
+// --- Chat store (conversation messages + paging) ---
+
+export type ConversationData = {
+  messages: MessageWithSender[];
+  hasMoreBefore: boolean;
+  isLoadingOlder: boolean;
+  isInitialized: boolean;
+};
+
+export type ChatStoreState = {
+  conversations: Record<string, ConversationData>;
+  initializeConversation: (convoId: string) => void;
+  setConversationData: (
+    convoId: string,
+    data:
+      | Partial<ConversationData>
+      | ((prev: ConversationData) => Partial<ConversationData>),
+  ) => void;
+  prependMessages: (convoId: string, messages: MessageWithSender[]) => void;
+  appendMessage: (convoId: string, message: MessageWithSender) => void;
+  upsertMessage: (convoId: string, message: MessageWithSender) => void;
+  setMessages: (convoId: string, messages: MessageWithSender[]) => void;
+  setLoadingOlder: (convoId: string, value: boolean) => void;
+  setHasMoreBefore: (convoId: string, value: boolean) => void;
+};

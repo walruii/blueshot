@@ -6,6 +6,7 @@ interface ConversationListProps {
   conversations: InboxDirect[] | InboxGroup[];
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  variant: "direct" | "group";
 }
 
 export function ConversationList({
@@ -26,14 +27,24 @@ export function ConversationList({
         >
           <Avatar>
             <AvatarImage
-              src={c.avatar_url || undefined}
-              alt={c.name || undefined}
+              src={
+                // For direct conversations, show the partner's avatar; for groups, the conversation avatar.
+                ("partner_image" in c ? c.partner_image : c.avatar_url) ||
+                undefined
+              }
+              alt={
+                ("partner_name" in c ? c.partner_name : c.name) || undefined
+              }
             />
-            <AvatarFallback>{c.name?.[0] || "?"}</AvatarFallback>
+            <AvatarFallback>
+              {("partner_name" in c ? c.partner_name : c.name)?.[0] || "?"}
+            </AvatarFallback>
           </Avatar>
           <div className="flex-1">
             <div className="flex justify-between">
-              <span className="font-semibold">{c.name}</span>
+              <span className="font-semibold">
+                {"partner_name" in c ? c.partner_name : c.name}
+              </span>
               <span className="text-xs text-muted-foreground">
                 {c.last_message_at
                   ? new Date(c.last_message_at).toLocaleTimeString([], {

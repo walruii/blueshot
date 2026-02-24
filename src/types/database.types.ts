@@ -668,7 +668,6 @@ export type Database = {
           meeting_id: string | null
           reply_to_id: string | null
           sender_id: string
-          sent_during_meeting: boolean | null
         }
         Insert: {
           content: string
@@ -681,7 +680,6 @@ export type Database = {
           meeting_id?: string | null
           reply_to_id?: string | null
           sender_id: string
-          sent_during_meeting?: boolean | null
         }
         Update: {
           content?: string
@@ -694,7 +692,6 @@ export type Database = {
           meeting_id?: string | null
           reply_to_id?: string | null
           sender_id?: string
-          sent_during_meeting?: boolean | null
         }
         Relationships: [
           {
@@ -1237,6 +1234,10 @@ export type Database = {
           user_id: string
           user_name: string
         }[]
+      }
+      get_existing_direct_conversation: {
+        Args: { user_a: string; user_b: string }
+        Returns: string
       }
       get_user_event_state: {
         Args: { requesting_user_id: string; target_event_id: string }

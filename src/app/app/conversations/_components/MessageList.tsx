@@ -4,11 +4,24 @@ import { MessageWithSender } from "@/types/chat";
 interface MessageListProps {
   messages: MessageWithSender[];
   currentUserId: string;
+  isLoadingOlder?: boolean;
+  hasMoreBefore?: boolean;
+  isInitialized?: boolean;
 }
 
-export function MessageList({ messages, currentUserId }: MessageListProps) {
+export function MessageList({
+  messages,
+  currentUserId,
+  isLoadingOlder = false,
+  hasMoreBefore = false,
+}: MessageListProps) {
   return (
     <div className="flex flex-col gap-2">
+      {hasMoreBefore && (
+        <div className="py-2 text-center text-sm text-muted-foreground">
+          {isLoadingOlder ? "Loading older messages…" : "\u00a0"}
+        </div>
+      )}
       {messages.map((msg) => (
         <div
           key={msg.id}
