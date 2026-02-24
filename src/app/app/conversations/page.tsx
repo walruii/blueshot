@@ -91,12 +91,12 @@ export default function ConversationsPage() {
                     : (selectedGroupConversation as InboxGroup);
                 const name =
                   selectedRef.kind === "direct"
-                    ? convo.partner_name ?? "Unknown"
-                    : convo.name ?? "Group";
+                    ? (convo.partner_name ?? "Unknown")
+                    : (convo.name ?? "Group");
                 const image =
                   selectedRef.kind === "direct"
-                    ? convo.partner_image ?? undefined
-                    : convo.avatar_url ?? undefined;
+                    ? (convo.partner_image ?? undefined)
+                    : (convo.avatar_url ?? undefined);
                 return (
                   <>
                     <AvatarImage src={image} alt={name} />

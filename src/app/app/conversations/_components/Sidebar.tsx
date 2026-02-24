@@ -10,6 +10,7 @@ import { InboxDirect, InboxGroup } from "@/types/chat";
 import NewConversation from "./NewConversation";
 import { DirectConversationList } from "./DirectConversationList";
 import { GroupConversationList } from "./GroupConversationList";
+import { InboxTab } from "../_hooks/use-conversations-state";
 
 export default function Sidebar({
   directConversations,
@@ -26,11 +27,11 @@ export default function Sidebar({
   groupConversations: InboxGroup[];
   selected: { kind: "direct" | "group"; id: string } | null;
   onSelectDirect: (id: string) => void;
-  onSelectGroup: (id: string) => void;
+  onSelectGroup: (id: string | null) => void;
   onConversationCreated?: (conversationId: string) => void;
   session: Session;
-  setSelectedTab: (tab: string) => void;
-  selectedTab: string;
+  setSelectedTab: (tab: InboxTab) => void;
+  selectedTab: InboxTab;
 }) {
   const router = useRouter();
   return (

@@ -11,11 +11,53 @@ export type MessageContentType = "text" | "image" | "file" | "system";
 
 export type ConversationRole = "member" | "admin" | "owner";
 
-export type InboxDirect =
+export type InboxDirectDB =
   Database["public"]["Views"]["direct_messages_inbox"]["Row"];
 
-export type InboxGroup =
+export type InboxGroupDB =
   Database["public"]["Views"]["group_conversations_inbox"]["Row"];
+
+export type InboxDirect = {
+  id: string | null;
+  partner_id: string | null;
+  partner_name: string | null;
+  partner_email: string | null;
+  partner_image: string | null;
+  last_message_at: string | null;
+  updated_at: string | null;
+};
+
+export type InboxGroup = {
+  id: string | null;
+  name: string | null;
+  description: string | null;
+  avatar_url: string | null;
+  last_message_at: string | null;
+  updated_at: string | null;
+  user_group_id: string | null;
+  event_id: string | null;
+};
+
+export const formatInboxDirect = (dbRow: InboxDirectDB): InboxDirect => ({
+  id: dbRow.id,
+  partner_id: dbRow.partner_id,
+  partner_name: dbRow.partner_name,
+  partner_email: dbRow.partner_email,
+  partner_image: dbRow.partner_image,
+  last_message_at: dbRow.last_message_at,
+  updated_at: dbRow.updated_at,
+});
+
+export const formatInboxGroup = (dbRow: InboxGroupDB): InboxGroup => ({
+  id: dbRow.id,
+  name: dbRow.name,
+  description: dbRow.description,
+  avatar_url: dbRow.avatar_url,
+  last_message_at: dbRow.last_message_at,
+  updated_at: dbRow.updated_at,
+  user_group_id: dbRow.user_group_id,
+  event_id: dbRow.event_id,
+});
 
 export type MessageWithSender = {
   id: string;
