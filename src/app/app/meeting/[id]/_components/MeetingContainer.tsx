@@ -15,16 +15,19 @@ interface MeetingContainerProps {
   token: string;
   participantName: string;
   userId: string;
+  meetingDbId: string;
 }
 
 function MeetingContent({
   participantName,
   meetingId,
   userId,
+  meetingDbId,
 }: {
   participantName: string;
   meetingId: string;
   userId: string;
+  meetingDbId: string;
 }) {
   const [hasJoined, setHasJoined] = useState(false);
   const [deviceSettings, setDeviceSettings] = useState({
@@ -36,12 +39,12 @@ function MeetingContent({
     return (
       <PreJoinScreen
         participantName={participantName}
-        meetingId={meetingId}
         userId={userId}
         onJoin={(settings) => {
           setDeviceSettings(settings);
           setHasJoined(true);
         }}
+        meetingDbId={meetingDbId}
       />
     );
   }
@@ -51,6 +54,7 @@ function MeetingContent({
       deviceSettings={deviceSettings}
       meetingId={meetingId}
       userId={userId}
+      meetingDbId={meetingDbId}
     />
   );
 }
@@ -59,10 +63,12 @@ function MeetingContentWithDevices({
   deviceSettings,
   meetingId,
   userId,
+  meetingDbId,
 }: {
   deviceSettings: { cameraOn: boolean; micOn: boolean };
   meetingId: string;
   userId: string;
+  meetingDbId: string;
 }) {
   const { enableWebcam, unmuteMic } = useMeeting();
 
@@ -113,6 +119,7 @@ export default function MeetingContainer({
   token,
   participantName,
   userId,
+  meetingDbId,
 }: MeetingContainerProps) {
   return (
     <MeetingProvider
@@ -129,6 +136,7 @@ export default function MeetingContainer({
         participantName={participantName}
         meetingId={meetingId}
         userId={userId}
+        meetingDbId={meetingDbId}
       />
     </MeetingProvider>
   );

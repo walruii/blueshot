@@ -20,14 +20,16 @@ export type InboxGroup =
 export type MessageWithSender = {
   id: string;
   conversation_id: string;
-  sender_id: string;
   content: string;
   content_type: MessageContentType;
   created_at: string;
+  reply_to_id: string | null;
+  deleted_at: string | null;
+  meeting_id: string | null;
   sender: {
     id: string;
     name: string | null;
     email: string | null;
-    avatar_url: string | null;
+    image: string | null;
   };
 };

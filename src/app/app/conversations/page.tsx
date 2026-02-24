@@ -10,7 +10,7 @@ import Sidebar from "./_components/Sidebar";
 import { authClient } from "@/lib/auth-client";
 import { Session } from "@/types/sessionType";
 import LoadingConversations from "@/components/loading/LoadingConversations";
-import { InboxDirect, InboxGroup } from "@/types/chat";
+import { InboxDirect, InboxGroup, MessageWithSender } from "@/types/chat";
 import {
   getDirectConversations,
   getGroupConversations,
@@ -18,7 +18,10 @@ import {
 
 export default function ConversationsPage() {
   const [session, setSession] = useState<Session | null>(null);
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<Map<string, MessageWithSender[]>>(
+    new Map(),
+  );
+
   const [directConversations, setDirectConversations] = useState<InboxDirect[]>(
     [],
   );
@@ -32,7 +35,13 @@ export default function ConversationsPage() {
 
   const setConversation = (id: string | null) => {
     if (!id) return;
-    //TODO
+    setSelected(
+      directConversations.find((c) => c.id === id) ||
+        groupConversations.find((c) => c.id === id) ||
+        null,
+    );
+
+    setMessages((prev) => new Map(prev.set(selected?.id || "", [])));
   };
 
   useEffect(() => {
@@ -46,7 +55,6 @@ export default function ConversationsPage() {
       console.log(directConversations);
       if (directConversations && directConversations.length > 0) {
         setDirectConversations(directConversations);
-        setSelected(directConversations[0]);
       }
 
       const groupConversations = await getGroupConversations();
@@ -57,12 +65,6 @@ export default function ConversationsPage() {
     };
     init();
   }, []);
-
-  useEffect(() => {
-    if (selected) {
-      //TODO
-    }
-  }, [selected]);
 
   if (!session) {
     return <LoadingConversations />;
@@ -95,7 +97,7 @@ export default function ConversationsPage() {
           <ScrollArea className="flex-1 p-6 bg-background">
             {selected && (
               <MessageList
-                messages={messages}
+                messages={selected.id ? (messages.get(selected.id) ?? []) : []}
                 currentUserId={session.user.id}
               />
             )}

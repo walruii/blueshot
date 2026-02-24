@@ -145,8 +145,6 @@ export async function createRoom(): Promise<Result<string>> {
     }
 
     const data = await response.json();
-    console.log("VideoSDK token response:", data);
-
     return {
       success: true,
       data: data.roomId, // returns the meeting ID which is used as token in the frontend

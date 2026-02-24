@@ -39,6 +39,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
   const [username, setUsername] = useState<string>("Anonymous");
   const [userId, setUserId] = useState<string>("");
   const [meetingId, setMeetingId] = useState<string>("");
+  const [meetingDbId, setMeetingDbId] = useState<string>("");
   const [token, setToken] = useState<string>("");
 
   useEffect(() => {
@@ -49,6 +50,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
         setUserId(session.data.user.id);
       }
       const { id: meetingId } = await params;
+      setMeetingDbId(meetingId);
       const meetingResult = await getMeetingById(meetingId);
       console.log("Meeting result:", meetingResult);
 
@@ -120,6 +122,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       token={token}
       participantName={username}
       userId={userId}
+      meetingDbId={meetingDbId}
     />
   );
 }

@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { MessageWithSender } from "@/types/chat";
 
 interface MessageListProps {
   messages: MessageWithSender[];
@@ -13,13 +14,13 @@ export function MessageList({ messages, currentUserId }: MessageListProps) {
           key={msg.id}
           className={cn(
             "flex",
-            msg.sender_id === currentUserId ? "justify-end" : "justify-start",
+            msg.sender.id === currentUserId ? "justify-end" : "justify-start",
           )}
         >
           <div
             className={cn(
               "px-4 py-2 rounded-lg max-w-xs",
-              msg.sender_id === currentUserId
+              msg.sender.id === currentUserId
                 ? "bg-green-600 text-white dark:bg-green-500"
                 : "bg-card border border-border text-foreground",
             )}
