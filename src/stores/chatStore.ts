@@ -32,6 +32,24 @@ function mergeByIdPreferLater(
 export const useChatStore = create<ChatStoreState>((set) => ({
   conversations: {},
   users: {},
+  directConversations: [],
+  groupConversations: [],
+  setDirectConversations: (convs) => set({ directConversations: convs }),
+  setGroupConversations: (convs) => set({ groupConversations: convs }),
+  addDirectConversation: (convo) =>
+    set((state) => ({
+      directConversations: [
+        convo,
+        ...state.directConversations.filter((c) => c.id !== convo.id),
+      ],
+    })),
+  addGroupConversation: (convo) =>
+    set((state) => ({
+      groupConversations: [
+        convo,
+        ...state.groupConversations.filter((c) => c.id !== convo.id),
+      ],
+    })),
 
   initializeConversation(convoId) {
     set((state) => {

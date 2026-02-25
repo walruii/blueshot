@@ -27,15 +27,13 @@ export default function ConversationsPage() {
     groupConversations,
     selectedTab,
     setSelectedTab,
-    selectedRef,
-    selectedDirectConversation,
-    selectedGroupConversation,
+    selectedConversation,
     selectDirect,
     selectGroup,
     handleDirectConversationCreated,
   } = useConversationsState();
 
-  const conversationId = selectedRef?.id ?? "";
+  const conversationId = selectedConversation?.id ?? "";
   const {
     messages,
     isLoadingOlder,
@@ -112,7 +110,7 @@ export default function ConversationsPage() {
       <Sidebar
         directConversations={directConversations}
         groupConversations={groupConversations}
-        selected={selectedRef}
+        selected={selectedConversation}
         onSelectDirect={(id) => selectDirect(id)}
         onSelectGroup={(id) => selectGroup(id)}
         onConversationCreated={handleDirectConversationCreated}
@@ -121,43 +119,33 @@ export default function ConversationsPage() {
         selectedTab={selectedTab}
       />
       {/* Chat area */}
-      {selectedRef &&
-      ((selectedRef.kind === "direct" && selectedDirectConversation) ||
-        (selectedRef.kind === "group" && selectedGroupConversation)) ? (
+      {selectedConversation ? (
         <main className="flex-1 flex flex-col min-h-0">
           {/* Chat header */}
           <div className="flex items-center gap-3 p-4 border-b border-border bg-card">
             <Avatar>
-              {(() => {
-                // TODO: fix this look making new types for inboxdirect etc
-                const convo =
-                  selectedRef.kind === "direct"
-                    ? (selectedDirectConversation as InboxDirect)
-                    : (selectedGroupConversation as InboxGroup);
-                const name =
-                  selectedRef.kind === "direct"
-                    ? // @ts-expect-error
-                      (convo.partner_name ?? "Unknown")
-                    : // @ts-expect-error
-                      (convo.name ?? "Group");
-                const image =
-                  selectedRef.kind === "direct"
-                    ? // @ts-expect-error
-                      (convo.partner_image ?? undefined)
-                    : // @ts-expect-error
-                      (convo.avatar_url ?? undefined);
-                return (
-                  <>
-                    <AvatarImage src={image} alt={name} />
-                    <AvatarFallback>{name[0] ?? "?"}</AvatarFallback>
-                  </>
-                );
-              })()}
+              <AvatarImage
+                src={
+                  selectedConversation.type === "direct"
+                    ? (selectedConversation.partner_image ?? undefined)
+                    : (selectedConversation.avatar_url ?? undefined)
+                }
+                alt={
+                  selectedConversation.type === "direct"
+                    ? (selectedConversation.partner_name ?? "")
+                    : (selectedConversation.name ?? "")
+                }
+              />
+              <AvatarFallback>
+                {selectedConversation.type === "direct"
+                  ? (selectedConversation.partner_name?.[0] ?? "?")
+                  : (selectedConversation.name?.[0] ?? "?")}
+              </AvatarFallback>
             </Avatar>
             <span className="font-semibold">
-              {selectedRef.kind === "direct"
-                ? selectedDirectConversation?.partner_name
-                : selectedGroupConversation?.name}
+              {selectedConversation.type === "direct"
+                ? selectedConversation.partner_name
+                : selectedConversation.name}
             </span>
           </div>
           {/* Messages */}
@@ -166,15 +154,13 @@ export default function ConversationsPage() {
             className="flex-1 overflow-auto p-6 bg-background min-h-0"
           >
             <div ref={loadMoreRef} className="h-px w-full shrink-0" />
-            {selectedRef && (
-              <MessageList
-                messages={messages}
-                currentUserId={session.user.id}
-                isLoadingOlder={isLoadingOlder}
-                hasMoreBefore={hasMoreBefore}
-                isInitialized={isInitialized}
-              />
-            )}
+            <MessageList
+              messages={messages}
+              currentUserId={session.user.id}
+              isLoadingOlder={isLoadingOlder}
+              hasMoreBefore={hasMoreBefore}
+              isInitialized={isInitialized}
+            />
           </div>
           {/* Input */}
           <form

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { UserIcon } from "lucide-react";
 import Image from "next/image";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { InboxDirect, InboxGroup } from "@/types/chat";
+import { InboxDirect, InboxGroup, InboxItem } from "@/types/chat";
 import NewConversation from "./NewConversation";
 import { DirectConversationList } from "./DirectConversationList";
 import { GroupConversationList } from "./GroupConversationList";
@@ -25,8 +25,8 @@ export default function Sidebar({
 }: {
   directConversations: InboxDirect[];
   groupConversations: InboxGroup[];
-  selected: { kind: "direct" | "group"; id: string } | null;
-  onSelectDirect: (id: string) => void;
+  selected: InboxItem | null;
+  onSelectDirect: (id: string | null) => void;
   onSelectGroup: (id: string | null) => void;
   onConversationCreated?: (conversationId: string) => void;
   session: Session;
@@ -84,13 +84,15 @@ export default function Sidebar({
         {selectedTab === "conversations" ? (
           <DirectConversationList
             conversations={directConversations}
-            selectedId={selected?.kind === "direct" ? selected.id : null}
+            selectedId={selected?.type === "direct" ? selected.id : null}
             onSelect={onSelectDirect}
           />
         ) : (
           <GroupConversationList
             conversations={groupConversations}
-            selectedId={selected?.kind === "group" ? selected.id : null}
+            selectedId={
+              selected && selected?.type !== "direct" ? selected.id : null
+            }
             onSelect={onSelectGroup}
           />
         )}

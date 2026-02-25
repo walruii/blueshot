@@ -41,12 +41,49 @@ export function useRealtimeInbox(userId: string) {
           ),
         )
 
-        .on("broadcast", { event: "ADDED_TO_USER_GROUP" }, (p) =>
+        .on("broadcast", { event: "ADDED_TO_USER_GROUP" }, async (p) => {
           notifyAndRefresh(
             "You were added to a user group",
             p.payload?.groupName,
-          ),
-        )
+          );
+          // also refresh group conversations state
+          try {
+            const { getGroupConversations } =
+              await import("@/server-actions/conversations");
+            const { useChatStore } = await import("@/stores/chatStore");
+            const groups = await getGroupConversations();
+            useChatStore.getState().setGroupConversations(groups ?? []);
+          } catch (err) {
+            console.error("Failed to refresh groups state", err);
+          }
+        })
+
+        // new conversation event: update zustand store directly
+        .on("broadcast", { event: "NEW_DIRECT_CONVERSATION" }, async (p) => {
+          showAlert({
+            title: "New conversation",
+            description: "You were added to a new direct message",
+            type: "info",
+          });
+          try {
+            const { conversationId } = p.payload || {};
+            if (conversationId) {
+              // fetch the new convo and add it to store
+              const conv = await import("@/server-actions/conversations").then(
+                (mod) => mod.getDirectConversationById(conversationId),
+              );
+              if (conv?.id) {
+                const { useChatStore } = await import("@/stores/chatStore");
+                useChatStore.getState().addDirectConversation(conv);
+              }
+            }
+          } catch (err) {
+            console.error(
+              "Error handling new direct conversation payload",
+              err,
+            );
+          }
+        })
 
         .on("broadcast", { event: "REMOVED_FROM_USER_GROUP" }, (p) =>
           notifyAndRefresh(
@@ -55,20 +92,38 @@ export function useRealtimeInbox(userId: string) {
           ),
         )
 
-        .on("broadcast", { event: "ADDED_TO_EVENT_GROUP" }, (p) =>
+        .on("broadcast", { event: "ADDED_TO_EVENT_GROUP" }, async (p) => {
           notifyAndRefresh(
             "You were added to an event group",
             p.payload?.groupName,
-          ),
-        )
+          );
+          try {
+            const { getGroupConversations } =
+              await import("@/server-actions/conversations");
+            const { useChatStore } = await import("@/stores/chatStore");
+            const groups = await getGroupConversations();
+            useChatStore.getState().setGroupConversations(groups ?? []);
+          } catch (err) {
+            console.error("Failed to refresh groups state", err);
+          }
+        })
 
         .on("broadcast", { event: "REMOVED_FROM_EVENT_GROUP" }, (p) =>
           notifyAndRefresh("Removed from event group", p.payload?.groupName),
         )
 
-        .on("broadcast", { event: "ADDED_TO_EVENT" }, (p) =>
-          notifyAndRefresh("You were added to an event", p.payload?.eventTitle),
-        )
+        .on("broadcast", { event: "ADDED_TO_EVENT" }, async (p) => {
+          notifyAndRefresh("You were added to an event", p.payload?.eventTitle);
+          try {
+            const { getGroupConversations } =
+              await import("@/server-actions/conversations");
+            const { useChatStore } = await import("@/stores/chatStore");
+            const groups = await getGroupConversations();
+            useChatStore.getState().setGroupConversations(groups ?? []);
+          } catch (err) {
+            console.error("Failed to refresh groups state", err);
+          }
+        })
 
         .on("broadcast", { event: "REMOVED_FROM_EVENT" }, (p) =>
           notifyAndRefresh(

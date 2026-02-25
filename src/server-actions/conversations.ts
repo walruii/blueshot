@@ -2,7 +2,12 @@
 
 import { auth } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase-admin";
-import { InboxDirect, InboxGroup } from "@/types/chat";
+import {
+  formatInboxDirect,
+  formatInboxGroup,
+  InboxDirect,
+  InboxGroup,
+} from "@/types/chat";
 import { Result } from "@/types/returnType";
 import { headers } from "next/headers";
 
@@ -25,7 +30,8 @@ export async function getDirectConversations(): Promise<InboxDirect[]> {
     if (error) throw error;
 
     // Transform to your expected type
-    return data;
+
+    return data.map(formatInboxDirect);
   } catch (err) {
     console.error("Error fetching direct conversations:", err);
     return [];
@@ -55,7 +61,7 @@ export async function getGroupConversations(): Promise<InboxGroup[]> {
     return [];
   }
 
-  return data;
+  return data.map(formatInboxGroup);
 }
 
 export async function createDirectConversation(
@@ -105,6 +111,20 @@ export async function createDirectConversation(
 
     if (partError) return { success: false, error: partError.message };
 
+    // Broadcast to the recipient so they can update their inbox in real-time
+    try {
+      await supabaseAdmin.channel(`user_inbox_${targetUser.id}`).send({
+        type: "broadcast",
+        event: "NEW_DIRECT_CONVERSATION",
+        payload: { conversationId: conversation.id },
+      });
+    } catch (broadcastErr) {
+      console.error(
+        "Failed to broadcast new direct conversation",
+        broadcastErr,
+      );
+    }
+
     return { success: true, data: conversation.id };
   } catch (err) {
     return { success: false, error: "An unexpected error occurred" };
@@ -127,7 +147,7 @@ export async function getDirectConversationById(
       .maybeSingle();
 
     if (error) throw error;
-    return data ?? null;
+    return data ? formatInboxDirect(data) : null;
   } catch (err) {
     console.error("Error fetching direct conversation by id:", err);
     return null;

@@ -18,6 +18,7 @@ export type InboxGroupDB =
   Database["public"]["Views"]["group_conversations_inbox"]["Row"];
 
 export type InboxDirect = {
+  type: "direct";
   id: string | null;
   partner_id: string | null;
   partner_name: string | null;
@@ -28,6 +29,7 @@ export type InboxDirect = {
 };
 
 export type InboxGroup = {
+  type: "user_group" | "event_group" | "event" | "meeting";
   id: string | null;
   name: string | null;
   description: string | null;
@@ -38,8 +40,11 @@ export type InboxGroup = {
   event_id: string | null;
 };
 
+export type InboxItem = InboxDirect | InboxGroup;
+
 export const formatInboxDirect = (dbRow: InboxDirectDB): InboxDirect => ({
   id: dbRow.id,
+  type: "direct",
   partner_id: dbRow.partner_id,
   partner_name: dbRow.partner_name,
   partner_email: dbRow.partner_email,
@@ -50,6 +55,9 @@ export const formatInboxDirect = (dbRow: InboxDirectDB): InboxDirect => ({
 
 export const formatInboxGroup = (dbRow: InboxGroupDB): InboxGroup => ({
   id: dbRow.id,
+  type:
+    (dbRow.type as "user_group" | "event_group" | "event" | "meeting") ||
+    "user_group",
   name: dbRow.name,
   description: dbRow.description,
   avatar_url: dbRow.avatar_url,
@@ -88,6 +96,12 @@ export type ConversationData = {
 export type ChatStoreState = {
   conversations: Record<string, ConversationData>;
   users: Record<string, MessageWithSender["sender"]>;
+  directConversations: InboxDirect[];
+  groupConversations: InboxGroup[];
+  setDirectConversations: (convs: InboxDirect[]) => void;
+  setGroupConversations: (convs: InboxGroup[]) => void;
+  addDirectConversation: (convo: InboxDirect) => void;
+  addGroupConversation: (convo: InboxGroup) => void;
   initializeConversation: (convoId: string) => void;
   upsertUser: (user: MessageWithSender["sender"]) => void;
   setConversationData: (

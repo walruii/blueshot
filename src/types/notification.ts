@@ -1,7 +1,7 @@
 import { Database } from "./database.types";
 
 export type NotificationDB =
-  Database["public"]["Tables"]["notifications"]["Row"];
+  Database["public"]["Tables"]["notification"]["Row"];
 
 export type Notification = {
   archived: Date | null;

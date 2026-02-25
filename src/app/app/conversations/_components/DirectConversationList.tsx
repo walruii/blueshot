@@ -11,7 +11,7 @@ export function DirectConversationList({
 }: {
   conversations: InboxDirect[];
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
 }) {
   const safe = conversations.filter((c) => typeof c.id === "string" && !!c.id);
 
@@ -52,4 +52,3 @@ export function DirectConversationList({
     </ul>
   );
 }
-
