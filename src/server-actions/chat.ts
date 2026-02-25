@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import type { MessageWithSender } from "@/types/chat";
 import type { Result } from "@/types/returnType";
 import { headers } from "next/headers";
@@ -61,6 +61,7 @@ export const getMessagesFirstPage = async (
   conversationId: string,
   limit: number = 20,
 ) => {
+  console.log(conversationId, limit);
   const { data: messages, error } = await supabaseAdmin
     .from("message")
     .select("*, user!inner(id, name, email, image)")
@@ -141,3 +142,29 @@ export const sendMessage = async (args: {
     return { success: false, error: "An unexpected error occurred" };
   }
 };
+
+export async function fetchUserProfileAction(userId: string): Promise<
+  Result<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    image: string | null;
+  }>
+> {
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("user")
+      .select("id, name, email, image")
+      .eq("id", userId)
+      .single();
+
+    if (error) {
+      console.error("Error fetching user profile:", error);
+      return { success: false, error: "User not found" };
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: "Internal server error" };
+  }
+}

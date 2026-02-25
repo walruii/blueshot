@@ -63,6 +63,50 @@ export default function ConversationsPage() {
     return <LoadingConversations />;
   }
 
+  const handleFormSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!conversationId) return;
+    const content = input.trim();
+    if (!content) return;
+
+    const id =
+      globalThis.crypto?.randomUUID?.() ??
+      `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+    const optimistic: MessageWithSender = {
+      id,
+      conversation_id: conversationId,
+      content,
+      content_type: "text",
+      created_at: new Date().toISOString(),
+      reply_to_id: null,
+      deleted_at: null,
+      meeting_id: null,
+      sender: {
+        id: session.user.id,
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        image: session.user.image ?? null,
+      },
+    };
+
+    useChatStore.getState().upsertMessage(conversationId, optimistic);
+    setInput("");
+
+    const result = await sendMessage({
+      conversationId,
+      content,
+      id,
+      contentType: "text",
+    });
+    if (!result.success) {
+      console.error("Failed to send message:", result.error);
+    } else if (result.data) {
+      // Ensure we reconcile local optimistic content with server-hydrated sender/timestamps.
+      useChatStore.getState().upsertMessage(conversationId, result.data);
+    }
+  };
+
   return (
     <div className="flex h-screen w-screen bg-background text-foreground dark">
       <Sidebar
@@ -85,18 +129,23 @@ export default function ConversationsPage() {
           <div className="flex items-center gap-3 p-4 border-b border-border bg-card">
             <Avatar>
               {(() => {
+                // TODO: fix this look making new types for inboxdirect etc
                 const convo =
                   selectedRef.kind === "direct"
                     ? (selectedDirectConversation as InboxDirect)
                     : (selectedGroupConversation as InboxGroup);
                 const name =
                   selectedRef.kind === "direct"
-                    ? (convo.partner_name ?? "Unknown")
-                    : (convo.name ?? "Group");
+                    ? // @ts-expect-error
+                      (convo.partner_name ?? "Unknown")
+                    : // @ts-expect-error
+                      (convo.name ?? "Group");
                 const image =
                   selectedRef.kind === "direct"
-                    ? (convo.partner_image ?? undefined)
-                    : (convo.avatar_url ?? undefined);
+                    ? // @ts-expect-error
+                      (convo.partner_image ?? undefined)
+                    : // @ts-expect-error
+                      (convo.avatar_url ?? undefined);
                 return (
                   <>
                     <AvatarImage src={image} alt={name} />
@@ -130,51 +179,7 @@ export default function ConversationsPage() {
           {/* Input */}
           <form
             className="p-4 bg-card border-t border-border flex gap-2"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              if (!conversationId) return;
-              const content = input.trim();
-              if (!content) return;
-
-              const id =
-                globalThis.crypto?.randomUUID?.() ??
-                `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-              const optimistic: MessageWithSender = {
-                id,
-                conversation_id: conversationId,
-                content,
-                content_type: "text",
-                created_at: new Date().toISOString(),
-                reply_to_id: null,
-                deleted_at: null,
-                meeting_id: null,
-                sender: {
-                  id: session.user.id,
-                  name: session.user.name ?? null,
-                  email: session.user.email ?? null,
-                  image: session.user.image ?? null,
-                },
-              };
-
-              useChatStore.getState().upsertMessage(conversationId, optimistic);
-              setInput("");
-
-              const result = await sendMessage({
-                conversationId,
-                content,
-                id,
-                contentType: "text",
-              });
-              if (!result.success) {
-                console.error("Failed to send message:", result.error);
-              } else if (result.data) {
-                // Ensure we reconcile local optimistic content with server-hydrated sender/timestamps.
-                useChatStore
-                  .getState()
-                  .upsertMessage(conversationId, result.data);
-              }
-            }}
+            onSubmit={handleFormSubmit}
           >
             <Input
               className="flex-1"

@@ -87,7 +87,9 @@ export type ConversationData = {
 
 export type ChatStoreState = {
   conversations: Record<string, ConversationData>;
+  users: Record<string, MessageWithSender["sender"]>;
   initializeConversation: (convoId: string) => void;
+  upsertUser: (user: MessageWithSender["sender"]) => void;
   setConversationData: (
     convoId: string,
     data:

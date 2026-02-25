@@ -1,6 +1,6 @@
 "use server";
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { Result } from "@/types/returnType";
 import jwt from "jsonwebtoken";
 import { headers } from "next/headers";

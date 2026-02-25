@@ -1,6 +1,6 @@
 "use server";
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { Database } from "@/types/database.types";
 import { EventInput } from "@/types/event";
 import { PermissionEntry, canWrite } from "@/types/permission";

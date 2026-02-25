@@ -1,7 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { headers } from "next/headers";
 import { Result } from "@/types/returnType";
 import { Meeting, MeetingParticipant, MeetingEvent } from "@/types/meeting";

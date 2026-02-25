@@ -1,3 +1,4 @@
+import "server-only";
 import { Database } from "@/types/database.types";
 import { createClient } from "@supabase/supabase-js";
 
@@ -6,12 +7,16 @@ const supabaseUrl =
     ? process.env.NEXT_PUBLIC_LOCAL_SUPABASE_URL
     : process.env.NEXT_PUBLIC_SUPABASE_URL;
 
-const supabaseKey =
+const supabaseAdminKey =
   process.env.NODE_ENV === "development"
-    ? process.env.NEXT_PUBLIC_LOCAL_SUPABASE_PUBLISHABLE_DEFAULT_KEY
-    : process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY;
+    ? process.env.LOCAL_SUPABASE_SERVICE_ROLE_KEY
+    : process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
+if (!supabaseUrl || !supabaseAdminKey) {
   throw new Error("Database Could not connect");
 }
-export const supabaseAnon = createClient<Database>(supabaseUrl, supabaseKey);
+
+export const supabaseAdmin = createClient<Database>(
+  supabaseUrl,
+  supabaseAdminKey,
+);

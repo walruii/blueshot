@@ -12,7 +12,9 @@ const DEFAULT_CONVERSATION: ConversationData = {
   isInitialized: false,
 };
 
-function sortByCreatedAtAsc(messages: MessageWithSender[]): MessageWithSender[] {
+function sortByCreatedAtAsc(
+  messages: MessageWithSender[],
+): MessageWithSender[] {
   return [...messages].sort(
     (a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
@@ -29,6 +31,7 @@ function mergeByIdPreferLater(
 
 export const useChatStore = create<ChatStoreState>((set) => ({
   conversations: {},
+  users: {},
 
   initializeConversation(convoId) {
     set((state) => {
@@ -42,11 +45,16 @@ export const useChatStore = create<ChatStoreState>((set) => ({
     });
   },
 
+  upsertUser(user) {
+    set((state) => ({
+      users: { ...state.users, [user.id]: user },
+    }));
+  },
+
   setConversationData(convoId, data) {
     set((state) => {
       const prev = state.conversations[convoId] ?? { ...DEFAULT_CONVERSATION };
-      const next =
-        typeof data === "function" ? data(prev) : data;
+      const next = typeof data === "function" ? data(prev) : data;
       return {
         conversations: {
           ...state.conversations,
@@ -93,18 +101,26 @@ export const useChatStore = create<ChatStoreState>((set) => ({
       };
     });
   },
-
   upsertMessage(convoId, message) {
     set((state) => {
       const conv = state.conversations[convoId];
       const current = conv?.messages ?? [];
+
+      // Automatically cache the sender whenever a message arrives
+      const updatedUsers = {
+        ...state.users,
+        [message.sender.id]: message.sender,
+      };
+
       const idx = current.findIndex((m) => m.id === message.id);
       const next =
         idx >= 0
           ? current.map((m, i) => (i === idx ? message : m))
           : [...current, message];
+
       const merged = sortByCreatedAtAsc(next);
       return {
+        users: updatedUsers,
         conversations: {
           ...state.conversations,
           [convoId]: {

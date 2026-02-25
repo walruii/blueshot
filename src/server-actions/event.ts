@@ -1,6 +1,6 @@
 "use server";
 import { Event, EventMap, formatEvent, formatEventMap } from "@/types/event";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { PermissionEntry } from "@/types/permission";

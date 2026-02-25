@@ -1,6 +1,6 @@
 "use server";
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import {
   EventMember,
   formatEventMembers,

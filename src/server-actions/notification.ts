@@ -1,6 +1,6 @@
 "use server";
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { Database } from "@/types/database.types";
 import { formatNotification, NotificationJSON } from "@/types/notification";
 import { PermissionEntry } from "@/types/permission";
