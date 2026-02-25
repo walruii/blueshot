@@ -1,6 +1,6 @@
 "use server";
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { Database } from "@/types/database.types";
 import { EventInput } from "@/types/event";
 import { PermissionEntry, canWrite } from "@/types/permission";
@@ -16,6 +16,7 @@ import {
   resolvePermissionsForEvent,
   getUserEventGroupRole,
 } from "./utils/permissionUtils";
+import { provisionMeeting } from "./meeting";
 
 interface EmailCheckResult {
   email: string;
@@ -54,6 +55,30 @@ export const addEvent = async (
       }
     }
 
+    let meetingId: string | null = null;
+
+    if (event.withMeeting) {
+      const meetingResult = await provisionMeeting();
+      if (!meetingResult.success) {
+        console.error(
+          "Failed to provision meeting for event: ",
+          meetingResult.error,
+        );
+        return {
+          success: false,
+          error: "Failed to create meeting for event",
+        };
+      }
+      if (!meetingResult.data) {
+        console.error("No meeting ID returned from provisionMeeting");
+        return {
+          success: false,
+          error: "Failed to create meeting for event",
+        };
+      }
+      meetingId = meetingResult.data.id;
+    }
+
     // Create the event
     const { data: eventDB, error: eventError } = await supabaseAdmin
       .from("event")
@@ -66,6 +91,7 @@ export const addEvent = async (
         event_group_id: event.eventGroupId,
         type: event.type,
         status: "default",
+        meeting_id: meetingId,
       })
       .select()
       .single();

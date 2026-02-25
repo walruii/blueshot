@@ -11,6 +11,7 @@ export interface FormState {
   allDay: boolean;
   eventGroupId: string;
   perEventMembers: boolean;
+  withMeeting: boolean;
 }
 
 interface FormErrors extends Record<string, string | undefined> {
@@ -19,6 +20,7 @@ interface FormErrors extends Record<string, string | undefined> {
   fromTime?: string;
   toTime?: string;
   eventGroupId?: string;
+  withMeeting?: string;
 }
 
 export const useEventForm = (prefillDateTime: string) => {
@@ -30,6 +32,7 @@ export const useEventForm = (prefillDateTime: string) => {
     allDay: false,
     eventGroupId: "",
     perEventMembers: false,
+    withMeeting: false,
   });
 
   const [errors, setErrors] = useState<FormErrors>({});
@@ -57,6 +60,7 @@ export const useEventForm = (prefillDateTime: string) => {
         fromTime: formState.fromTime,
         toTime: formState.toTime,
         eventGroupId: formState.eventGroupId,
+        withMeeting: formState.withMeeting,
         permissions,
       });
       setErrors({});

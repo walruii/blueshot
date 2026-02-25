@@ -61,6 +61,18 @@ export const FormFields = ({
 
       <div className="flex items-center gap-3">
         <Checkbox
+          id="withMeeting"
+          checked={formState.withMeeting}
+          onCheckedChange={(checked) => setFormField("withMeeting", !!checked)}
+        />
+        <Label htmlFor="withMeeting" className="cursor-pointer">
+          Create a <span className="font-bold">Meeting</span> along with this
+          Event
+        </Label>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <Checkbox
           id="allDay"
           checked={formState.allDay}
           onCheckedChange={(checked) => setFormField("allDay", !!checked)}

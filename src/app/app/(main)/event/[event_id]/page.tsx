@@ -12,12 +12,41 @@ import {
 } from "@/server-actions/userStateEvent";
 import LoadingEventPage from "@/components/loading/LoadingEventPage";
 import EventEditMode from "./_components/EventEditMode";
-import { getEventPermissions } from "@/server-actions/utils/permissionUtils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
 import AcknowledgementBanner from "./_components/AcknowledgementBanner";
 import MemberTable from "./_components/MemberTable";
+import { MeetingLink } from "../../../_components/MeetingLink";
+
+export const getPermissionsFromRole = (
+  role: number | undefined, // From vae.role (1, 2, or 3)
+  userId: string,
+  eventCreatorId: string,
+) => {
+  const isEventCreator = userId === eventCreatorId;
+  const userRole = role ?? 0;
+
+  // Level 3 is ADMIN, Level 2 is READ_WRITE
+  const hasWriteAccess = userRole >= 2;
+  const hasAdminAccess = userRole === 3;
+
+  return {
+    // canEdit: creator with Level 2+ OR any Admin
+    canEdit: (isEventCreator && hasWriteAccess) || hasAdminAccess,
+
+    // canDelete/Manage: creator OR any Admin
+    canDelete: isEventCreator || hasAdminAccess,
+    canManageAccess: isEventCreator || hasAdminAccess,
+
+    // canChangeEventGroup: Strictly the creator, but they still need Level 2+
+    canChangeEventGroup: isEventCreator && hasWriteAccess,
+
+    // UI Helpers
+    isOwner: hasAdminAccess, // Equivalent to your old group owner check
+    isEventCreator,
+  };
+};
 
 async function EventPage({ params }: { params: { event_id: string } }) {
   const session = await auth.api.getSession({
@@ -38,15 +67,11 @@ async function EventPage({ params }: { params: { event_id: string } }) {
   }
 
   // Get user's permissions for this event
-  const permissions = event
-    ? await getEventPermissions(session.user.id, event_id)
-    : {
-        canEdit: false,
-        canDelete: false,
-        canManageAccess: false,
-        isOwner: false,
-        isEventCreator: false,
-      };
+  const permissions = getPermissionsFromRole(
+    event.role,
+    session.user.id,
+    event.createdBy,
+  );
 
   const ues = await getUserEventState(event_id);
 
@@ -89,7 +114,6 @@ async function EventPage({ params }: { params: { event_id: string } }) {
                 </label>
                 <p className="text-lg">{event.description}</p>
               </div>
-
               {/* Date and Time */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
@@ -119,6 +143,8 @@ async function EventPage({ params }: { params: { event_id: string } }) {
                   </p>
                 </div>
               </div>
+              {/* Meeting Link */}
+              {event.eventMeetingId && <MeetingLink event={event} />}
             </div>
             {permissions.canDelete && <DeleteEvent event={event} />}
             {/* Edit Permissions (Users with canManageAccess) */}

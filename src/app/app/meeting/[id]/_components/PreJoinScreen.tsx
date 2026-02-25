@@ -4,22 +4,18 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Video, VideoOff, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import {
-  createMeeting,
-  addParticipant,
-  recordMeetingEvent,
-} from "@/server-actions/meeting";
+import { addParticipant, recordMeetingEvent } from "@/server-actions/meeting";
 
 interface PreJoinScreenProps {
   participantName: string;
-  meetingId: string;
+  meetingDbId: string;
   userId: string;
   onJoin: (settings: { cameraOn: boolean; micOn: boolean }) => void;
 }
 
 export default function PreJoinScreen({
   participantName,
-  meetingId,
+  meetingDbId,
   userId,
   onJoin,
 }: PreJoinScreenProps) {
@@ -127,15 +123,6 @@ export default function PreJoinScreen({
     setIsJoining(true);
 
     try {
-      // 1. Create meeting record (or get existing)
-      const meetingResult = await createMeeting(meetingId, userId);
-      if (!meetingResult.success) {
-        console.error("Failed to create meeting:", meetingResult.error);
-        setIsJoining(false);
-        return;
-      }
-      const meetingDbId = meetingResult.data!.id;
-
       // 2. Add participant to meeting
       const participantResult = await addParticipant(
         meetingDbId,

@@ -1,86 +1,11 @@
 "use server";
 
 import { auth } from "@/lib/auth";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { headers } from "next/headers";
 import { Result } from "@/types/returnType";
-import {
-  Meeting,
-  MeetingParticipant,
-  MeetingEvent,
-  ParticipantDisplayData,
-} from "@/types/meeting";
-
-/**
- * Create a new meeting record when first participant joins
- * @param videoSdkMeetingId - The VideoSDK meeting ID
- * @param creatorId - The user ID of the meeting creator
- * @returns Result with meeting record or error
- */
-export const createMeeting = async (
-  videoSdkMeetingId: string,
-  creatorId?: string,
-): Promise<Result<Meeting>> => {
-  try {
-    // Get session if creator ID not provided
-    let userId = creatorId;
-    if (!userId) {
-      const session = await auth.api.getSession({
-        headers: await headers(),
-      });
-      if (!session?.user?.id) {
-        return {
-          success: false,
-          error: "Not authenticated",
-        };
-      }
-      userId = session.user.id;
-    }
-
-    // Check if meeting already exists
-    const { data: existingMeeting } = await supabaseAdmin
-      .from("meetings")
-      .select("*")
-      .eq("video_sdk_meeting_id", videoSdkMeetingId)
-      .maybeSingle();
-
-    if (existingMeeting) {
-      return {
-        success: true,
-        data: existingMeeting as Meeting,
-      };
-    }
-
-    // Create new meeting
-    const { data: newMeeting, error } = await supabaseAdmin
-      .from("meetings")
-      .insert({
-        video_sdk_meeting_id: videoSdkMeetingId,
-        creator_id: userId,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error creating meeting:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to create meeting",
-      };
-    }
-
-    return {
-      success: true,
-      data: newMeeting as Meeting,
-    };
-  } catch (err) {
-    console.error("Unexpected error in createMeeting:", err);
-    return {
-      success: false,
-      error: "An unexpected error occurred while creating the meeting",
-    };
-  }
-};
+import { Meeting, MeetingParticipant, MeetingEvent } from "@/types/meeting";
+import { createRoom } from "./videosdk";
 
 /**
  * Add a participant to a meeting (creates new session record on rejoin)
@@ -99,7 +24,7 @@ export const addParticipant = async (
   try {
     // Check if user is already in the meeting (NULL left_at means still active)
     const { data: activeParticipant } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .eq("user_id", userId)
@@ -116,7 +41,7 @@ export const addParticipant = async (
 
     // Create new participant record (supports rejoins as separate sessions)
     const { data: newParticipant, error } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .insert({
         meeting_id: meetingId,
         user_id: userId,
@@ -160,7 +85,7 @@ export const recordParticipantLeave = async (
   try {
     // Find active participant session (NULL left_at)
     const { data: activeParticipant, error: fetchError } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .eq("user_id", userId)
@@ -184,7 +109,7 @@ export const recordParticipantLeave = async (
 
     // Update participant record
     const { data: updatedParticipant, error: updateError } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .update({
         left_at: new Date().toISOString(),
       })
@@ -239,7 +164,7 @@ export const recordMeetingEvent = async (
 ): Promise<Result<MeetingEvent>> => {
   try {
     const { data: newEvent, error } = await supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .insert({
         meeting_id: meetingId,
         user_id: userId,
@@ -280,7 +205,7 @@ export const getMeetingById = async (
 ): Promise<Result<Meeting>> => {
   try {
     const { data: meeting, error } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .select("*")
       .eq("id", meetingId)
       .maybeSingle();
@@ -315,21 +240,21 @@ export const getMeetingById = async (
 
 /**
  * Get meeting by VideoSDK meeting ID
- * @param videoSdkMeetingId - The VideoSDK meeting ID
+ * @param roomId - The VideoSDK meeting ID
  * @returns Result with meeting record or error
  */
-export const getMeetingByVideoSdkId = async (
-  videoSdkMeetingId: string,
+export const getMeetingByRoomId = async (
+  roomId: string,
 ): Promise<Result<Meeting>> => {
   try {
     const { data: meeting, error } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .select("*")
-      .eq("video_sdk_meeting_id", videoSdkMeetingId)
+      .eq("room_id", roomId)
       .maybeSingle();
 
     if (error) {
-      console.error("Error fetching meeting by VideoSDK ID:", error);
+      console.error("Error fetching meeting by room ID:", error);
       return {
         success: false,
         error: error.message || "Failed to fetch meeting",
@@ -348,7 +273,7 @@ export const getMeetingByVideoSdkId = async (
       data: meeting as Meeting,
     };
   } catch (err) {
-    console.error("Unexpected error in getMeetingByVideoSdkId:", err);
+    console.error("Unexpected error in getMeetingByRoomId:", err);
     return {
       success: false,
       error: "An unexpected error occurred while fetching meeting",
@@ -366,7 +291,7 @@ export const getParticipants = async (
 ): Promise<Result<MeetingParticipant[]>> => {
   try {
     const { data: participants, error } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .order("joined_at", { ascending: true });
@@ -402,7 +327,7 @@ export const getActiveParticipants = async (
 ): Promise<Result<MeetingParticipant[]>> => {
   try {
     const { data: participants, error } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("*")
       .eq("meeting_id", meetingId)
       .is("left_at", null)
@@ -441,7 +366,7 @@ export const getMeetingEvents = async (
 ): Promise<Result<MeetingEvent[]>> => {
   try {
     let query = supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .select("*")
       .eq("meeting_id", meetingId);
 
@@ -486,7 +411,7 @@ export const getMeetingEventsByType = async (
 ): Promise<Result<MeetingEvent[]>> => {
   try {
     const { data: events, error } = await supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .select("*")
       .eq("meeting_id", meetingId)
       .eq("event_type", eventType)
@@ -524,7 +449,7 @@ export const endMeeting = async (
   try {
     // Update meeting with end time
     const { data: updatedMeeting, error: updateError } = await supabaseAdmin
-      .from("meetings")
+      .from("meeting")
       .update({
         ended_at: new Date().toISOString(),
       })
@@ -570,7 +495,7 @@ export const getMeetingStats = async (
   try {
     // Get all participant sessions
     const { data: participants, error: participantError } = await supabaseAdmin
-      .from("meeting_participants")
+      .from("meeting_participant")
       .select("user_id")
       .eq("meeting_id", meetingId);
 
@@ -588,7 +513,7 @@ export const getMeetingStats = async (
 
     // Get event count
     const { count: eventCount, error: eventError } = await supabaseAdmin
-      .from("meeting_events")
+      .from("meeting_event")
       .select("*", { count: "exact", head: true })
       .eq("meeting_id", meetingId);
 
@@ -612,6 +537,55 @@ export const getMeetingStats = async (
     return {
       success: false,
       error: "An unexpected error occurred while fetching meeting stats",
+    };
+  }
+};
+
+export const provisionMeeting = async (): Promise<Result<Meeting>> => {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user) return { success: false, error: "Invalid session" };
+
+    const result = await createRoom();
+    if (!result.success) {
+      return result;
+    }
+    if (!result.data) {
+      return {
+        success: false,
+        error: "Failed to generate meeting token",
+      };
+    }
+
+    // Create new meeting
+    const { data: newMeeting, error } = await supabaseAdmin
+      .from("meeting")
+      .insert({
+        room_id: result.data, // roomId returned from createRoom is used as room_id in meeting table
+        creator_id: session.user.id,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error creating meeting for event:", error);
+      return {
+        success: false,
+        error: error.message || "Failed to create meeting for event",
+      };
+    }
+
+    return {
+      success: true,
+      data: newMeeting as Meeting,
+    };
+  } catch (err) {
+    console.error("Unexpected error in createMeetingForEvent:", err);
+    return {
+      success: false,
+      error: "An unexpected error occurred while creating meeting for event",
     };
   }
 };

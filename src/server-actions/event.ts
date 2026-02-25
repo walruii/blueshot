@@ -1,6 +1,6 @@
 "use server";
 import { Event, EventMap, formatEvent, formatEventMap } from "@/types/event";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { PermissionEntry } from "@/types/permission";
@@ -17,9 +17,15 @@ import { canWrite } from "@/types/permission";
 
 export const getEvent = async (id: string): Promise<Event | null> => {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session) return null;
+
     const { data: event, error } = await supabaseAdmin
       .rpc("get_event", {
-        request_id: id,
+        target_event_id: id,
+        requesting_user_id: session.user.id,
       })
       .maybeSingle();
     if (error) {

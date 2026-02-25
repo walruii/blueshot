@@ -41,6 +41,16 @@ export default function NavBar() {
               Calendar
             </Link>
             <Link
+              href="/app/conversations"
+              className={`text-sm font-medium transition ${
+                pathname?.startsWith("/app/conversations")
+                  ? "text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Conversations
+            </Link>
+            <Link
               href="/app/groups/user"
               className={`text-sm font-medium transition ${
                 pathname?.startsWith("/app/groups")

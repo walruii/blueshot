@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { Result } from "@/types/returnType";
 import { headers } from "next/headers";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 import { CreatorInfo, notifyAffectedUsers } from "./notification";
 import { getEventPermissions } from "./utils/permissionUtils";
 

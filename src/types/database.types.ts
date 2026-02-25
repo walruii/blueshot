@@ -85,6 +85,152 @@ export type Database = {
             foreignKeyName: "account_userId_fkey"
             columns: ["userId"]
             isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "account_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          description: string | null
+          event_id: string | null
+          id: string
+          last_message_at: string | null
+          name: string | null
+          type: string
+          updated_at: string
+          user_group_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          name?: string | null
+          type: string
+          updated_at?: string
+          user_group_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          description?: string | null
+          event_id?: string | null
+          id?: string
+          last_message_at?: string | null
+          name?: string | null
+          type?: string
+          updated_at?: string
+          user_group_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_user_group_id_fkey"
+            columns: ["user_group_id"]
+            isOneToOne: false
+            referencedRelation: "user_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_participant: {
+        Row: {
+          can_add_participants: boolean | null
+          can_send_messages: boolean | null
+          conversation_id: string
+          id: string
+          joined_at: string
+          last_read_message_id: string | null
+          last_seen_at: string | null
+          muted_until: string | null
+          notifications_enabled: boolean | null
+          role: string | null
+          user_id: string
+        }
+        Insert: {
+          can_add_participants?: boolean | null
+          can_send_messages?: boolean | null
+          conversation_id: string
+          id?: string
+          joined_at?: string
+          last_read_message_id?: string | null
+          last_seen_at?: string | null
+          muted_until?: string | null
+          notifications_enabled?: boolean | null
+          role?: string | null
+          user_id: string
+        }
+        Update: {
+          can_add_participants?: boolean | null
+          can_send_messages?: boolean | null
+          conversation_id?: string
+          id?: string
+          joined_at?: string
+          last_read_message_id?: string | null
+          last_seen_at?: string | null
+          muted_until?: string | null
+          notifications_enabled?: boolean | null
+          role?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "group_conversations_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_last_read_message_id_fkey"
+            columns: ["last_read_message_id"]
+            isOneToOne: false
+            referencedRelation: "message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
           },
@@ -98,6 +244,7 @@ export type Database = {
           event_group_id: string
           from: string
           id: string
+          meeting_id: string | null
           status: Database["public"]["Enums"]["event_status"]
           title: string
           to: string | null
@@ -110,6 +257,7 @@ export type Database = {
           event_group_id: string
           from: string
           id?: string
+          meeting_id?: string | null
           status: Database["public"]["Enums"]["event_status"]
           title: string
           to?: string | null
@@ -122,12 +270,20 @@ export type Database = {
           event_group_id?: string
           from?: string
           id?: string
+          meeting_id?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           title?: string
           to?: string | null
           type?: Database["public"]["Enums"]["event_type"]
         }
         Relationships: [
+          {
+            foreignKeyName: "event_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
           {
             foreignKeyName: "event_created_by_fkey"
             columns: ["created_by"]
@@ -140,6 +296,13 @@ export type Database = {
             columns: ["event_group_id"]
             isOneToOne: false
             referencedRelation: "event_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting"
             referencedColumns: ["id"]
           },
         ]
@@ -188,6 +351,13 @@ export type Database = {
             foreignKeyName: "event_access_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "event_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
           },
@@ -213,6 +383,13 @@ export type Database = {
           name?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "event_group_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
           {
             foreignKeyName: "event_group_created_by_fkey"
             columns: ["created_by"]
@@ -254,6 +431,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_group"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_group_access_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
           },
           {
             foreignKeyName: "event_group_access_user_id_fkey"
@@ -308,12 +492,64 @@ export type Database = {
             foreignKeyName: "event_user_state_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "event_user_state_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
           },
         ]
       }
-      meeting_events: {
+      meeting: {
+        Row: {
+          created_at: string
+          creator_id: string
+          ended_at: string | null
+          id: string
+          room_id: string
+          started_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          ended_at?: string | null
+          id?: string
+          room_id: string
+          started_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          ended_at?: string | null
+          id?: string
+          room_id?: string
+          started_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "meetings_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meeting_event: {
         Row: {
           created_at: string
           event_data: Json | null
@@ -343,8 +579,15 @@ export type Database = {
             foreignKeyName: "meeting_events_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
-            referencedRelation: "meetings"
+            referencedRelation: "meeting"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
           },
           {
             foreignKeyName: "meeting_events_user_id_fkey"
@@ -355,11 +598,10 @@ export type Database = {
           },
         ]
       }
-      meeting_participants: {
+      meeting_participant: {
         Row: {
           camera_enabled_at_join: boolean
           created_at: string
-          duration_seconds: number | null
           id: string
           is_moderator: boolean
           joined_at: string
@@ -371,7 +613,6 @@ export type Database = {
         Insert: {
           camera_enabled_at_join?: boolean
           created_at?: string
-          duration_seconds?: number | null
           id?: string
           is_moderator?: boolean
           joined_at?: string
@@ -383,7 +624,6 @@ export type Database = {
         Update: {
           camera_enabled_at_join?: boolean
           created_at?: string
-          duration_seconds?: number | null
           id?: string
           is_moderator?: boolean
           joined_at?: string
@@ -397,8 +637,15 @@ export type Database = {
             foreignKeyName: "meeting_participants_meeting_id_fkey"
             columns: ["meeting_id"]
             isOneToOne: false
-            referencedRelation: "meetings"
+            referencedRelation: "meeting"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meeting_participants_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
           },
           {
             foreignKeyName: "meeting_participants_user_id_fkey"
@@ -409,48 +656,96 @@ export type Database = {
           },
         ]
       }
-      meetings: {
+      message: {
         Row: {
+          content: string
+          content_type: string | null
+          conversation_id: string
           created_at: string
-          creator_id: string
-          duration_seconds: number | null
-          ended_at: string | null
+          deleted_at: string | null
+          edited_at: string | null
           id: string
-          started_at: string
-          updated_at: string
-          video_sdk_meeting_id: string
+          meeting_id: string | null
+          reply_to_id: string | null
+          sender_id: string
         }
         Insert: {
+          content: string
+          content_type?: string | null
+          conversation_id: string
           created_at?: string
-          creator_id: string
-          duration_seconds?: number | null
-          ended_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
-          started_at?: string
-          updated_at?: string
-          video_sdk_meeting_id: string
+          meeting_id?: string | null
+          reply_to_id?: string | null
+          sender_id: string
         }
         Update: {
+          content?: string
+          content_type?: string | null
+          conversation_id?: string
           created_at?: string
-          creator_id?: string
-          duration_seconds?: number | null
-          ended_at?: string | null
+          deleted_at?: string | null
+          edited_at?: string | null
           id?: string
-          started_at?: string
-          updated_at?: string
-          video_sdk_meeting_id?: string
+          meeting_id?: string | null
+          reply_to_id?: string | null
+          sender_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "meetings_creator_id_fkey"
-            columns: ["creator_id"]
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "group_conversations_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_id_fkey"
+            columns: ["reply_to_id"]
+            isOneToOne: false
+            referencedRelation: "message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
             isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
           },
         ]
       }
-      notifications: {
+      notification: {
         Row: {
           archived: string | null
           created_at: string
@@ -482,6 +777,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
           {
             foreignKeyName: "notifications_user_id_fkey"
             columns: ["user_id"]
@@ -536,6 +838,13 @@ export type Database = {
             foreignKeyName: "passkey_userId_fkey"
             columns: ["userId"]
             isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "passkey_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
           },
@@ -577,6 +886,13 @@ export type Database = {
             foreignKeyName: "session_userId_fkey"
             columns: ["userId"]
             isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "session_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
           },
@@ -602,6 +918,13 @@ export type Database = {
           userId?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "twoFactor_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
           {
             foreignKeyName: "twoFactor_userId_fkey"
             columns: ["userId"]
@@ -668,6 +991,13 @@ export type Database = {
             foreignKeyName: "user_group_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "user_group_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
             referencedRelation: "user"
             referencedColumns: ["id"]
           },
@@ -699,6 +1029,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "user_group"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_group_member_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
           },
           {
             foreignKeyName: "user_group_member_user_id_fkey"
@@ -738,15 +1075,115 @@ export type Database = {
       }
     }
     Views: {
+      direct_messages_inbox: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          current_user_id: string | null
+          description: string | null
+          event_id: string | null
+          id: string | null
+          last_message_at: string | null
+          name: string | null
+          partner_email: string | null
+          partner_id: string | null
+          partner_image: string | null
+          partner_name: string | null
+          type: string | null
+          updated_at: string | null
+          user_group_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["current_user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["current_user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_user_group_id_fkey"
+            columns: ["user_group_id"]
+            isOneToOne: false
+            referencedRelation: "user_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_conversations_inbox: {
+        Row: {
+          avatar_url: string | null
+          created_at: string | null
+          current_user_id: string | null
+          description: string | null
+          event_id: string | null
+          id: string | null
+          last_message_at: string | null
+          name: string | null
+          participants: Json | null
+          type: string | null
+          updated_at: string | null
+          user_group_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["current_user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "conversation_participants_user_id_fkey"
+            columns: ["current_user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_user_group_id_fkey"
+            columns: ["user_group_id"]
+            isOneToOne: false
+            referencedRelation: "user_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       view_all_event_access: {
         Row: {
           event_id: string | null
+          role: number | null
           user_id: string | null
         }
         Relationships: []
       }
     }
     Functions: {
+      check_conversation_access: {
+        Args: { p_conversation_id: string; p_user_id: string }
+        Returns: boolean
+      }
       get_active_events: {
         Args: { requesting_user_id: string }
         Returns: {
@@ -754,6 +1191,7 @@ export type Database = {
           created_by: string
           description: string
           event_group_id: string
+          event_meeting_id: string
           event_user_email: string
           event_user_name: string
           from: string
@@ -762,15 +1200,17 @@ export type Database = {
           title: string
           to: string
           type: Database["public"]["Enums"]["event_type"]
+          user_role: number
         }[]
       }
       get_event: {
-        Args: { request_id: string }
+        Args: { requesting_user_id: string; target_event_id: string }
         Returns: {
           created_at: string
           created_by: string
           description: string
           event_group_id: string
+          event_meeting_id: string
           event_user_email: string
           event_user_name: string
           from: string
@@ -779,6 +1219,7 @@ export type Database = {
           title: string
           to: string
           type: Database["public"]["Enums"]["event_type"]
+          user_role: number
         }[]
       }
       get_event_members: {
@@ -793,6 +1234,10 @@ export type Database = {
           user_id: string
           user_name: string
         }[]
+      }
+      get_existing_direct_conversation: {
+        Args: { user_a: string; user_b: string }
+        Returns: string
       }
       get_user_event_state: {
         Args: { requesting_user_id: string; target_event_id: string }
@@ -818,6 +1263,7 @@ export type Database = {
           created_by: string
           description: string
           event_group_id: string
+          event_meeting_id: string
           event_user_email: string
           event_user_name: string
           from: string
@@ -826,6 +1272,7 @@ export type Database = {
           title: string
           to: string
           type: Database["public"]["Enums"]["event_type"]
+          user_role: number
         }[]
       }
     }

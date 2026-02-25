@@ -1,11 +1,16 @@
 "use client";
-import { generateMeeting, getVideoSDKToken } from "@/server-actions/videosdk";
+import {
+  createJoinToken,
+  createRoom,
+  createToken,
+} from "@/server-actions/videosdk";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { getMeetingById } from "@/server-actions/meeting";
 
 // Dynamically import MeetingContainer to prevent SSR issues with VideoSDK
 const MeetingContainer = dynamic(
@@ -34,6 +39,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
   const [username, setUsername] = useState<string>("Anonymous");
   const [userId, setUserId] = useState<string>("");
   const [meetingId, setMeetingId] = useState<string>("");
+  const [meetingDbId, setMeetingDbId] = useState<string>("");
   const [token, setToken] = useState<string>("");
 
   useEffect(() => {
@@ -44,12 +50,16 @@ export default function MeetingPage({ params }: MeetingPageProps) {
         setUserId(session.data.user.id);
       }
       const { id: meetingId } = await params;
-      const meetingResult = await generateMeeting(meetingId);
-      if (meetingResult.success && meetingResult.data) {
-        setMeetingId(meetingResult.data);
+      setMeetingDbId(meetingId);
+      const meetingResult = await getMeetingById(meetingId);
+      console.log("Meeting result:", meetingResult);
+
+      if (!meetingResult.success || !meetingResult.data) {
+        setLoading(false);
+        return;
       }
-      // Generate VideoSDK token
-      const token = await getVideoSDKToken();
+      setMeetingId(meetingResult.data.room_id);
+      const token = await createJoinToken(meetingResult.data.room_id);
       if (token) setToken(token);
       setLoading(false);
     };
@@ -112,6 +122,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       token={token}
       participantName={username}
       userId={userId}
+      meetingDbId={meetingDbId}
     />
   );
 }
