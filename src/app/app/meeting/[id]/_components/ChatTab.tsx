@@ -1,10 +1,14 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send } from "lucide-react";
 import { usePubSub, useMeeting } from "@videosdk.live/react-sdk";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
+import {
+  getMessagesFirstPage,
+  sendMessage as persistMessage,
+} from "@/server-actions/chat";
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatMessage {
   id: string;
@@ -15,11 +19,37 @@ interface ChatMessage {
 }
 
 export default function ChatTab() {
+  // ...existing code...
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef(new Set<string>());
-  const { localParticipant } = useMeeting();
+  const { localParticipant, meetingId } = useMeeting();
+
+  // Load persisted messages for this meeting on mount
+  useEffect(() => {
+    if (!meetingId) return;
+    (async () => {
+      const persisted = await getMessagesFirstPage(
+        "meeting:" + meetingId,
+        50,
+        meetingId,
+      );
+      // Map persisted messages to ChatMessage format
+      const mapped = persisted.map((msg) => ({
+        id: msg.id,
+        senderId: msg.sender.id,
+        senderName: msg.sender.name || msg.sender.email || "Unknown",
+        message: msg.content,
+        timestamp: new Date(msg.created_at).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+      }));
+      setMessages(mapped);
+      mapped.forEach((m) => messagesRef.current.add(m.id));
+    })();
+  }, [meetingId]);
 
   // Subscribe to chat messages
   const { publish } = usePubSub("CHAT", {
@@ -52,6 +82,16 @@ export default function ChatTab() {
         };
 
         setMessages((prev) => [...prev, newMessage]);
+
+        // Persist received message if not already in DB
+        if (meetingId && parsedData.senderId && parsedData.message) {
+          persistMessage({
+            conversationId: "meeting:" + meetingId,
+            content: parsedData.message,
+            id: messageKey,
+            meetingId,
+          });
+        }
       } catch (error) {
         console.error("Failed to parse message:", error);
       }
@@ -71,7 +111,7 @@ export default function ChatTab() {
   }, [messages]);
 
   const handleSendMessage = useCallback(() => {
-    if (!messageInput.trim() || !localParticipant) return;
+    if (!messageInput.trim() || !localParticipant || !meetingId) return;
 
     const messageText = messageInput.trim();
     const messageData = {
@@ -84,8 +124,16 @@ export default function ChatTab() {
       // Publish message to all participants
       publish(JSON.stringify(messageData), { persist: true });
 
-      // Immediately add our own message to avoid waiting for echo
+      // Persist message in DB
       const messageKey = `${localParticipant.id}-${messageText}-${Date.now()}`;
+      persistMessage({
+        conversationId: "meeting:" + meetingId,
+        content: messageText,
+        id: messageKey,
+        meetingId,
+      });
+
+      // Immediately add our own message to avoid waiting for echo
       if (!messagesRef.current.has(messageKey)) {
         messagesRef.current.add(messageKey);
 
@@ -109,7 +157,7 @@ export default function ChatTab() {
     } catch (error) {
       console.error("Failed to send message:", error);
     }
-  }, [messageInput, localParticipant, publish]);
+  }, [messageInput, localParticipant, meetingId, publish]);
 
   const isOwnMessage = useCallback(
     (senderId: string) => {
