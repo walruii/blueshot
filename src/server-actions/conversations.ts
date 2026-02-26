@@ -38,6 +38,29 @@ export async function getDirectConversations(): Promise<InboxDirect[]> {
   }
 }
 
+export async function getGroupConversationById(
+  conversationId: string,
+): Promise<InboxGroup | null> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return null;
+    if (!conversationId) return null;
+
+    const { data, error } = await supabaseAdmin
+      .from("group_conversations_inbox")
+      .select()
+      .eq("current_user_id", session.user.id)
+      .eq("id", conversationId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return data ? formatInboxGroup(data) : null;
+  } catch (err) {
+    console.error("Error fetching group conversation by id:", err);
+    return null;
+  }
+}
+
 export async function getGroupConversations(): Promise<InboxGroup[]> {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -111,13 +134,17 @@ export async function createDirectConversation(
 
     if (partError) return { success: false, error: partError.message };
 
-    // Broadcast to the recipient so they can update their inbox in real-time
+    // Broadcast to both the recipient and the creator so they can update their
+    // inbox lists simultaneously.  This ensures the sidebar revalidates no
+    // matter who triggered the creation (client will also navigate).
     try {
-      await supabaseAdmin.channel(`user_inbox_${targetUser.id}`).send({
-        type: "broadcast",
-        event: "NEW_DIRECT_CONVERSATION",
-        payload: { conversationId: conversation.id },
-      });
+      await Promise.all([
+        supabaseAdmin.channel(`user_inbox_${targetUser.id}`).send({
+          type: "broadcast",
+          event: "NEW_DIRECT_CONVERSATION",
+          payload: { conversationId: conversation.id },
+        }),
+      ]);
     } catch (broadcastErr) {
       console.error(
         "Failed to broadcast new direct conversation",

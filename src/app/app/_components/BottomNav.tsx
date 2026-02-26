@@ -8,6 +8,7 @@ import {
   Users,
   Settings,
   LogOut,
+  MessageSquare,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 
@@ -29,10 +30,10 @@ export default function BottomNav() {
       isActive: pathname?.startsWith("/app/calendar"),
     },
     {
-      href: "/app/groups/user",
-      label: "Groups",
-      icon: Users,
-      isActive: pathname?.startsWith("/app/groups"),
+      href: "/app/conversations",
+      label: "Chats",
+      icon: MessageSquare,
+      isActive: pathname?.startsWith("/app/conversations"),
     },
     {
       href: "/app/settings",

@@ -4,7 +4,6 @@ import { MessageWithSender } from "@/types/chat";
 import { fetchUserProfileAction } from "@/server-actions/chat";
 import { getSupabaseAnonClient } from "@/lib/supabase-anon";
 import { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
-import { getSupabaseToken } from "@/lib/supabase-token";
 
 // helper that will take a raw message row from Supabase and convert to
 // our MessageWithSender shape. Because realtime payloads don't include
@@ -96,7 +95,7 @@ export function useRealtimeChat(convoId: string) {
     };
     realTimeSetup();
     return () => {
-      supabase.removeChannel(activeChannel);
+      if (supabase && activeChannel) supabase.removeChannel(activeChannel);
     };
   }, [convoId]);
 }

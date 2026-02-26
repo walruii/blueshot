@@ -16,7 +16,7 @@ export function useInfiniteMessages(
   options?: {
     pageSize?: number;
     /** Ref for the scrollable element; required for scroll compensation when prepending. */
-    scrollContainerRef?: React.RefObject<HTMLElement | null>;
+    scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
   },
 ) {
   const pageSize = options?.pageSize ?? DEFAULT_PAGE_SIZE;
