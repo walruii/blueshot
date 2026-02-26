@@ -4,6 +4,7 @@ import "./globals.css";
 import { AlertProvider } from "@/components/AlertProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "next-themes";
+import RealtimeInboxProvider from "@/app/app/_components/RealtimeInboxProvider";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -36,7 +37,9 @@ export default function RootLayout({
     >
       <body className={`${mont.variable} ${firaMono.variable} antialiased`}>
         <ThemeProvider attribute="class" forcedTheme="dark">
-          <AlertProvider>{children}</AlertProvider>
+          <AlertProvider>
+            <RealtimeInboxProvider>{children}</RealtimeInboxProvider>
+          </AlertProvider>
           <Toaster />
         </ThemeProvider>
       </body>

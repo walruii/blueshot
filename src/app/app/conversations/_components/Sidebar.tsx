@@ -1,105 +1,108 @@
 "use client";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Session } from "@/types/sessionType";
-import { Button } from "@/components/ui/button";
-import { UserIcon } from "lucide-react";
-import Image from "next/image";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InboxDirect, InboxGroup, InboxItem } from "@/types/chat";
-import NewConversation from "./NewConversation";
-import { DirectConversationList } from "./DirectConversationList";
-import { GroupConversationList } from "./GroupConversationList";
-import { InboxTab } from "../_hooks/use-conversations-state";
+import { useEffect, useState } from "react";
+
+import useMediaQuery from "@/hooks/useMediaQuery";
+import DesktopSidebar from "./DesktopSidebar";
+import MobileSidebar from "./MobileSidebar";
 
 export default function Sidebar({
   directConversations,
   groupConversations,
-  selected,
-  onSelectDirect,
-  onSelectGroup,
-  onConversationCreated,
   session,
-  setSelectedTab,
-  selectedTab,
 }: {
   directConversations: InboxDirect[];
   groupConversations: InboxGroup[];
-  selected: InboxItem | null;
-  onSelectDirect: (id: string | null) => void;
-  onSelectGroup: (id: string | null) => void;
-  onConversationCreated?: (conversationId: string) => void;
   session: Session;
-  setSelectedTab: (tab: InboxTab) => void;
-  selectedTab: InboxTab;
 }) {
   const router = useRouter();
-  return (
-    <aside className="w-80 bg-card border-r border-border flex flex-col">
-      <header className="p-4 border-b border-border flex items-center gap-3 justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex justify-center items-center rounded-full overflow-clip h-10 w-10 bg-muted shrink-0">
-            {session.user.image ? (
-              <Image
-                src={session.user.image}
-                alt={session.user.name}
-                width={100}
-                height={100}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <UserIcon />
-            )}
-          </div>
-          <span className="font-bold text-lg text-blue-800">Blueshot</span>
-        </div>
-        <Button
-          className="bg-muted hover:bg-accent text-sm font-medium border border-border transition-colors"
-          onClick={() => router.push("/app")}
-          type="button"
-        >
-          Go Back
-        </Button>
-      </header>
-      <Tabs value={selectedTab} className="w-full">
-        <TabsList className="bg-transparent border-b border-border w-full">
-          <TabsTrigger
-            value="conversations"
-            className="data-[state=active]:border-blue-500 data-[state=active]:border-b-2 text-sm font-medium text-muted-foreground"
-            onClick={() => setSelectedTab("conversations")}
-          >
-            Conversations
-          </TabsTrigger>
-          <TabsTrigger
-            value="groups"
-            className="data-[state=active]:border-blue-500 data-[state=active]:border-b-2 text-sm font-medium text-muted-foreground"
-            onClick={() => setSelectedTab("groups")}
-          >
-            Groups
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-      <NewConversation onConversationCreated={onConversationCreated} />
-      <ScrollArea className="flex-1">
-        {selectedTab === "conversations" ? (
-          <DirectConversationList
-            conversations={directConversations}
-            selectedId={selected?.type === "direct" ? selected.id : null}
-            onSelect={onSelectDirect}
-          />
-        ) : (
-          <GroupConversationList
-            conversations={groupConversations}
-            selectedId={
-              selected && selected?.type !== "direct" ? selected.id : null
-            }
-            onSelect={onSelectGroup}
-          />
-        )}
-      </ScrollArea>
-      <footer className="p-4 text-center text-sm text-muted-foreground">
-        Blueshot Conversations
-      </footer>
-    </aside>
+  const pathname = usePathname();
+
+  // avoid hydration mismatches by deferring any layout that depends on client
+  // media queries until after hydration.  the server will always render the
+  // desktop sidebar, and we switch to mobile only once `mounted` is true.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // tab state is UI-only; user can switch tabs, but we also update when the
+  // route changes so the active tab matches the type of conversation in the
+  // URL.  This effect only runs on pathname updates, avoiding an override when
+  // the user merely clicks the tab without navigating.
+  const [selectedTab, setSelectedTab] = useState<"conversations" | "groups">(
+    "conversations",
+  );
+
+  // compute selected item from the URL for highlighting the current convo
+  let selected: InboxItem | null = null;
+
+  if (pathname) {
+    const m = pathname.match(/\/app\/conversations\/(d|g)\/([^\/]+)/);
+    if (m) {
+      const [, type, id] = m;
+      if (type === "d") {
+        selected = directConversations.find((c) => c.id === id) ?? selected;
+      } else if (type === "g") {
+        selected = groupConversations.find((c) => c.id === id) ?? selected;
+      }
+    }
+  }
+
+  // keep the tab state aligned with the path whenever it changes
+  useEffect(() => {
+    if (!pathname) return;
+    const m = pathname.match(/\/app\/conversations\/(d|g)\/([^\/]+)/);
+    if (m) {
+      const type = m[1];
+      setSelectedTab(type === "d" ? "conversations" : "groups");
+    }
+  }, [pathname]);
+
+  const onGoBack = () => router.push("/app");
+
+  const onSelectDirect = (id: string | null) => {
+    if (!id) return;
+    const conversation = directConversations.find((c) => c.id === id);
+    if (conversation) {
+      router.push(`/app/conversations/d/${conversation.id}`);
+    }
+  };
+
+  const onSelectGroup = (id: string | null) => {
+    if (!id) return;
+    const conversation = groupConversations.find((c) => c.id === id);
+    if (conversation) {
+      router.push(`/app/conversations/g/${conversation.id}`);
+    }
+  };
+
+  const sharedProps = {
+    directConversations,
+    groupConversations,
+    session,
+    selectedTab,
+    setSelectedTab,
+    selected,
+    onSelectDirect,
+    onSelectGroup,
+    onGoBack,
+  };
+
+  const isWide = useMediaQuery("(min-width: 640px)");
+
+  // before the client has mounted we render the desktop layout which is
+  // identical to what the server produced; once mounted we can switch to
+  // mobile if necessary.
+  if (!mounted) {
+    return <DesktopSidebar {...sharedProps} />;
+  }
+
+  return isWide ? (
+    <DesktopSidebar {...sharedProps} />
+  ) : (
+    <MobileSidebar {...sharedProps} />
   );
 }

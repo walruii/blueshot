@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Plus, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,23 +16,53 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createDirectConversation } from "@/server-actions/conversations";
+import { useChatStore } from "@/stores/chatStore";
 import type { Result } from "@/types/returnType";
 
-export default function NewConversation({
-  onConversationCreated,
-}: {
-  onConversationCreated?: (conversationId: string) => void;
-}) {
+export default function NewConversation() {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const router = useRouter();
+
+  const onConversationCreated = async (conversationId: string) => {
+    // close dialog right away so UI feels responsive
+    setOpen(false);
+    setEmail("");
+
+    // navigate and then explicitly refresh server data so the sidebar layout
+    // query runs again and includes the new conversation.  pushing to the new
+    // route does not automatically re-run the parent layout when the path
+    // stays within the same segment, so we need the extra refresh call.
+    await router.push(`/app/conversations/d/${conversationId}`);
+    router.refresh();
+
+    // update zustand for components that may read from the store (e.g. if the
+    // user stays on the same page due to an error not navigating) – harmless
+    // but ensures the in‑memory cache is in sync.
+    try {
+      const conv = await import("@/server-actions/conversations").then((mod) =>
+        mod.getDirectConversationById(conversationId),
+      );
+      if (conv?.id) {
+        useChatStore.getState().addDirectConversation(conv);
+      }
+    } catch (err) {
+      console.error("failed to fetch new conversation", err);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <Plus className="h-5 w-5" />
+        <Button
+          variant="ghost"
+          className="h-8 w-auto px-3 justify-center flex items-center"
+        >
+          <Plus className="h-5 w-5 mr-2" />
+          New Conversation
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-100">
@@ -52,10 +83,7 @@ export default function NewConversation({
               }
 
               const conversationId = result.data;
-              if (conversationId) onConversationCreated?.(conversationId);
-
-              setOpen(false);
-              setEmail("");
+              if (conversationId) await onConversationCreated(conversationId);
             } finally {
               setIsSubmitting(false);
             }

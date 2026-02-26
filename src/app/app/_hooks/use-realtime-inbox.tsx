@@ -65,6 +65,8 @@ export function useRealtimeInbox(userId: string) {
             description: "You were added to a new direct message",
             type: "info",
           });
+          // also refresh the layout so the server query for the inbox runs again
+          router.refresh();
           try {
             const { conversationId } = p.payload || {};
             if (conversationId) {
