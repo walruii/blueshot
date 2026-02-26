@@ -60,14 +60,20 @@ export const getMessages = async (conversationId: string) => {
 export const getMessagesFirstPage = async (
   conversationId: string,
   limit: number = 20,
+  meetingId?: string,
 ) => {
-  console.log(conversationId, limit);
-  const { data: messages, error } = await supabaseAdmin
+  console.log(conversationId, limit, meetingId);
+  let query = supabaseAdmin
     .from("message")
     .select("*, user!inner(id, name, email, image)")
-    .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (meetingId) {
+    query = query.eq("meeting_id", meetingId);
+  } else {
+    query = query.eq("conversation_id", conversationId);
+  }
+  const { data: messages, error } = await query;
 
   if (error) {
     console.error("Failed to fetch messages: ", error);
@@ -83,14 +89,20 @@ export const getMessagesBefore = async (
   conversationId: string,
   beforeCreatedAt: string,
   limit: number = 20,
+  meetingId?: string,
 ) => {
-  const { data: messages, error } = await supabaseAdmin
+  let query = supabaseAdmin
     .from("message")
     .select("*, user!inner(id, name, email, image)")
-    .eq("conversation_id", conversationId)
     .lt("created_at", beforeCreatedAt)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (meetingId) {
+    query = query.eq("meeting_id", meetingId);
+  } else {
+    query = query.eq("conversation_id", conversationId);
+  }
+  const { data: messages, error } = await query;
 
   if (error) {
     console.error("Failed to fetch older messages: ", error);
@@ -106,6 +118,7 @@ export const sendMessage = async (args: {
   content: string;
   id: string;
   contentType?: MessageWithSender["content_type"];
+  meetingId?: string;
 }): Promise<Result<MessageWithSender>> => {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -127,6 +140,7 @@ export const sendMessage = async (args: {
         content,
         content_type: args.contentType ?? "text",
         sender_id: session.user.id,
+        meeting_id: args.meetingId ?? null,
       })
       .select("*, user!inner(id, name, email, image)")
       .single();
