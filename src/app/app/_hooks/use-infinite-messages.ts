@@ -53,11 +53,7 @@ export function useInfiniteMessages(
       if (conversationId.startsWith("meeting:")) {
         meetingId = conversationId.replace("meeting:", "");
       }
-      const firstPage = await getMessagesFirstPage(
-        conversationId,
-        pageSize,
-        meetingId,
-      );
+      const firstPage = await getMessagesFirstPage(conversationId, pageSize);
       if (cancelled) return;
       setMessages(conversationId, firstPage);
       setHasMoreBefore(conversationId, firstPage.length >= pageSize);
@@ -92,7 +88,6 @@ export function useInfiniteMessages(
       conversationId,
       oldest.created_at,
       pageSize,
-      meetingId,
     );
     prependMessages(conversationId, older);
     setHasMoreBefore(conversationId, older.length >= pageSize);

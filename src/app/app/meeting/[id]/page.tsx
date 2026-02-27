@@ -30,7 +30,6 @@ interface MeetingPageProps {
 }
 
 export default function MeetingPage({ params }: MeetingPageProps) {
-  // Get session
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string>("Anonymous");
   const [userId, setUserId] = useState<string>("");

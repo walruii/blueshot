@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { nanoid } from "nanoid";
 import { authClient } from "@/lib/auth-client";
 import { useChatStore } from "@/stores/chatStore";
 import { useInfiniteMessages } from "../../_hooks/use-infinite-messages";
@@ -72,7 +71,6 @@ export function useConversation(conversationId: string) {
           conversationId,
           content: trimmed,
           id: tempId,
-          meetingId: meetingId ?? undefined,
         });
 
         if (!result.success) {

@@ -7,14 +7,18 @@ import TranscriptTab from "./TranscriptTab";
 import SmartNotesTab from "./SmartNotesTab";
 import ParticipantsTab from "./ParticipantsTab";
 
-export default function IntegratedSidebar() {
+export default function IntegratedSidebar({
+  meetingDbId,
+}: {
+  meetingDbId: string;
+}) {
   const { participants } = useMeeting();
 
   // Convert participants Map to array of IDs
   const participantIds = participants ? Array.from(participants.keys()) : [];
 
   return (
-    <div className="hidden lg:flex w-80 h-full border-l border-border bg-card flex-col z-40">
+    <div className="w-80 h-full border-l border-border bg-card flex-col z-40">
       <Tabs defaultValue="chat" className="flex flex-col h-full">
         {/* Tabs Header */}
         <div className="border-b border-border p-2">
@@ -49,22 +53,25 @@ export default function IntegratedSidebar() {
 
         {/* Chat Tab */}
         <TabsContent value="chat" className="flex-1 flex flex-col m-0 p-0">
-          <ChatTab />
+          <ChatTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Transcript Tab */}
         <TabsContent value="transcript" className="flex-1 m-0 p-0">
-          <TranscriptTab />
+          <TranscriptTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Smart Notes Tab */}
         <TabsContent value="notes" className="flex-1 m-0 p-0">
-          <SmartNotesTab />
+          <SmartNotesTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Participants Tab */}
         <TabsContent value="participants" className="flex-1 m-0 p-0">
-          <ParticipantsTab participantIds={participantIds} />
+          <ParticipantsTab
+            participantIds={participantIds}
+            meetingDbId={meetingDbId}
+          />
         </TabsContent>
       </Tabs>
     </div>

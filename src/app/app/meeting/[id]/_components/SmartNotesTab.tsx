@@ -18,7 +18,11 @@ interface ActionItem {
   completed: boolean;
 }
 
-export default function SmartNotesTab() {
+export default function SmartNotesTab({
+  meetingDbId,
+}: {
+  meetingDbId: string;
+}) {
   const [actionItems, setActionItems] =
     useState<ActionItem[]>(SAMPLE_ACTION_ITEMS);
 

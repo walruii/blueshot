@@ -1,10 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { usePubSub, useMeeting } from "@videosdk.live/react-sdk";
-import {
-  getMessagesFirstPage,
-  sendMessage as persistMessage,
-} from "@/server-actions/chat";
+import { getMessagesMeeting, sendMessageMeeting } from "@/server-actions/chat";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,23 +15,18 @@ interface ChatMessage {
   timestamp: string;
 }
 
-export default function ChatTab() {
-  // ...existing code...
+export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
   const [messageInput, setMessageInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef(new Set<string>());
-  const { localParticipant, meetingId } = useMeeting();
+  const { localParticipant } = useMeeting();
 
   // Load persisted messages for this meeting on mount
   useEffect(() => {
-    if (!meetingId) return;
     (async () => {
-      const persisted = await getMessagesFirstPage(
-        "meeting:" + meetingId,
-        50,
-        meetingId,
-      );
+      const persisted = await getMessagesMeeting(meetingDbId, 50);
+      console.log("Persisted messages:", persisted);
       // Map persisted messages to ChatMessage format
       const mapped = persisted.map((msg) => ({
         id: msg.id,
@@ -49,29 +41,18 @@ export default function ChatTab() {
       setMessages(mapped);
       mapped.forEach((m) => messagesRef.current.add(m.id));
     })();
-  }, [meetingId]);
+  }, []);
 
   // Subscribe to chat messages
   const { publish } = usePubSub("CHAT", {
-    onMessageReceived: (data: any) => {
+    onMessageReceived: (data) => {
+      const parsedData =
+        typeof data.message === "string" ? JSON.parse(data.message) : data;
+      if (messagesRef.current.has(parsedData.id)) return;
       try {
-        const parsedData =
-          typeof data.message === "string"
-            ? JSON.parse(data.message)
-            : data.message;
-
-        // Use a composite key to prevent duplicates
-        const messageKey = `${parsedData.senderId}-${parsedData.message}-${data.timestamp || Date.now()}`;
-
-        // Skip if we've already seen this message
-        if (messagesRef.current.has(messageKey)) {
-          return;
-        }
-
-        messagesRef.current.add(messageKey);
-
+        messagesRef.current.add(parsedData.id);
         const newMessage: ChatMessage = {
-          id: messageKey,
+          id: parsedData.id,
           senderId: parsedData.senderId,
           senderName: parsedData.senderName,
           message: parsedData.message,
@@ -82,16 +63,6 @@ export default function ChatTab() {
         };
 
         setMessages((prev) => [...prev, newMessage]);
-
-        // Persist received message if not already in DB
-        if (meetingId && parsedData.senderId && parsedData.message) {
-          persistMessage({
-            conversationId: "meeting:" + meetingId,
-            content: parsedData.message,
-            id: messageKey,
-            meetingId,
-          });
-        }
       } catch (error) {
         console.error("Failed to parse message:", error);
       }
@@ -111,10 +82,12 @@ export default function ChatTab() {
   }, [messages]);
 
   const handleSendMessage = useCallback(() => {
-    if (!messageInput.trim() || !localParticipant || !meetingId) return;
+    if (!messageInput.trim() || !localParticipant || !meetingDbId) return;
 
+    const messageKey = crypto.randomUUID();
     const messageText = messageInput.trim();
     const messageData = {
+      id: messageKey,
       senderId: localParticipant.id,
       senderName: localParticipant.displayName,
       message: messageText,
@@ -125,12 +98,10 @@ export default function ChatTab() {
       publish(JSON.stringify(messageData), { persist: true });
 
       // Persist message in DB
-      const messageKey = `${localParticipant.id}-${messageText}-${Date.now()}`;
-      persistMessage({
-        conversationId: "meeting:" + meetingId,
+      sendMessageMeeting({
+        meetingId: meetingDbId,
         content: messageText,
         id: messageKey,
-        meetingId,
       });
 
       // Immediately add our own message to avoid waiting for echo
@@ -157,7 +128,7 @@ export default function ChatTab() {
     } catch (error) {
       console.error("Failed to send message:", error);
     }
-  }, [messageInput, localParticipant, meetingId, publish]);
+  }, [messageInput, localParticipant, publish]);
 
   const isOwnMessage = useCallback(
     (senderId: string) => {
@@ -205,7 +176,7 @@ export default function ChatTab() {
           placeholder="Type message..."
           value={messageInput}
           onChange={(e) => setMessageInput(e.target.value)}
-          onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+          onKeyUp={(e) => e.key === "Enter" && handleSendMessage()}
           className="h-8 text-sm"
         />
         <Button

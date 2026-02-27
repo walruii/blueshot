@@ -10,42 +10,23 @@ import {
   Loader2,
   Sparkles,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getMeetingByRoomId,
   recordMeetingEvent,
   recordParticipantLeave,
 } from "@/server-actions/meeting";
 
 interface ControlBarProps {
-  meetingId: string;
   userId: string;
+  meetingDbId: string;
 }
 
-export default function ControlBar({ meetingId, userId }: ControlBarProps) {
-  const {
-    toggleMic,
-    toggleWebcam,
-    leave,
-    localMicOn,
-    localWebcamOn,
-    meetingId: videoSdkMeetingId,
-  } = useMeeting();
+export default function ControlBar({ userId, meetingDbId }: ControlBarProps) {
+  const { toggleMic, toggleWebcam, leave, localMicOn, localWebcamOn } =
+    useMeeting();
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const [meetingDbId, setMeetingDbId] = useState<string | null>(null);
   const router = useRouter();
-
-  // Get meeting DB ID on mount
-  useEffect(() => {
-    const fetchMeetingDbId = async () => {
-      const result = await getMeetingByRoomId(videoSdkMeetingId);
-      if (result.success && result.data) {
-        setMeetingDbId(result.data.id);
-      }
-    };
-    fetchMeetingDbId();
-  }, [meetingId]);
 
   const handleLeave = async () => {
     if (meetingDbId) {
@@ -90,7 +71,7 @@ export default function ControlBar({ meetingId, userId }: ControlBarProps) {
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 bg-background/80 backdrop-blur-sm border-t border-border z-30">
+    <div className="bg-background/80 backdrop-blur-sm border-t border-border z-30">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-center gap-4">
           {/* Mic Toggle */}

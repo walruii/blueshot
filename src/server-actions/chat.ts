@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 
 function mapRowToMessageWithSender(msg: {
   id: string;
-  conversation_id: string;
+  conversation_id: string | null;
   content: string;
   content_type: string | null;
   created_at: string;
@@ -24,7 +24,7 @@ function mapRowToMessageWithSender(msg: {
 }): MessageWithSender {
   return {
     id: msg.id,
-    conversation_id: msg.conversation_id,
+    conversation_id: msg.conversation_id ?? null,
     content: msg.content,
     content_type:
       (msg.content_type as MessageWithSender["content_type"]) ?? "text",
@@ -60,19 +60,13 @@ export const getMessages = async (conversationId: string) => {
 export const getMessagesFirstPage = async (
   conversationId: string,
   limit: number = 20,
-  meetingId?: string,
 ) => {
-  console.log(conversationId, limit, meetingId);
   let query = supabaseAdmin
     .from("message")
     .select("*, user!inner(id, name, email, image)")
+    .eq("conversation_id", conversationId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (meetingId) {
-    query = query.eq("meeting_id", meetingId);
-  } else {
-    query = query.eq("conversation_id", conversationId);
-  }
   const { data: messages, error } = await query;
 
   if (error) {
@@ -89,19 +83,14 @@ export const getMessagesBefore = async (
   conversationId: string,
   beforeCreatedAt: string,
   limit: number = 20,
-  meetingId?: string,
 ) => {
   let query = supabaseAdmin
     .from("message")
     .select("*, user!inner(id, name, email, image)")
+    .eq("conversation_id", conversationId)
     .lt("created_at", beforeCreatedAt)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (meetingId) {
-    query = query.eq("meeting_id", meetingId);
-  } else {
-    query = query.eq("conversation_id", conversationId);
-  }
   const { data: messages, error } = await query;
 
   if (error) {
@@ -118,7 +107,6 @@ export const sendMessage = async (args: {
   content: string;
   id: string;
   contentType?: MessageWithSender["content_type"];
-  meetingId?: string;
 }): Promise<Result<MessageWithSender>> => {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
@@ -140,7 +128,6 @@ export const sendMessage = async (args: {
         content,
         content_type: args.contentType ?? "text",
         sender_id: session.user.id,
-        meeting_id: args.meetingId ?? null,
       })
       .select("*, user!inner(id, name, email, image)")
       .single();
@@ -182,3 +169,91 @@ export async function fetchUserProfileAction(userId: string): Promise<
     return { success: false, error: "Internal server error" };
   }
 }
+
+/** Fetches the most recent `limit` messages (newest first from DB), returns in ascending created_at order for display. */
+export const getMessagesMeeting = async (
+  meetingId: string,
+  limit: number = 20,
+) => {
+  let query = supabaseAdmin
+    .from("message")
+    .select("*, user!inner(id, name, email, image)")
+    .eq("meeting_id", meetingId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const { data: messages, error } = await query;
+
+  if (error) {
+    console.error("Failed to fetch messages: ", error);
+    return [];
+  }
+
+  const mapped = messages.map(mapRowToMessageWithSender);
+  return mapped.reverse();
+};
+
+/** Fetches older messages before a given timestamp (cursor). Returns in ascending created_at order for prepending. */
+export const getMessagesBeforeMeeting = async (
+  roomId: string,
+  beforeCreatedAt: string,
+  limit: number = 20,
+) => {
+  let query = supabaseAdmin
+    .from("message")
+    .select("*, user!inner(id, name, email, image), meeting!inner(id, room_id)")
+    .eq("meeting.room_id", roomId)
+    .lt("created_at", beforeCreatedAt)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  const { data: messages, error } = await query;
+
+  if (error) {
+    console.error("Failed to fetch older messages: ", error);
+    return [];
+  }
+
+  const mapped = messages.map(mapRowToMessageWithSender);
+  return mapped.reverse();
+};
+
+export const sendMessageMeeting = async (args: {
+  meetingId: string;
+  content: string;
+  id: string;
+  contentType?: MessageWithSender["content_type"];
+}): Promise<Result<MessageWithSender>> => {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return { success: false, error: "Unauthorized" };
+
+    const content = args.content.trim();
+    if (!args.meetingId) {
+      return { success: false, error: "Meeting id is required" };
+    }
+    if (!content) return { success: false, error: "Message is empty" };
+    if (!args.id) return { success: false, error: "Message id is required" };
+
+    console.log("Attempting to send message with content:", args);
+    const { data, error } = await supabaseAdmin
+      .from("message")
+      .insert({
+        id: args.id,
+        meeting_id: args.meetingId,
+        content,
+        content_type: args.contentType ?? "text",
+        sender_id: session.user.id,
+      })
+      .select("*, user!inner(id, name, email, image)")
+      .single();
+
+    if (error || !data) {
+      console.error("Failed to send message: ", error);
+      return { success: false, error: error?.message ?? "Failed to send" };
+    }
+
+    return { success: true, data: mapRowToMessageWithSender(data as any) };
+  } catch (err) {
+    console.error("Error in sendMessage: ", err);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+};

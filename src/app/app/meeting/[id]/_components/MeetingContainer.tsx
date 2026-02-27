@@ -59,7 +59,7 @@ function MeetingContent({
   );
 }
 
-function MeetingContentWithDevices({
+export function MeetingContentWithDevices({
   deviceSettings,
   meetingId,
   userId,
@@ -97,20 +97,25 @@ function MeetingContentWithDevices({
   }, [meetingId, userId]);
 
   return (
-    <>
-      <div className="flex h-screen bg-black">
-        {/* Video grid with participant tiles */}
-        <div className="flex-1 pb-24">
+    <div className="grid grid-rows-[1fr,auto] h-dvh bg-black text-white overflow-hidden">
+      {/* Main Content Area (Video + Sidebar) */}
+      <div className="flex overflow-hidden">
+        {/* Video grid with participant tiles - flex-1 takes remaining space */}
+        <div className="flex-1 overflow-hidden relative">
           <VideoGrid meetingId={meetingId} />
         </div>
 
         {/* Integrated Sidebar */}
-        <IntegratedSidebar />
+        <div className="w-80 border-l border-neutral-800 flex flex-col overflow-hidden">
+          <IntegratedSidebar meetingDbId={meetingDbId} />
+        </div>
       </div>
 
-      {/* Control Bar */}
-      <ControlBar meetingId={meetingId} userId={userId} />
-    </>
+      {/* Control Bar - pinned to bottom */}
+      <div className="h-20 border-t border-neutral-800 bg-neutral-950">
+        <ControlBar userId={userId} meetingDbId={meetingDbId} />
+      </div>
+    </div>
   );
 }
 
