@@ -1,11 +1,13 @@
 "use client";
 import { MessageSquare, FileText, Sparkles, Users } from "lucide-react";
-import { useMeeting } from "@videosdk.live/react-sdk";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChatTab from "./ChatTab";
 import TranscriptTab from "./TranscriptTab";
 import SmartNotesTab from "./SmartNotesTab";
 import ParticipantsTab from "./ParticipantsTab";
+import { isMeetingDebug } from "@/lib/debug";
+
+import { useMeeting } from "@/lib/videosdkWrapper";
 
 export default function IntegratedSidebar({
   meetingDbId,
@@ -14,13 +16,18 @@ export default function IntegratedSidebar({
 }) {
   const { participants } = useMeeting();
 
-  // Convert participants Map to array of IDs
-  const participantIds = participants ? Array.from(participants.keys()) : [];
+  // convert participants map to array, add mock entries when debugging
+  if (isMeetingDebug() && participants && participants.size === 0) {
+    participants.set("user-1", { id: "user-1", displayName: "Alice" });
+    participants.set("user-2", { id: "user-2", displayName: "Bob" });
+  }
+  const participantIds = participants
+    ? (Array.from(participants.keys()) as string[])
+    : [];
 
   return (
-    <div className="w-80 h-full border-l border-border bg-card flex-col z-40">
+    <>
       <Tabs defaultValue="chat" className="flex flex-col h-full">
-        {/* Tabs Header */}
         <div className="border-b border-border p-2">
           <TabsList className="w-full grid grid-cols-4 h-9">
             <TabsTrigger value="chat" className="gap-1 text-xs" title="Chat">
@@ -52,7 +59,7 @@ export default function IntegratedSidebar({
         </div>
 
         {/* Chat Tab */}
-        <TabsContent value="chat" className="flex-1 flex flex-col m-0 p-0">
+        <TabsContent value="chat" className="flex-1 m-0 p-0">
           <ChatTab meetingDbId={meetingDbId} />
         </TabsContent>
 
@@ -74,6 +81,6 @@ export default function IntegratedSidebar({
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </>
   );
 }

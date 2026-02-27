@@ -1,5 +1,4 @@
 "use client";
-import { useMeeting } from "@videosdk.live/react-sdk";
 import { Button } from "@/components/ui/button";
 import {
   Mic,
@@ -9,6 +8,7 @@ import {
   PhoneOff,
   Loader2,
   Sparkles,
+  Menu,
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,32 +16,40 @@ import {
   recordMeetingEvent,
   recordParticipantLeave,
 } from "@/server-actions/meeting";
+import { isMeetingDebug } from "@/lib/debug";
+
+import { useMeeting } from "@/lib/videosdkWrapper";
 
 interface ControlBarProps {
   userId: string;
   meetingDbId: string;
+  sidebarSetOpen?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function ControlBar({ userId, meetingDbId }: ControlBarProps) {
+export default function ControlBar({
+  userId,
+  meetingDbId,
+  sidebarSetOpen,
+}: ControlBarProps) {
   const { toggleMic, toggleWebcam, leave, localMicOn, localWebcamOn } =
     useMeeting();
   const [isSummarizing, setIsSummarizing] = useState(false);
   const router = useRouter();
 
   const handleLeave = async () => {
-    if (meetingDbId) {
+    if (!isMeetingDebug() && meetingDbId) {
       // Record participant leave
       await recordParticipantLeave(meetingDbId, userId);
       // Record leave event
       await recordMeetingEvent(meetingDbId, userId, "leave");
+      router.push("/app"); // redirect only in non-debug
     }
     leave();
-    router.push("/app"); // Redirect to app home after leaving
   };
 
   const handleToggleMic = async () => {
     toggleMic();
-    if (meetingDbId) {
+    if (!isMeetingDebug() && meetingDbId) {
       // Record event after toggle (state will flip)
       await recordMeetingEvent(
         meetingDbId,
@@ -53,7 +61,7 @@ export default function ControlBar({ userId, meetingDbId }: ControlBarProps) {
 
   const handleToggleWebcam = async () => {
     toggleWebcam();
-    if (meetingDbId) {
+    if (!isMeetingDebug() && meetingDbId) {
       // Record event after toggle (state will flip)
       await recordMeetingEvent(
         meetingDbId,
@@ -134,6 +142,14 @@ export default function ControlBar({ userId, meetingDbId }: ControlBarProps) {
           >
             <PhoneOff className="h-4 w-4" />
             Leave
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon-lg"
+            onClick={() => sidebarSetOpen && sidebarSetOpen((prev) => !prev)}
+            className="rounded-full"
+          >
+            <Menu className="h-5 w-5" />
           </Button>
         </div>
       </div>

@@ -1,25 +1,36 @@
 "use client";
-import { useMeeting } from "@videosdk.live/react-sdk";
+import { useEffect, useRef } from "react";
 import ParticipantView from "./ParticipantView";
 import { Users } from "lucide-react";
-import { useEffect, useRef } from "react";
 import {
   addParticipant,
   getMeetingByRoomId,
   recordMeetingEvent,
   recordParticipantLeave,
 } from "@/server-actions/meeting";
+import { isMeetingDebug } from "@/lib/debug";
+
+import { useMeeting } from "@/lib/videosdkWrapper";
 
 interface VideoGridProps {
   meetingId: string;
 }
 
 export default function VideoGrid({ meetingId }: VideoGridProps) {
-  const { participants, meeting } = useMeeting();
+  const meetingHook = useMeeting();
+  const participants = meetingHook?.participants ?? new Map();
+  const meeting = meetingHook?.meeting;
   const meetingDbIdRef = useRef<string | null>(null);
+
+  // provide mock participants map when debugging if none exist
+  if (isMeetingDebug() && participants.size === 0) {
+    participants.set("user-1", { id: "user-1", displayName: "Alice" });
+    participants.set("user-2", { id: "user-2", displayName: "Bob" });
+  }
 
   // Get meeting DB ID on mount
   useEffect(() => {
+    if (isMeetingDebug()) return; // skip network in debug
     const fetchMeetingDbId = async () => {
       const result = await getMeetingByRoomId(meetingId);
       if (result.success && result.data) {
@@ -31,7 +42,7 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
 
   // Track participant join/leave events
   useEffect(() => {
-    if (!meeting) return;
+    if (!meeting || isMeetingDebug()) return;
 
     const handleParticipantJoined = async (participant: any) => {
       if (!meetingDbIdRef.current) return;
@@ -81,7 +92,7 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
   }, [meeting, meetingId]);
 
   // Convert participants Map to array
-  const participantIds = Array.from(participants.keys());
+  const participantIds = Array.from(participants.keys()) as string[];
 
   if (participantIds.length === 0) {
     return (

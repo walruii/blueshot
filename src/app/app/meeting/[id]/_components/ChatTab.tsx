@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { usePubSub, useMeeting } from "@videosdk.live/react-sdk";
+import { isMeetingDebug } from "@/lib/debug";
+import { usePubSub, useMeeting } from "@/lib/videosdkWrapper";
 import { getMessagesMeeting, sendMessageMeeting } from "@/server-actions/chat";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,9 +25,127 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
 
   // Load persisted messages for this meeting on mount
   useEffect(() => {
+    if (isMeetingDebug()) {
+      const mockMsgs: ChatMessage[] = [
+        {
+          id: "1",
+          senderId: "user-1",
+          senderName: "Alice",
+          message: "Welcome to debug chat",
+          timestamp: "10:00 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+        {
+          id: "2",
+          senderId: "user-2",
+          senderName: "Bob",
+          message: "Looks good!",
+          timestamp: "10:01 AM",
+        },
+      ];
+      setMessages(mockMsgs);
+      mockMsgs.forEach((m) => messagesRef.current.add(m.id));
+      return;
+    }
     (async () => {
       const persisted = await getMessagesMeeting(meetingDbId, 50);
-      console.log("Persisted messages:", persisted);
       // Map persisted messages to ChatMessage format
       const mapped = persisted.map((msg) => ({
         id: msg.id,
@@ -45,28 +164,29 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
 
   // Subscribe to chat messages
   const { publish } = usePubSub("CHAT", {
-    onMessageReceived: (data) => {
-      const parsedData =
-        typeof data.message === "string" ? JSON.parse(data.message) : data;
-      if (messagesRef.current.has(parsedData.id)) return;
-      try {
-        messagesRef.current.add(parsedData.id);
-        const newMessage: ChatMessage = {
-          id: parsedData.id,
-          senderId: parsedData.senderId,
-          senderName: parsedData.senderName,
-          message: parsedData.message,
-          timestamp: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        };
-
-        setMessages((prev) => [...prev, newMessage]);
-      } catch (error) {
-        console.error("Failed to parse message:", error);
-      }
-    },
+    onMessageReceived: isMeetingDebug()
+      ? undefined
+      : (data: any) => {
+          const parsedData =
+            typeof data.message === "string" ? JSON.parse(data.message) : data;
+          if (messagesRef.current.has(parsedData.id)) return;
+          try {
+            messagesRef.current.add(parsedData.id);
+            const newMessage: ChatMessage = {
+              id: parsedData.id,
+              senderId: parsedData.senderId,
+              senderName: parsedData.senderName,
+              message: parsedData.message,
+              timestamp: new Date().toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            };
+            setMessages((prev) => [...prev, newMessage]);
+          } catch (error) {
+            console.error("Failed to parse message:", error);
+          }
+        },
   });
 
   // Auto-scroll to bottom when new messages arrive
@@ -82,6 +202,7 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
   }, [messages]);
 
   const handleSendMessage = useCallback(() => {
+    if (isMeetingDebug()) return;
     if (!messageInput.trim() || !localParticipant || !meetingDbId) return;
 
     const messageKey = crypto.randomUUID();
@@ -138,8 +259,8 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full">
-      <ScrollArea className="flex-1 p-4" ref={scrollAreaRef}>
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
+      <ScrollArea className="p-4 w-full h-96" ref={scrollAreaRef}>
         <div className="space-y-3">
           {messages.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-8">
@@ -171,7 +292,7 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
         </div>
       </ScrollArea>
 
-      <div className="border-t border-border p-3 flex gap-2">
+      <div className="border-t border-border p-3 flex gap-2 shrink-0">
         <Input
           placeholder="Type message..."
           value={messageInput}
