@@ -27,7 +27,7 @@ export default function IntegratedSidebar({
 
   return (
     <>
-      <Tabs defaultValue="chat" className="flex flex-col h-full">
+      <Tabs defaultValue="chat" className="flex flex-col h-full min-h-0">
         <div className="border-b border-border p-2">
           <TabsList className="w-full grid grid-cols-4 h-9">
             <TabsTrigger value="chat" className="gap-1 text-xs" title="Chat">
@@ -59,22 +59,34 @@ export default function IntegratedSidebar({
         </div>
 
         {/* Chat Tab */}
-        <TabsContent value="chat" className="flex-1 m-0 p-0">
+        <TabsContent
+          value="chat"
+          className="flex-1 m-0 p-0 min-h-0 flex flex-col"
+        >
           <ChatTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Transcript Tab */}
-        <TabsContent value="transcript" className="flex-1 m-0 p-0">
+        <TabsContent
+          value="transcript"
+          className="flex-1 m-0 p-0 min-h-0 flex flex-col"
+        >
           <TranscriptTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Smart Notes Tab */}
-        <TabsContent value="notes" className="flex-1 m-0 p-0">
+        <TabsContent
+          value="notes"
+          className="flex-1 m-0 p-0 min-h-0 flex flex-col"
+        >
           <SmartNotesTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Participants Tab */}
-        <TabsContent value="participants" className="flex-1 m-0 p-0">
+        <TabsContent
+          value="participants"
+          className="flex-1 m-0 p-0 min-h-0 flex flex-col"
+        >
           <ParticipantsTab
             participantIds={participantIds}
             meetingDbId={meetingDbId}

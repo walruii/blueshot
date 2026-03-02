@@ -6,7 +6,7 @@ import { getMessagesMeeting, sendMessageMeeting } from "@/server-actions/chat";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+// using native div for scrollable area instead of shadcn component
 
 interface ChatMessage {
   id: string;
@@ -191,13 +191,9 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollElement = scrollAreaRef.current.querySelector(
-        "[data-radix-scroll-area-viewport]",
-      );
-      if (scrollElement) {
-        scrollElement.scrollTop = scrollElement.scrollHeight;
-      }
+    const el = scrollAreaRef.current;
+    if (el) {
+      el.scrollTop = el.scrollHeight;
     }
   }, [messages]);
 
@@ -259,9 +255,12 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
   );
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
-      <ScrollArea className="p-4 w-full h-96" ref={scrollAreaRef}>
-        <div className="space-y-3">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div
+        ref={scrollAreaRef}
+        className="flex-1 p-4 w-full overflow-y-auto overflow-x-hidden"
+      >
+        <div className="space-y-3 w-full">
           {messages.length === 0 ? (
             <div className="text-center text-sm text-muted-foreground py-8">
               No messages yet. Start the conversation!
@@ -290,7 +289,7 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
             ))
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="border-t border-border p-3 flex gap-2 shrink-0">
         <Input

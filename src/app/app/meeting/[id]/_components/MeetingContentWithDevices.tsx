@@ -59,7 +59,7 @@ export default function MeetingContentWithDevices({
           <VideoGrid meetingId={meetingId} />
         </div>
         <div
-          className="flex flex-col w-80 h-full border-l border-neutral-800 bg-card"
+          className="flex flex-col w-80 h-full min-h-0 border-l border-neutral-800 bg-card"
           hidden={!isOpen}
         >
           <IntegratedSidebar meetingDbId={meetingDbId} />
