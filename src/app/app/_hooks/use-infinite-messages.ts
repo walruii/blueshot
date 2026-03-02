@@ -49,6 +49,10 @@ export function useInfiniteMessages(
 
     let cancelled = false;
     (async () => {
+      let meetingId: string | undefined;
+      if (conversationId.startsWith("meeting:")) {
+        meetingId = conversationId.replace("meeting:", "");
+      }
       const firstPage = await getMessagesFirstPage(conversationId, pageSize);
       if (cancelled) return;
       setMessages(conversationId, firstPage);
@@ -76,6 +80,10 @@ export function useInfiniteMessages(
     }
 
     setLoadingOlder(conversationId, true);
+    let meetingId: string | undefined;
+    if (conversationId.startsWith("meeting:")) {
+      meetingId = conversationId.replace("meeting:", "");
+    }
     const older = await getMessagesBefore(
       conversationId,
       oldest.created_at,

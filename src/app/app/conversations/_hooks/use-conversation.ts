@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { nanoid } from "nanoid";
 import { authClient } from "@/lib/auth-client";
 import { useChatStore } from "@/stores/chatStore";
 import { useInfiniteMessages } from "../../_hooks/use-infinite-messages";
@@ -40,7 +39,14 @@ export function useConversation(conversationId: string) {
       const tempId = crypto.randomUUID();
       const now = new Date().toISOString();
 
-      // optimistic append
+      // Determine meetingId if this is a meeting chat
+      let meetingId: string | null = null;
+      // Example: if conversationId is a meeting, set meetingId
+      // You may need to adjust this logic based on your app's structure
+      if (conversationId.startsWith("meeting:")) {
+        meetingId = conversationId.replace("meeting:", "");
+      }
+
       useChatStore.getState().appendMessage(conversationId, {
         id: tempId,
         conversation_id: conversationId,
@@ -49,7 +55,7 @@ export function useConversation(conversationId: string) {
         created_at: now,
         reply_to_id: null,
         deleted_at: null,
-        meeting_id: null,
+        meeting_id: meetingId,
         sender: {
           id: user.id,
           name: user.name,

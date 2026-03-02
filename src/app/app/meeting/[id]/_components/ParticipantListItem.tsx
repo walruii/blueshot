@@ -1,5 +1,6 @@
 "use client";
-import { useParticipant } from "@videosdk.live/react-sdk";
+import { isMeetingDebug } from "@/lib/debug";
+import { useParticipant } from "@/lib/videosdkWrapper";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 
 interface ParticipantListItemProps {

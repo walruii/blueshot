@@ -14,7 +14,11 @@ const SAMPLE_TRANSCRIPT = [
   { time: "10:04", speaker: "John", text: "We can begin next week" },
 ];
 
-export default function TranscriptTab() {
+export default function TranscriptTab({
+  meetingDbId,
+}: {
+  meetingDbId: string;
+}) {
   return (
     <ScrollArea className="h-full p-4">
       <div className="space-y-4">

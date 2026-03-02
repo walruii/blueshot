@@ -1,5 +1,4 @@
 "use client";
-import { useMeeting } from "@videosdk.live/react-sdk";
 import { Button } from "@/components/ui/button";
 import {
   Mic,
@@ -9,58 +8,48 @@ import {
   PhoneOff,
   Loader2,
   Sparkles,
+  Menu,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  getMeetingByRoomId,
   recordMeetingEvent,
   recordParticipantLeave,
 } from "@/server-actions/meeting";
+import { isMeetingDebug } from "@/lib/debug";
+
+import { useMeeting } from "@/lib/videosdkWrapper";
 
 interface ControlBarProps {
-  meetingId: string;
   userId: string;
+  meetingDbId: string;
+  sidebarSetOpen?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-export default function ControlBar({ meetingId, userId }: ControlBarProps) {
-  const {
-    toggleMic,
-    toggleWebcam,
-    leave,
-    localMicOn,
-    localWebcamOn,
-    meetingId: videoSdkMeetingId,
-  } = useMeeting();
+export default function ControlBar({
+  userId,
+  meetingDbId,
+  sidebarSetOpen,
+}: ControlBarProps) {
+  const { toggleMic, toggleWebcam, leave, localMicOn, localWebcamOn } =
+    useMeeting();
   const [isSummarizing, setIsSummarizing] = useState(false);
-  const [meetingDbId, setMeetingDbId] = useState<string | null>(null);
   const router = useRouter();
 
-  // Get meeting DB ID on mount
-  useEffect(() => {
-    const fetchMeetingDbId = async () => {
-      const result = await getMeetingByRoomId(videoSdkMeetingId);
-      if (result.success && result.data) {
-        setMeetingDbId(result.data.id);
-      }
-    };
-    fetchMeetingDbId();
-  }, [meetingId]);
-
   const handleLeave = async () => {
-    if (meetingDbId) {
+    if (!isMeetingDebug() && meetingDbId) {
       // Record participant leave
       await recordParticipantLeave(meetingDbId, userId);
       // Record leave event
       await recordMeetingEvent(meetingDbId, userId, "leave");
+      router.push("/app"); // redirect only in non-debug
     }
     leave();
-    router.push("/app"); // Redirect to app home after leaving
   };
 
   const handleToggleMic = async () => {
     toggleMic();
-    if (meetingDbId) {
+    if (!isMeetingDebug() && meetingDbId) {
       // Record event after toggle (state will flip)
       await recordMeetingEvent(
         meetingDbId,
@@ -72,7 +61,7 @@ export default function ControlBar({ meetingId, userId }: ControlBarProps) {
 
   const handleToggleWebcam = async () => {
     toggleWebcam();
-    if (meetingDbId) {
+    if (!isMeetingDebug() && meetingDbId) {
       // Record event after toggle (state will flip)
       await recordMeetingEvent(
         meetingDbId,
@@ -90,7 +79,7 @@ export default function ControlBar({ meetingId, userId }: ControlBarProps) {
   };
 
   return (
-    <div className="fixed bottom-0 inset-x-0 bg-background/80 backdrop-blur-sm border-t border-border z-30">
+    <div className="bg-background/80 backdrop-blur-sm border-t border-border z-30">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-center gap-4">
           {/* Mic Toggle */}
@@ -153,6 +142,14 @@ export default function ControlBar({ meetingId, userId }: ControlBarProps) {
           >
             <PhoneOff className="h-4 w-4" />
             Leave
+          </Button>
+          <Button
+            variant="secondary"
+            size="icon-lg"
+            onClick={() => sidebarSetOpen && sidebarSetOpen((prev) => !prev)}
+            className="rounded-full"
+          >
+            <Menu className="h-5 w-5" />
           </Button>
         </div>
       </div>

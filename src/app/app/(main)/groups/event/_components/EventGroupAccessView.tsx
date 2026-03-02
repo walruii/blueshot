@@ -113,6 +113,7 @@ export function EventGroupAccessView({
                       )
                     }
                     role={displayRole}
+                    canEditRole={true}
                   />
                 </div>
               );
@@ -161,6 +162,7 @@ export function EventGroupAccessView({
                       )
                     }
                     role={displayRole}
+                    canEditRole={true}
                   />
                 </div>
               );

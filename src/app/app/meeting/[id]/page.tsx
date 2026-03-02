@@ -1,9 +1,5 @@
 "use client";
-import {
-  createJoinToken,
-  createRoom,
-  createToken,
-} from "@/server-actions/videosdk";
+import { createJoinToken } from "@/server-actions/videosdk";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -34,7 +30,6 @@ interface MeetingPageProps {
 }
 
 export default function MeetingPage({ params }: MeetingPageProps) {
-  // Get session
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState<string>("Anonymous");
   const [userId, setUserId] = useState<string>("");

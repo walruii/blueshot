@@ -69,7 +69,7 @@ export const formatInboxGroup = (dbRow: InboxGroupDB): InboxGroup => ({
 
 export type MessageWithSender = {
   id: string;
-  conversation_id: string;
+  conversation_id: string | null;
   content: string;
   content_type: MessageContentType;
   created_at: string;

@@ -4,10 +4,12 @@ import ParticipantListItem from "./ParticipantListItem";
 
 interface ParticipantsTabProps {
   participantIds: string[];
+  meetingDbId: string;
 }
 
 export default function ParticipantsTab({
   participantIds,
+  meetingDbId,
 }: ParticipantsTabProps) {
   return (
     <ScrollArea className="h-full p-4">

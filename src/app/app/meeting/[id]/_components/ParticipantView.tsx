@@ -1,6 +1,7 @@
 "use client";
-import { useParticipant } from "@videosdk.live/react-sdk";
 import { useEffect, useRef } from "react";
+import { isMeetingDebug } from "@/lib/debug";
+import { useParticipant } from "@/lib/videosdkWrapper";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mic, MicOff, Video, VideoOff } from "lucide-react";

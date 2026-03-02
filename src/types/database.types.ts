@@ -660,7 +660,7 @@ export type Database = {
         Row: {
           content: string
           content_type: string | null
-          conversation_id: string
+          conversation_id: string | null
           created_at: string
           deleted_at: string | null
           edited_at: string | null
@@ -672,7 +672,7 @@ export type Database = {
         Insert: {
           content: string
           content_type?: string | null
-          conversation_id: string
+          conversation_id?: string | null
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null
@@ -684,7 +684,7 @@ export type Database = {
         Update: {
           content?: string
           content_type?: string | null
-          conversation_id?: string
+          conversation_id?: string | null
           created_at?: string
           deleted_at?: string | null
           edited_at?: string | null

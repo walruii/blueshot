@@ -23,28 +23,56 @@ export async function createJoinToken(roomId: string): Promise<string | null> {
     return null;
   }
   try {
-    // // 1. Fetch the numeric role from our unified view
-    // const { data: access } = await supabaseAdmin
-    //   .from("view_all_event_access")
-    //   .select("role")
-    //   .eq("event_id", roomId)
-    //   .eq("user_id", session.user.id)
-    //   .maybeSingle();
+    // 1. Map roomId to event_id via meeting_id and event table
+    // Step 1: Find meeting by room_id
+    const { data: meeting, error: meetingError } = await supabaseAdmin
+      .from("meeting")
+      .select("id")
+      .eq("room_id", roomId)
+      .maybeSingle();
 
-    // if (!access) throw new Error("Unauthorized");
+    if (meetingError || !meeting) {
+      console.error("Meeting not found for room_id", roomId, meetingError);
+      return null;
+    }
 
-    // // 2. Map numeric roles to VideoSDK strings
-    const permissions: string[] = ["allow_join"]; // Everyone in this view can join
+    // Step 2: Find event by meeting_id (event.meeting_id = meeting.id)
+    const { data: event, error: eventError } = await supabaseAdmin
+      .from("event")
+      .select("id")
+      .eq("meeting_id", meeting.id)
+      .maybeSingle();
 
-    // if (access.role && access.role >= 2) {
-    //   // Editors and Admins can share screen and moderate
-    //   permissions.push("allow_mod", "allow_screen_share");
-    // }
+    if (eventError || !event) {
+      console.error("Event not found for meeting_id", meeting.id, eventError);
+      return null;
+    }
 
-    // if (access.role && access.role >= 3) {
-    //   // Only Admins can record
-    //   permissions.push("allow_recording");
-    // }
+    // Step 3: Use event.id for access check
+    const { data: access, error: accessError } = await supabaseAdmin
+      .from("view_all_event_access")
+      .select("role")
+      .eq("event_id", event.id)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    if (accessError || !access) {
+      console.error("Unauthorized or error fetching access role", accessError);
+      return null;
+    }
+
+    // 2. Map numeric roles to VideoSDK permissions
+    // Everyone gets allow_join and allow_screen_share
+    const role = access.role ?? 0;
+    const permissions: string[] = ["allow_join", "allow_screen_share"];
+    if (role >= 2) {
+      // Editors and Admins can moderate
+      permissions.push("allow_mod");
+    }
+    if (role >= 3) {
+      // Only Admins can record
+      permissions.push("allow_recording");
+    }
 
     const options: jwt.SignOptions = {
       expiresIn: "2h",
