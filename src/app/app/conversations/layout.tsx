@@ -27,7 +27,7 @@ async function AsyncLayout({ children }: { children: React.ReactNode }) {
   if (!session) redirect("/auth/login");
 
   return (
-    <div className="flex h-screen w-screen bg-background text-foreground dark">
+    <div className="flex flex-col sm:flex-row h-screen w-screen bg-background text-foreground dark">
       <Sidebar
         directConversations={directConversations}
         groupConversations={groupConversations}

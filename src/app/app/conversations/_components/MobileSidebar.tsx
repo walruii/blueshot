@@ -24,31 +24,43 @@ export default function MobileSidebar(props: SidebarContentProps) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          className="fixed top-4 left-4 z-50 sm:hidden"
-          size="icon"
+    <>
+      {/* Mobile header bar with hamburger menu - only visible on mobile */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <div className="sm:hidden bg-card border-b border-border shadow-sm">
+          <div className="flex items-center h-14 px-4 gap-3">
+            <SheetTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="rounded-lg hover:bg-accent transition-colors"
+                title="Open conversations menu"
+              >
+                <MenuIcon className="h-5 w-5" />
+                <span className="sr-only">Open sidebar</span>
+              </Button>
+            </SheetTrigger>
+            <div className="text-sm font-semibold text-foreground">
+              Conversations
+            </div>
+          </div>
+        </div>
+
+        <SheetContent
+          side="left"
+          className="w-full h-full p-0"
+          showCloseButton={false}
         >
-          <MenuIcon className="h-6 w-6" />
-          <span className="sr-only">Open sidebar</span>
-        </Button>
-      </SheetTrigger>
-      <SheetContent
-        side="left"
-        className="w-full h-full p-0"
-        showCloseButton={false}
-      >
-        {/* ensure dialog has accessible title */}
-        <SheetTitle className="sr-only">Conversations sidebar</SheetTitle>
-        <SidebarContent
-          {...props}
-          onSelectDirect={handleSelectDirect}
-          onSelectGroup={handleSelectGroup}
-          onClose={() => setOpen(false)}
-        />
-      </SheetContent>
-    </Sheet>
+          {/* ensure dialog has accessible title */}
+          <SheetTitle className="sr-only">Conversations sidebar</SheetTitle>
+          <SidebarContent
+            {...props}
+            onSelectDirect={handleSelectDirect}
+            onSelectGroup={handleSelectGroup}
+            onClose={() => setOpen(false)}
+          />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
