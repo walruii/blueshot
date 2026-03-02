@@ -39,7 +39,14 @@ export function MessageList({
             )}
           >
             <div className="text-sm">{msg.content}</div>
-            <div className="text-xs text-muted-foreground mt-1">
+            <div
+              className={cn(
+                "text-xs mt-1",
+                msg.sender.id === currentUserId
+                  ? "text-white/70"
+                  : "text-muted-foreground",
+              )}
+            >
               {msg.created_at
                 ? new Date(msg.created_at).toLocaleTimeString([], {
                     hour: "2-digit",
