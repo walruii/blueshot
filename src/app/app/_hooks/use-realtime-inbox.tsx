@@ -63,9 +63,10 @@ export function useRealtimeInbox(userId: string) {
 
         // new conversation event: update zustand store directly
         .on("broadcast", { event: "NEW_DIRECT_CONVERSATION" }, async (p) => {
+          const initiatorName = p.payload?.initiatorName || "Someone";
           showAlert({
             title: "New conversation",
-            description: "You were added to a new direct message",
+            description: `${initiatorName} started a conversation with you`,
             type: "info",
           });
           // also refresh the layout so the server query for the inbox runs again
@@ -89,6 +90,18 @@ export function useRealtimeInbox(userId: string) {
             );
           }
         })
+
+        // new message event: show toast notification
+        // .on("broadcast", { event: "NEW_MESSAGE" }, async (p) => {
+        //   const senderName = p.payload?.senderName || "Someone";
+        //   const preview = p.payload?.preview || "New message";
+        //   showAlert({
+        //     title: `${senderName} sent a message`,
+        //     description: preview,
+        //     type: "info",
+        //   });
+        //   router.refresh();
+        // })
 
         .on("broadcast", { event: "REMOVED_FROM_USER_GROUP" }, (p) =>
           notifyAndRefresh(

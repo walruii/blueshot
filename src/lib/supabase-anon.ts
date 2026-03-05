@@ -17,21 +17,16 @@ if (!supabaseUrl || !supabaseKey) {
 let supabase: SupabaseClient | null = null;
 
 export const getSupabaseAnonClient = async () => {
-  const supabaseToken = await getSupabaseToken();
-
   if (supabase) {
     return supabase;
   }
 
   supabase = createClient(supabaseUrl, supabaseKey, {
     accessToken: async () => {
-      return supabaseToken;
+      return await getSupabaseToken();
     },
   });
 
-  console.log(
-    "Client initialized with token:",
-    supabaseToken?.slice(0, 20) + "...",
-  );
+  console.log("Supabase client initialized");
   return supabase;
 };

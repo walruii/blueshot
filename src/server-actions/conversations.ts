@@ -138,11 +138,28 @@ export async function createDirectConversation(
     // inbox lists simultaneously.  This ensures the sidebar revalidates no
     // matter who triggered the creation (client will also navigate).
     try {
+      const { data: targetUserProfile } = await supabaseAdmin
+        .from("user")
+        .select("name")
+        .eq("id", targetUser.id)
+        .single();
+
       await Promise.all([
         supabaseAdmin.channel(`user_inbox_${targetUser.id}`).send({
           type: "broadcast",
           event: "NEW_DIRECT_CONVERSATION",
-          payload: { conversationId: conversation.id },
+          payload: {
+            conversationId: conversation.id,
+            initiatorName: session.user.name,
+          },
+        }),
+        supabaseAdmin.channel(`user_inbox_${session.user.id}`).send({
+          type: "broadcast",
+          event: "NEW_DIRECT_CONVERSATION",
+          payload: {
+            conversationId: conversation.id,
+            initiatorName: targetUserProfile?.name,
+          },
         }),
       ]);
     } catch (broadcastErr) {

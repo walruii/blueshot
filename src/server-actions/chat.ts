@@ -137,6 +137,33 @@ export const sendMessage = async (args: {
       return { success: false, error: error?.message ?? "Failed to send" };
     }
 
+    // Broadcast realtime notification to other participants
+    try {
+      const { data: participants } = await supabaseAdmin
+        .from("conversation_participant")
+        .select("user_id")
+        .eq("conversation_id", args.conversationId)
+        .neq("user_id", session.user.id);
+
+      if (participants && participants.length > 0) {
+        await Promise.all(
+          participants.map((p) =>
+            supabaseAdmin.channel(`user_inbox_${p.user_id}`).send({
+              type: "broadcast",
+              event: "NEW_MESSAGE",
+              payload: {
+                conversationId: args.conversationId,
+                senderName: session.user.name,
+                preview: content.substring(0, 100),
+              },
+            }),
+          ),
+        );
+      }
+    } catch (broadcastErr) {
+      console.error("Failed to broadcast new message", broadcastErr);
+    }
+
     return { success: true, data: mapRowToMessageWithSender(data as any) };
   } catch (err) {
     console.error("Error in sendMessage: ", err);

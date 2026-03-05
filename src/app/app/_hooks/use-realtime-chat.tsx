@@ -3,6 +3,7 @@ import { useChatStore } from "@/stores/chatStore";
 import { MessageWithSender } from "@/types/chat";
 import { fetchUserProfileAction } from "@/server-actions/chat";
 import { getSupabaseAnonClient } from "@/lib/supabase-anon";
+import { getSupabaseToken } from "@/lib/supabase-token";
 import { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 
 // helper that will take a raw message row from Supabase and convert to
@@ -46,15 +47,23 @@ export function useRealtimeChat(convoId: string) {
     const realTimeSetup = async () => {
       supabase = await getSupabaseAnonClient();
 
+      try {
+        const token = await getSupabaseToken();
+        await supabase.realtime.setAuth(token);
+      } catch (authErr) {
+        console.error("Failed to set realtime auth token", authErr);
+      }
+
+      const { error: probeError } = await supabase
+        .from("message")
+        .select("id")
+        .limit(1);
+      if (probeError) {
+        console.error("Supabase JWT/RLS probe failed", probeError);
+      }
+
       activeChannel = supabase
-        .channel(`chat:${convoId}`, {
-          config: {
-            broadcast: { self: true },
-            presence: { key: "any" },
-            // This is the "Secret Sauce" for some versions of the SDK
-            private: true,
-          },
-        }) // Use a clean unique channel name
+        .channel(`chat:${convoId}`)
         .on(
           "postgres_changes",
           {
@@ -81,16 +90,18 @@ export function useRealtimeChat(convoId: string) {
           console.log("Realtime Status:", status);
           if (status === "CHANNEL_ERROR") {
             console.error(
-              "Access Denied: Your RLS is likely blocking this user.",
+              "Realtime channel error. Check JWT claim mapping and message SELECT RLS for this user.",
             );
+            return;
           }
           if (status === "TIMED_OUT") {
             console.error(
               "Connection Timed Out: Check your local network/Docker.",
             );
-          } else {
-            console.log("Supabase Realtime Channel Status:", status);
+            return;
           }
+
+          console.log("Supabase Realtime Channel Status:", status);
         });
     };
     realTimeSetup();
