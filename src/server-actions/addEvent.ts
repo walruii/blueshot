@@ -7,6 +7,7 @@ import { PermissionEntry, canWrite } from "@/types/permission";
 import { Result } from "@/types/returnType";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { generateMeetingPasscode } from "@/lib/utils";
 import {
   CreatorInfo,
   getAffectedUserIds,
@@ -77,6 +78,24 @@ export const addEvent = async (
         };
       }
       meetingId = meetingResult.data.id;
+
+      // Generate and store meeting passcode
+      const passcode = generateMeetingPasscode();
+      const { error: passcodeError } = await supabaseAdmin
+        .from("meeting")
+        .update({
+          passcode,
+          passcode_created_at: new Date().toISOString(),
+        })
+        .eq("id", meetingId);
+
+      if (passcodeError) {
+        console.error("Failed to set passcode for meeting: ", passcodeError);
+        return {
+          success: false,
+          error: "Failed to set meeting passcode",
+        };
+      }
     }
 
     // Create the event

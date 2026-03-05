@@ -5,7 +5,6 @@ import { Users } from "lucide-react";
 import {
   addParticipant,
   getMeetingByRoomId,
-  recordMeetingEvent,
   recordParticipantLeave,
 } from "@/server-actions/meeting";
 import { isMeetingDebug } from "@/lib/debug";
@@ -55,12 +54,7 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
         participant.webcamOn || false,
       );
 
-      // Record join event
-      await recordMeetingEvent(meetingDbIdRef.current, participant.id, "join", {
-        participantName: participant.displayName,
-        micEnabled: participant.micOn,
-        cameraEnabled: participant.webcamOn,
-      });
+      // TODO:  Record join event
     };
 
     const handleParticipantLeft = async (participant: any) => {
@@ -69,15 +63,7 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
       // Record participant leave
       await recordParticipantLeave(meetingDbIdRef.current, participant.id);
 
-      // Record leave event
-      await recordMeetingEvent(
-        meetingDbIdRef.current,
-        participant.id,
-        "leave",
-        {
-          participantName: participant.displayName,
-        },
-      );
+      // TODO:  Record leave event
     };
 
     // Subscribe to meeting participant events

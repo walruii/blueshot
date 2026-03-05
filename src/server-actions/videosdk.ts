@@ -5,25 +5,27 @@ import { Result } from "@/types/returnType";
 import jwt from "jsonwebtoken";
 import { headers } from "next/headers";
 
-export async function createJoinToken(roomId: string): Promise<string | null> {
+export async function createJoinToken(roomId: string): Promise<Result<string>> {
   const apiKey = process.env.VIDEOSDK_API_KEY as string;
   const secretKey = process.env.VIDEOSDK_SECRET_KEY as string;
 
+  if (!apiKey || !secretKey) {
+    console.error("VideoSDK credentials are not set in environment variables");
+    return { success: false, error: "VideoSDK credentials not configured" };
+  }
+
+  // All participants are authenticated users
   const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session?.user) {
     console.error("No valid session found for VideoSDK token generation");
-    return null;
+    return { success: false, error: "No valid session found" };
   }
 
-  if (!apiKey || !secretKey) {
-    console.error("VideoSDK credentials are not set in environment variables");
-    return null;
-  }
   try {
-    // 1. Map roomId to event_id via meeting_id and event table
+    // 1. Map roomId to meeting_id
     // Step 1: Find meeting by room_id
     const { data: meeting, error: meetingError } = await supabaseAdmin
       .from("meeting")
@@ -33,10 +35,17 @@ export async function createJoinToken(roomId: string): Promise<string | null> {
 
     if (meetingError || !meeting) {
       console.error("Meeting not found for room_id", roomId, meetingError);
-      return null;
+      return { success: false, error: "Meeting not found" };
     }
 
-    // Step 2: Find event by meeting_id (event.meeting_id = meeting.id)
+    // Get the session and verify access
+    let permissions: string[] = [];
+    let participantId: string;
+
+    // Authenticated user - check access and set permissions based on role
+    participantId = session.user.id;
+
+    // Step 2: Find event by meeting_id
     const { data: event, error: eventError } = await supabaseAdmin
       .from("event")
       .select("id")
@@ -45,7 +54,7 @@ export async function createJoinToken(roomId: string): Promise<string | null> {
 
     if (eventError || !event) {
       console.error("Event not found for meeting_id", meeting.id, eventError);
-      return null;
+      return { success: false, error: "Event not found" };
     }
 
     // Step 3: Use event.id for access check
@@ -56,15 +65,31 @@ export async function createJoinToken(roomId: string): Promise<string | null> {
       .eq("user_id", session.user.id)
       .maybeSingle();
 
-    if (accessError || !access) {
-      console.error("Unauthorized or error fetching access role", accessError);
-      return null;
+    // Check if user is a participant in the meeting (for passcode joins)
+    const { data: participant, error: participantError } = await supabaseAdmin
+      .from("meeting_participant")
+      .select("id")
+      .eq("meeting_id", meeting.id)
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    // Allow if user has event access OR is a meeting participant (passcode join)
+    if (accessError && participantError) {
+      console.error("Error checking access", accessError, participantError);
+      return { success: false, error: "Failed to verify access" };
     }
 
-    // 2. Map numeric roles to VideoSDK permissions
+    if (!access && !participant) {
+      console.error(
+        "User not authorized - not in event access and not a meeting participant",
+      );
+      return { success: false, error: "Unauthorized" };
+    }
+
+    // Map numeric roles to VideoSDK permissions
     // Everyone gets allow_join and allow_screen_share
-    const role = access.role ?? 0;
-    const permissions: string[] = ["allow_join", "allow_screen_share"];
+    const role = access?.role ?? 0;
+    permissions = ["allow_join", "allow_screen_share"];
     if (role >= 2) {
       // Editors and Admins can moderate
       permissions.push("allow_mod");
@@ -81,17 +106,17 @@ export async function createJoinToken(roomId: string): Promise<string | null> {
     let payload = {
       apikey: apiKey,
       permissions: permissions,
-      participantId: session.user.id,
+      participantId: participantId,
       version: 2,
       customRoomId: roomId,
     };
 
     const token = jwt.sign(payload, secretKey, options);
 
-    return token;
+    return { success: true, data: token };
   } catch (err) {
     console.error("Error generating VideoSDK token:", err);
-    return null;
+    return { success: false, error: "Failed to generate VideoSDK token" };
   }
 }
 

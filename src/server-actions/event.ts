@@ -33,7 +33,26 @@ export const getEvent = async (id: string): Promise<Event | null> => {
       console.error("DBError running getEvent", error);
     }
     if (!event) return null;
-    return formatEvent(event);
+
+    // Fetch meeting passcode if event has a meeting
+    let eventMeetingPasscode: string | undefined;
+    if (event.event_meeting_id) {
+      const { data: meeting } = await supabaseAdmin
+        .from("meeting")
+        .select("passcode")
+        .eq("id", event.event_meeting_id)
+        .maybeSingle();
+
+      if (meeting?.passcode) {
+        eventMeetingPasscode = meeting.passcode;
+      }
+    }
+
+    const formattedEvent = formatEvent(event);
+    return {
+      ...formattedEvent,
+      eventMeetingPasscode,
+    };
   } catch (err) {
     console.error("Undefined Error getEvent", err);
     return null;

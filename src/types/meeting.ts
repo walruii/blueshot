@@ -10,6 +10,8 @@ export interface Meeting {
   ended_at: string | null;
   created_at: string;
   updated_at: string;
+  passcode?: string;
+  passcode_created_at?: string;
 }
 
 export interface MeetingParticipant {

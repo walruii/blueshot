@@ -510,6 +510,8 @@ export type Database = {
           creator_id: string
           ended_at: string | null
           id: string
+          passcode: string | null
+          passcode_created_at: string | null
           room_id: string
           started_at: string
           updated_at: string
@@ -519,6 +521,8 @@ export type Database = {
           creator_id: string
           ended_at?: string | null
           id?: string
+          passcode?: string | null
+          passcode_created_at?: string | null
           room_id: string
           started_at?: string
           updated_at?: string
@@ -528,6 +532,8 @@ export type Database = {
           creator_id?: string
           ended_at?: string | null
           id?: string
+          passcode?: string | null
+          passcode_created_at?: string | null
           room_id?: string
           started_at?: string
           updated_at?: string
@@ -789,6 +795,35 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      passcode_attempt: {
+        Row: {
+          attempted_at: string | null
+          id: string
+          ip_address: unknown
+          meeting_id: string
+        }
+        Insert: {
+          attempted_at?: string | null
+          id?: string
+          ip_address: unknown
+          meeting_id: string
+        }
+        Update: {
+          attempted_at?: string | null
+          id?: string
+          ip_address?: unknown
+          meeting_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "passcode_attempt_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting"
             referencedColumns: ["id"]
           },
         ]
