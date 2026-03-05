@@ -13,9 +13,12 @@ export function useRealtimeInbox(userId: string) {
 
     let activeChannel: RealtimeChannel | null = null;
     let supabaseInstance: SupabaseClient;
+    let isDisposed = false;
 
     const setupRealtime = async () => {
-      supabaseInstance = await getSupabaseAnonClient();
+      const client = await getSupabaseAnonClient();
+      if (isDisposed) return;
+      supabaseInstance = client;
 
       activeChannel = supabaseInstance.channel(`user_inbox_${userId}`);
 
@@ -140,12 +143,17 @@ export function useRealtimeInbox(userId: string) {
           if (status === "SUBSCRIBED")
             console.log(`Inbox listener active: ${userId}`);
         });
+
+      if (isDisposed && activeChannel) {
+        supabaseInstance.removeChannel(activeChannel);
+      }
     };
 
     setupRealtime();
 
     // 4. Proper Cleanup
     return () => {
+      isDisposed = true;
       if (activeChannel && supabaseInstance) {
         supabaseInstance.removeChannel(activeChannel);
       }

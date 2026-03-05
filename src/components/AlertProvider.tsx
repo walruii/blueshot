@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useContext } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { toast } from "sonner";
 import { TAlert } from "../types/alert";
 
@@ -11,7 +11,7 @@ interface TAlertContext {
 const AlertContext = createContext<TAlertContext | undefined>(undefined);
 
 export function AlertProvider({ children }: { children: React.ReactNode }) {
-  const showAlert = (alert: TAlert) => {
+  const showAlert = useCallback((alert: TAlert) => {
     const toastFn = {
       success: toast.success,
       error: toast.error,
@@ -22,14 +22,19 @@ export function AlertProvider({ children }: { children: React.ReactNode }) {
     toastFn(alert.title, {
       description: alert.description,
     });
-  };
+  }, []);
 
-  const hideAlert = () => {
+  const hideAlert = useCallback(() => {
     toast.dismiss();
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({ showAlert, hideAlert }),
+    [showAlert, hideAlert],
+  );
 
   return (
-    <AlertContext.Provider value={{ showAlert, hideAlert }}>
+    <AlertContext.Provider value={contextValue}>
       {children}
     </AlertContext.Provider>
   );
