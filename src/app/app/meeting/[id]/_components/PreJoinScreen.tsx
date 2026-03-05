@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, Video, VideoOff, Loader2 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { addParticipant, recordMeetingEvent } from "@/server-actions/meeting";
+import { addParticipant } from "@/server-actions/meeting";
 
 interface PreJoinScreenProps {
   participantName: string;
@@ -123,7 +123,7 @@ export default function PreJoinScreen({
     setIsJoining(true);
 
     try {
-      // 2. Add participant to meeting
+      // Add participant to meeting
       const participantResult = await addParticipant(
         meetingDbId,
         userId,
@@ -135,21 +135,15 @@ export default function PreJoinScreen({
         setIsJoining(false);
         return;
       }
+      // TODO: record join event
 
-      // 3. Record join event
-      await recordMeetingEvent(meetingDbId, userId, "join", {
-        micEnabled: isMicOn,
-        cameraEnabled: isCameraOn,
-        participantName,
-      });
-
-      // 4. Stop preview stream
+      // Stop preview stream
       if (previewStream) {
         previewStream.getTracks().forEach((track) => track.stop());
         setPreviewStream(null);
       }
 
-      // 5. Join the meeting and pass the device settings
+      // Join the meeting and pass the device settings
       join();
       onJoin({ cameraOn: isCameraOn, micOn: isMicOn });
     } catch (error) {

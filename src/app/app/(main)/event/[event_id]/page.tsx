@@ -18,6 +18,7 @@ import { ArrowLeft } from "lucide-react";
 import AcknowledgementBanner from "./_components/AcknowledgementBanner";
 import MemberTable from "./_components/MemberTable";
 import { MeetingLink } from "../../../_components/MeetingLink";
+import PasscodeDisplay from "../../../_components/PasscodeDisplay";
 
 export const getPermissionsFromRole = (
   role: number | undefined, // From vae.role (1, 2, or 3)
@@ -145,6 +146,13 @@ async function EventPage({ params }: { params: { event_id: string } }) {
               </div>
               {/* Meeting Link */}
               {event.eventMeetingId && <MeetingLink event={event} />}
+              {/* Passcode Display for admins/owners */}
+              {event.eventMeetingPasscode && (
+                <PasscodeDisplay
+                  passcode={event.eventMeetingPasscode}
+                  isAdmin={permissions.canManageAccess}
+                />
+              )}
             </div>
             {permissions.canDelete && <DeleteEvent event={event} />}
             {/* Edit Permissions (Users with canManageAccess) */}

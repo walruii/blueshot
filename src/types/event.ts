@@ -14,6 +14,7 @@ export type Event = {
   eventUserName: string;
   eventUserEmail: string;
   eventMeetingId?: string;
+  eventMeetingPasscode?: string;
   role: number;
 };
 

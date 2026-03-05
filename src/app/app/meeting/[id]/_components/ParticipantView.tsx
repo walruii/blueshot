@@ -27,6 +27,9 @@ export default function ParticipantView({
     isLocal,
   } = useParticipant(participantId);
 
+  // Check if this is an external participant (guest)
+  const isExternalParticipant = participantId.startsWith("guest_");
+
   // Attach video stream to video element
   useEffect(() => {
     if (videoRef.current && webcamStream) {
@@ -100,14 +103,24 @@ export default function ParticipantView({
 
       {/* Overlay with participant info */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Top overlay with name */}
+        {/* Top overlay with name and external badge */}
         <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-2">
-          <Badge
-            variant="secondary"
-            className="bg-black/60 backdrop-blur-sm text-white border-0"
-          >
-            {displayName || "Unknown"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge
+              variant="secondary"
+              className="bg-black/60 backdrop-blur-sm text-white border-0"
+            >
+              {displayName || "Unknown"}
+            </Badge>
+            {isExternalParticipant && !isLocal && (
+              <Badge
+                variant="secondary"
+                className="bg-amber-500/40 backdrop-blur-sm text-amber-200 border-0"
+              >
+                (external)
+              </Badge>
+            )}
+          </div>
         </div>
 
         {/* Bottom overlay with status icons */}

@@ -5,10 +5,12 @@ import { Mic, MicOff, Video, VideoOff } from "lucide-react";
 
 interface ParticipantListItemProps {
   participantId: string;
+  isExternal?: boolean;
 }
 
 export default function ParticipantListItem({
   participantId,
+  isExternal = false,
 }: ParticipantListItemProps) {
   const { displayName, isLocal, micOn, webcamOn, isActiveSpeaker } =
     useParticipant(participantId);
@@ -44,9 +46,16 @@ export default function ParticipantListItem({
         {initial}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">
-          {displayName || "Unknown"} {isLocal && "(You)"}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-medium truncate">
+            {displayName || "Unknown"} {isLocal && "(You)"}
+          </p>
+          {isExternal && !isLocal && (
+            <span className="px-2 py-0.5 text-xs font-medium bg-amber-500/20 text-amber-700 rounded whitespace-nowrap">
+              (external)
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-1">
             {micOn ? (

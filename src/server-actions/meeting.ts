@@ -10,7 +10,7 @@ import { createRoom } from "./videosdk";
 /**
  * Add a participant to a meeting (creates new session record on rejoin)
  * @param meetingId - The meeting UUID
- * @param userId - The participant user ID
+ * @param userId - The participant user ID (required - registered users only)
  * @param micEnabled - Whether microphone was enabled at join
  * @param cameraEnabled - Whether camera was enabled at join
  * @returns Result with participant record or error
@@ -22,7 +22,7 @@ export const addParticipant = async (
   cameraEnabled: boolean = false,
 ): Promise<Result<MeetingParticipant>> => {
   try {
-    // Check if user is already in the meeting (NULL left_at means still active)
+    // Check if participant is already in the meeting (NULL left_at means still active)
     const { data: activeParticipant } = await supabaseAdmin
       .from("meeting_participant")
       .select("*")
@@ -32,7 +32,7 @@ export const addParticipant = async (
       .maybeSingle();
 
     if (activeParticipant) {
-      // User already in meeting, return existing record
+      // Participant already in meeting, return existing record
       return {
         success: true,
         data: activeParticipant as MeetingParticipant,
@@ -134,63 +134,6 @@ export const recordParticipantLeave = async (
     return {
       success: false,
       error: "An unexpected error occurred while recording participant leave",
-    };
-  }
-};
-
-export type MeetingEventType =
-  | "join"
-  | "leave"
-  | "hand_raise"
-  | "hand_lower"
-  | "mic_on"
-  | "mic_off"
-  | "camera_on"
-  | "camera_off";
-
-/**
- * Record a meeting event (participant actions within meeting)
- * @param meetingId - The meeting UUID
- * @param userId - The user ID who triggered the event
- * @param eventType - Type of event
- * @param eventData - Optional JSON data for the event
- * @returns Result with event record or error
- */
-export const recordMeetingEvent = async (
-  meetingId: string,
-  userId: string,
-  eventType: MeetingEventType,
-  eventData?: Record<string, any>,
-): Promise<Result<MeetingEvent>> => {
-  try {
-    const { data: newEvent, error } = await supabaseAdmin
-      .from("meeting_event")
-      .insert({
-        meeting_id: meetingId,
-        user_id: userId,
-        event_type: eventType,
-        event_data: eventData || null,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error recording meeting event:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to record meeting event",
-      };
-    }
-
-    return {
-      success: true,
-      data: newEvent as MeetingEvent,
-    };
-  } catch (err) {
-    console.error("Unexpected error in recordMeetingEvent:", err);
-    return {
-      success: false,
-      error: "An unexpected error occurred while recording event",
     };
   }
 };
@@ -355,90 +298,6 @@ export const getActiveParticipants = async (
 };
 
 /**
- * Get all events from a meeting
- * @param meetingId - The meeting UUID
- * @param userId - Optional: filter events for specific user
- * @returns Result with array of event records
- */
-export const getMeetingEvents = async (
-  meetingId: string,
-  userId?: string,
-): Promise<Result<MeetingEvent[]>> => {
-  try {
-    let query = supabaseAdmin
-      .from("meeting_event")
-      .select("*")
-      .eq("meeting_id", meetingId);
-
-    if (userId) {
-      query = query.eq("user_id", userId);
-    }
-
-    const { data: events, error } = await query.order("created_at", {
-      ascending: true,
-    });
-
-    if (error) {
-      console.error("Error fetching meeting events:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to fetch meeting events",
-      };
-    }
-
-    return {
-      success: true,
-      data: (events || []) as MeetingEvent[],
-    };
-  } catch (err) {
-    console.error("Unexpected error in getMeetingEvents:", err);
-    return {
-      success: false,
-      error: "An unexpected error occurred while fetching meeting events",
-    };
-  }
-};
-
-/**
- * Get events of specific type from a meeting
- * @param meetingId - The meeting UUID
- * @param eventType - Type of events to filter
- * @returns Result with array of event records
- */
-export const getMeetingEventsByType = async (
-  meetingId: string,
-  eventType: MeetingEventType,
-): Promise<Result<MeetingEvent[]>> => {
-  try {
-    const { data: events, error } = await supabaseAdmin
-      .from("meeting_event")
-      .select("*")
-      .eq("meeting_id", meetingId)
-      .eq("event_type", eventType)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Error fetching meeting events by type:", error);
-      return {
-        success: false,
-        error: error.message || "Failed to fetch meeting events",
-      };
-    }
-
-    return {
-      success: true,
-      data: (events || []) as MeetingEvent[],
-    };
-  } catch (err) {
-    console.error("Unexpected error in getMeetingEventsByType:", err);
-    return {
-      success: false,
-      error: "An unexpected error occurred while fetching meeting events",
-    };
-  }
-};
-
-/**
  * End a meeting (set ended_at)
  * @param meetingId - The meeting UUID
  * @returns Result with updated meeting record
@@ -474,69 +333,6 @@ export const endMeeting = async (
     return {
       success: false,
       error: "An unexpected error occurred while ending the meeting",
-    };
-  }
-};
-
-/**
- * Get meeting statistics (total participants, events count)
- * @param meetingId - The meeting UUID
- * @returns Result with meeting stats
- */
-export const getMeetingStats = async (
-  meetingId: string,
-): Promise<
-  Result<{
-    totalParticipants: number;
-    uniqueParticipants: number;
-    eventCount: number;
-  }>
-> => {
-  try {
-    // Get all participant sessions
-    const { data: participants, error: participantError } = await supabaseAdmin
-      .from("meeting_participant")
-      .select("user_id")
-      .eq("meeting_id", meetingId);
-
-    if (participantError) {
-      return {
-        success: false,
-        error: participantError.message || "Failed to fetch participants",
-      };
-    }
-
-    // Get unique participant count
-    const uniqueParticipants = new Set(
-      (participants || []).map((p) => p.user_id),
-    ).size;
-
-    // Get event count
-    const { count: eventCount, error: eventError } = await supabaseAdmin
-      .from("meeting_event")
-      .select("*", { count: "exact", head: true })
-      .eq("meeting_id", meetingId);
-
-    if (eventError) {
-      return {
-        success: false,
-        error: eventError.message || "Failed to fetch event count",
-      };
-    }
-
-    return {
-      success: true,
-      data: {
-        totalParticipants: participants?.length || 0,
-        uniqueParticipants,
-        eventCount: eventCount || 0,
-      },
-    };
-  } catch (err) {
-    console.error("Unexpected error in getMeetingStats:", err);
-    return {
-      success: false,
-      error: "An unexpected error occurred while fetching meeting stats",
     };
   }
 };
@@ -586,6 +382,188 @@ export const provisionMeeting = async (): Promise<Result<Meeting>> => {
     return {
       success: false,
       error: "An unexpected error occurred while creating meeting for event",
+    };
+  }
+};
+
+export const validateMeetingPasscode = async (
+  meetingId: string,
+  passcode: string,
+  userId: string,
+  ipAddress: string,
+): Promise<Result<{ valid: boolean }>> => {
+  try {
+    // Get client IP for rate limiting
+    const headerList = await headers();
+    const ip =
+      ipAddress ||
+      headerList.get("x-forwarded-for")?.split(",")[0].trim() ||
+      "unknown";
+
+    // Check rate limiting: 5 attempts per IP per 15 minutes
+    const fifteenMinutesAgo = new Date(
+      Date.now() - 15 * 60 * 1000,
+    ).toISOString();
+    const { data: attempts, error: attemptsError } = await supabaseAdmin
+      .from("passcode_attempt")
+      .select("id", { count: "exact" })
+      .eq("meeting_id", meetingId)
+      .eq("ip_address", ip)
+      .gte("attempted_at", fifteenMinutesAgo);
+
+    if (attemptsError) {
+      console.error("Error checking rate limit:", attemptsError);
+      return {
+        success: false,
+        error: "Failed to validate attempt",
+      };
+    }
+
+    if ((attempts?.length || 0) >= 5) {
+      return {
+        success: false,
+        error: "Too many failed attempts. Please try again in 15 minutes.",
+      };
+    }
+
+    // Fetch meeting and validate passcode
+    const { data: meeting, error: meetingError } = await supabaseAdmin
+      .from("meeting")
+      .select("id, passcode")
+      .eq("id", meetingId)
+      .maybeSingle();
+
+    if (meetingError) {
+      console.error(
+        "Error fetching meeting for passcode validation:",
+        meetingError,
+      );
+      return {
+        success: false,
+        error: meetingError.message || "Failed to validate passcode",
+      };
+    }
+
+    if (!meeting) {
+      return {
+        success: false,
+        error: "Meeting not found",
+      };
+    }
+
+    // Validate passcode
+    if (meeting.passcode !== passcode) {
+      // Record failed attempt
+      const { error: recordError } = await supabaseAdmin
+        .from("passcode_attempt")
+        .insert({
+          meeting_id: meetingId,
+          ip_address: ip,
+        });
+
+      if (recordError) {
+        console.error("Error recording passcode attempt:", recordError);
+      }
+
+      return {
+        success: false,
+        error: "Invalid passcode",
+      };
+    }
+
+    // Passcode is valid - registered user can join
+    return {
+      success: true,
+      data: {
+        valid: true,
+      },
+    };
+  } catch (err) {
+    console.error("Unexpected error in validateMeetingPasscode:", err);
+    return {
+      success: false,
+      error: "An unexpected error occurred while validating passcode",
+    };
+  }
+};
+
+/**
+ * Get external participant status for meeting participants
+ * Determines which participants don't have access to the event
+ * @param meetingDbId - The meeting UUID
+ * @param participantIds - Array of participant user IDs
+ * @returns Map of userId to isExternal boolean
+ */
+export const getExternalParticipantStatus = async (
+  meetingDbId: string,
+  participantIds: string[],
+): Promise<Result<{ [userId: string]: boolean }>> => {
+  try {
+    // Get the event for this meeting
+    const { data: meeting, error: meetingError } = await supabaseAdmin
+      .from("meeting")
+      .select("id")
+      .eq("id", meetingDbId)
+      .maybeSingle();
+
+    if (meetingError || !meeting) {
+      console.error("Failed to get meeting:", meetingError);
+      return {
+        success: false,
+        error: "Meeting not found",
+      };
+    }
+
+    // Get the event associated with this meeting
+    const { data: event, error: eventError } = await supabaseAdmin
+      .from("event")
+      .select("id")
+      .eq("meeting_id", meeting.id)
+      .maybeSingle();
+
+    if (eventError || !event) {
+      console.error("Failed to get event:", eventError);
+      return {
+        success: false,
+        error: "Event not found",
+      };
+    }
+
+    // Get all users with access to this event
+    const { data: accessList, error: accessError } = await supabaseAdmin
+      .from("view_all_event_access")
+      .select("user_id")
+      .eq("event_id", event.id);
+
+    if (accessError) {
+      console.error("Failed to get access list:", accessError);
+      return {
+        success: false,
+        error: "Failed to fetch access list",
+      };
+    }
+
+    // Create a set of user IDs with access
+    const usersWithAccess = new Set(accessList?.map((a) => a.user_id) || []);
+
+    // Mark participants as external if they don't have access
+    const externalStatus: { [userId: string]: boolean } = {};
+    participantIds.forEach((participantId) => {
+      // Skip local user indicator
+      if (!participantId.includes("(")) {
+        externalStatus[participantId] = !usersWithAccess.has(participantId);
+      }
+    });
+
+    return {
+      success: true,
+      data: externalStatus,
+    };
+  } catch (err) {
+    console.error("Error fetching external participant status:", err);
+    return {
+      success: false,
+      error: "An unexpected error occurred while fetching participant status",
     };
   }
 };

@@ -12,10 +12,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  recordMeetingEvent,
-  recordParticipantLeave,
-} from "@/server-actions/meeting";
+import { recordParticipantLeave } from "@/server-actions/meeting";
 import { isMeetingDebug } from "@/lib/debug";
 
 import { useMeeting } from "@/lib/videosdkWrapper";
@@ -40,8 +37,6 @@ export default function ControlBar({
     if (!isMeetingDebug() && meetingDbId) {
       // Record participant leave
       await recordParticipantLeave(meetingDbId, userId);
-      // Record leave event
-      await recordMeetingEvent(meetingDbId, userId, "leave");
       router.push("/app"); // redirect only in non-debug
     }
     leave();
@@ -49,26 +44,10 @@ export default function ControlBar({
 
   const handleToggleMic = async () => {
     toggleMic();
-    if (!isMeetingDebug() && meetingDbId) {
-      // Record event after toggle (state will flip)
-      await recordMeetingEvent(
-        meetingDbId,
-        userId,
-        localMicOn ? "mic_off" : "mic_on",
-      );
-    }
   };
 
   const handleToggleWebcam = async () => {
     toggleWebcam();
-    if (!isMeetingDebug() && meetingDbId) {
-      // Record event after toggle (state will flip)
-      await recordMeetingEvent(
-        meetingDbId,
-        userId,
-        localWebcamOn ? "camera_off" : "camera_on",
-      );
-    }
   };
 
   const handleSummarize = async () => {
