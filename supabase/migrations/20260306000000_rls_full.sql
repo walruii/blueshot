@@ -1,14 +1,7 @@
 CREATE OR REPLACE FUNCTION public.current_user_id()
-RETURNS TEXT
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public -- Limits search path for security
-AS $$
-  -- Extracts 'sub' from the JWT claims directly
-  SELECT nullif(current_setting('request.jwt.claims', true)::json->>'sub', '')::text;
+RETURNS TEXT LANGUAGE sql STABLE AS $$
+  SELECT auth.uid()::text;
 $$;
-
 
 
 -- 1. Optimized SQL function (faster than plpgsql for RLS)

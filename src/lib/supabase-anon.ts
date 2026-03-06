@@ -22,8 +22,15 @@ export const getSupabaseAnonClient = async () => {
   }
 
   supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: {
+      persistSession: false, // Recommended when using external Auth like Better Auth
+    },
+    global: {
+      fetch: (url, options) => fetch(url, { ...options, credentials: "omit" }),
+    },
     accessToken: async () => {
-      return await getSupabaseToken();
+      const token = await getSupabaseToken();
+      return token ?? "";
     },
   });
 
