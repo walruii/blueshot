@@ -1,6 +1,6 @@
 CREATE OR REPLACE FUNCTION public.current_user_id()
 RETURNS TEXT LANGUAGE sql STABLE AS $$
-  SELECT auth.uid()::text;
+  SELECT auth.jwt()->>'sub';
 $$;
 
 
@@ -33,6 +33,15 @@ $$;
 
 -- 2. Enable FULL identity for Realtime
 ALTER TABLE "public"."message" REPLICA IDENTITY FULL;
+-- Enable RLS on the message table
+ALTER TABLE "public"."message" ENABLE ROW LEVEL SECURITY;
+
+-- Service role bypass policies (must come FIRST for policy evaluation order)
+CREATE POLICY "service_role_all_messages" ON "public"."message"
+FOR ALL TO service_role
+USING (true)
+WITH CHECK (true);
+
 
 -- 3. Consolidated Policies
 -- Note: Added 'public.' prefix to current_user_id for consistency
