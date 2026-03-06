@@ -136,31 +136,4 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 ALTER FUNCTION "public"."update_conversation_last_message"() SET search_path = "public";
 ALTER FUNCTION "public"."check_conversation_access"("text", "uuid") SET search_path = "public";
 
-ALTER TABLE "public"."conversations" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."messages" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."conversation_participants" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service_role_all" ON "public"."conversations"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."messages"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "authenticated_read" ON "public"."messages"
-FOR SELECT
-TO authenticated
-USING ((select auth.role()) = 'authenticated');
-
-CREATE POLICY "service_role_all" ON "public"."conversation_participants"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
 ALTER PUBLICATION "supabase_realtime" ADD TABLE "public"."messages";

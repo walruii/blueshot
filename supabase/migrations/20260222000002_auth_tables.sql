@@ -69,39 +69,3 @@ CREATE TABLE "public"."verification" (
 );
 
 CREATE INDEX "verification_identifier_idx" ON "public"."verification" USING "btree" ("identifier");
-
-ALTER TABLE "public"."account" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."passkey" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."session" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."twoFactor" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."verification" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service_role_all" ON "public"."account"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."passkey"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."session"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."twoFactor"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."verification"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');

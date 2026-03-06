@@ -17,11 +17,3 @@ CREATE INDEX "notifications_created_at_idx" ON "public"."notifications" USING "b
 ALTER TABLE "public"."notifications"
     ADD CONSTRAINT "notifications_user_id_fkey"
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON UPDATE CASCADE ON DELETE CASCADE;
-
-ALTER TABLE "public"."notifications" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service_role_all" ON "public"."notifications"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');

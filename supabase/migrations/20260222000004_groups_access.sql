@@ -66,38 +66,4 @@ ALTER TABLE "public"."event_group_access"
     ADD CONSTRAINT "event_group_access_user_group_id_fkey"
     FOREIGN KEY ("user_group_id") REFERENCES "public"."user_group"("id") ON UPDATE CASCADE ON DELETE CASCADE;
 
-ALTER TABLE "public"."user_group" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."user_group_member" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."event_group" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."event_group_access" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service_role_all" ON "public"."user_group"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."user_group_member"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."event_group"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."event_group_access"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "authenticated_read" ON "public"."event_group_access"
-FOR SELECT
-TO authenticated
-USING ((select auth.role()) = 'authenticated');
-
 ALTER PUBLICATION "supabase_realtime" ADD TABLE ONLY "public"."event_group_access";

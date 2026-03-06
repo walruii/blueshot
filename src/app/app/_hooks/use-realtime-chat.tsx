@@ -47,19 +47,12 @@ export function useRealtimeChat(convoId: string) {
     const realTimeSetup = async () => {
       supabase = await getSupabaseAnonClient();
 
+      // Set realtime auth token for RLS policies
       try {
         const token = await getSupabaseToken();
         await supabase.realtime.setAuth(token);
       } catch (authErr) {
         console.error("Failed to set realtime auth token", authErr);
-      }
-
-      const { error: probeError } = await supabase
-        .from("message")
-        .select("id")
-        .limit(1);
-      if (probeError) {
-        console.error("Supabase JWT/RLS probe failed", probeError);
       }
 
       activeChannel = supabase
