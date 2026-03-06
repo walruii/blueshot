@@ -97,6 +97,89 @@ export type Database = {
           },
         ]
       }
+      chat_summaries: {
+        Row: {
+          content: string
+          conversation_id: string | null
+          created_at: string
+          id: string
+          last_message_id: string
+          meeting_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          last_message_id: string
+          meeting_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string | null
+          created_at?: string
+          id?: string
+          last_message_id?: string
+          meeting_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_summaries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_summaries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_summaries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "group_conversations_inbox"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_summaries_last_message_id_fkey"
+            columns: ["last_message_id"]
+            isOneToOne: false
+            referencedRelation: "message"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_summaries_meeting_id_fkey"
+            columns: ["meeting_id"]
+            isOneToOne: false
+            referencedRelation: "meeting"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "direct_messages_inbox"
+            referencedColumns: ["partner_id"]
+          },
+          {
+            foreignKeyName: "chat_summaries_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation: {
         Row: {
           avatar_url: string | null
@@ -1215,10 +1298,15 @@ export type Database = {
       }
     }
     Functions: {
+      can_access_meeting: {
+        Args: { p_meeting_id: string; p_user_id: string }
+        Returns: boolean
+      }
       check_conversation_access: {
         Args: { p_conversation_id: string; p_user_id: string }
         Returns: boolean
       }
+      current_user_id: { Args: never; Returns: string }
       get_active_events: {
         Args: { requesting_user_id: string }
         Returns: {

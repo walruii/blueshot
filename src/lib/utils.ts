@@ -17,3 +17,14 @@ export function generateMeetingPasscode(): string {
   }
   return passcode;
 }
+
+/**
+ * Validate if a string is a valid UUID (v4 format)
+ * @param value - The string to validate
+ * @returns True if the value is a valid UUID, false otherwise
+ */
+export function isValidUUID(value: string): boolean {
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}

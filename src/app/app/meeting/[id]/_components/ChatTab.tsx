@@ -6,6 +6,7 @@ import { getMessagesMeeting, sendMessageMeeting } from "@/server-actions/chat";
 import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import SummaryButton from "@/components/SummaryButton";
 // using native div for scrollable area instead of shadcn component
 
 interface ChatMessage {
@@ -289,6 +290,11 @@ export default function ChatTab({ meetingDbId }: { meetingDbId: string }) {
             ))
           )}
         </div>
+      </div>
+
+      {/* AI Summary Button */}
+      <div className="px-3 pb-2 shrink-0">
+        <SummaryButton meetingId={meetingDbId} />
       </div>
 
       <div className="border-t border-border p-3 flex gap-2 shrink-0">

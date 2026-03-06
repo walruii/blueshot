@@ -9,6 +9,7 @@ import { InboxItem } from "@/types/chat";
 import { authClient } from "@/lib/auth-client";
 import LoadingChatArea from "./LoadingChatArea";
 import { useConversation } from "../_hooks/use-conversation";
+import SummaryButton from "@/components/SummaryButton";
 
 export default function ChatArea({
   conversation,
@@ -82,6 +83,10 @@ export default function ChatArea({
           hasMoreBefore={hasMoreBefore}
           isInitialized={isInitialized}
         />
+      </div>
+      {/* AI Summary Button */}
+      <div className="px-4 pt-2 shrink-0">
+        <SummaryButton conversationId={id} />
       </div>
       {/* Input */}
       <form
