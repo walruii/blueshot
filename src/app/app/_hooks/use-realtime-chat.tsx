@@ -55,6 +55,14 @@ export function useRealtimeChat(convoId: string) {
         console.error("Failed to set realtime auth token", authErr);
       }
 
+      const { error: probeError } = await supabase
+        .from("message")
+        .select("id")
+        .limit(1);
+      if (probeError) {
+        console.error("Supabase JWT/RLS probe failed", probeError);
+      }
+
       activeChannel = supabase
         .channel(`chat:${convoId}`)
         .on(
