@@ -21,9 +21,10 @@ export async function getSupabaseToken() {
     aud: "authenticated",
     role: "authenticated",
     sub: userId,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60, // 1 hour
   })
     .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("1h")
     .sign(secret);
   console.log(token);
   return token;

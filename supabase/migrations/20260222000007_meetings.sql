@@ -63,25 +63,3 @@ ALTER TABLE "public"."meeting_events"
 ALTER TABLE "public"."meeting_events"
     ADD CONSTRAINT "meeting_events_user_id_fkey"
     FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE CASCADE;
-
-ALTER TABLE "public"."meetings" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."meeting_participants" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."meeting_events" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service_role_all" ON "public"."meetings"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."meeting_participants"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."meeting_events"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');

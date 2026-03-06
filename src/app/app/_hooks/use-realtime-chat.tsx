@@ -47,6 +47,7 @@ export function useRealtimeChat(convoId: string) {
     const realTimeSetup = async () => {
       supabase = await getSupabaseAnonClient();
 
+      // Set realtime auth token for RLS policies
       try {
         const token = await getSupabaseToken();
         await supabase.realtime.setAuth(token);

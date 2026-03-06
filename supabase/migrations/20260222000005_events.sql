@@ -248,25 +248,3 @@ ALTER FUNCTION "public"."get_event"("uuid") SET search_path = "public";
 ALTER FUNCTION "public"."get_event_members"("uuid") SET search_path = "public";
 ALTER FUNCTION "public"."get_user_event_state"("uuid", "text") SET search_path = "public";
 ALTER FUNCTION "public"."get_user_events"("text") SET search_path = "public";
-
-ALTER TABLE "public"."event" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."event_access" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."event_user_state" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "service_role_all" ON "public"."event"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."event_access"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
-
-CREATE POLICY "service_role_all" ON "public"."event_user_state"
-FOR ALL
-TO service_role
-USING ((select auth.role()) = 'service_role')
-WITH CHECK ((select auth.role()) = 'service_role');
