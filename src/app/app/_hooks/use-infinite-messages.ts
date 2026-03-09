@@ -120,7 +120,8 @@ export function useInfiniteMessages(
     return () => observer.disconnect();
   }, [conversationId, loadOlder, scrollContainerRef]);
 
-  // Scroll compensation after prepend: run in useLayoutEffect after messages have been rendered
+  // Scroll compensation after prepend: run only when message count changes.
+  // This avoids consuming compensation on intermediate renders (e.g. loading state).
   useLayoutEffect(() => {
     const comp = scrollCompensationRef.current;
     if (!comp || !scrollContainerRef?.current) return;
@@ -129,7 +130,7 @@ export function useInfiniteMessages(
     const delta = el.scrollHeight - comp.prevHeight;
     el.scrollTop = comp.prevScrollTop + delta;
     scrollCompensationRef.current = null;
-  });
+  }, [messages.length, scrollContainerRef]);
 
   return {
     messages,
