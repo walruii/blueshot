@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MessageList } from "./MessageList";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ export default function ChatArea({
 
   const { data: session } = authClient.useSession();
   const [input, setInput] = useState("");
+  const shouldStickToBottomRef = useRef(true);
 
   const handleFormSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -39,12 +40,23 @@ export default function ChatArea({
     }
   };
 
-  // auto-scroll to bottom when a new message arrives
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    shouldStickToBottomRef.current = distanceFromBottom < 80;
+  }, [scrollContainerRef]);
+
+  useEffect(() => {
+    shouldStickToBottomRef.current = true;
+  }, [id]);
+
+  // auto-scroll only if user is already near bottom
   useEffect(() => {
     const el = scrollContainerRef.current;
-    if (el) {
-      el.scrollTop = el.scrollHeight;
-    }
+    if (!el) return;
+    if (!shouldStickToBottomRef.current) return;
+    el.scrollTop = el.scrollHeight;
   }, [messages.length, scrollContainerRef]);
 
   // determine display values
@@ -73,6 +85,7 @@ export default function ChatArea({
       {/* Messages */}
       <div
         ref={scrollContainerRef}
+        onScroll={handleScroll}
         className="flex-1 overflow-auto p-6 bg-background min-h-0"
       >
         <div ref={loadMoreRef} className="h-px w-full shrink-0" />

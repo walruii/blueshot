@@ -130,33 +130,11 @@ export const useChatStore = create<ChatStoreState>((set) => ({
         [message.sender.id]: message.sender,
       };
 
-      // Deduplication: Remove optimistic message if real-time message matches
-      let filtered = current;
-      // Only deduplicate for sender
-      if (message.sender && state.users[message.sender.id]) {
-        filtered = current.filter((m) => {
-          // Remove optimistic message if:
-          // - Sender matches
-          // - Content matches
-          // - Created_at is within 5s of real-time message
-          // - ID is not the real one (likely temp)
-          const isTemp =
-            m.id !== message.id &&
-            m.sender.id === message.sender.id &&
-            m.content === message.content;
-          const timeDiff = Math.abs(
-            new Date(m.created_at).getTime() -
-              new Date(message.created_at).getTime(),
-          );
-          return !(isTemp && timeDiff < 5000);
-        });
-      }
-
-      const idx = filtered.findIndex((m) => m.id === message.id);
+      const idx = current.findIndex((m) => m.id === message.id);
       const next =
         idx >= 0
-          ? filtered.map((m, i) => (i === idx ? message : m))
-          : [...filtered, message];
+          ? current.map((m, i) => (i === idx ? message : m))
+          : [...current, message];
 
       const merged = sortByCreatedAtAsc(next);
       return {
