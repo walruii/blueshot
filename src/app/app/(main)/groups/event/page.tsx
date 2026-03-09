@@ -266,70 +266,63 @@ export default function ManageEventGroupsPage() {
     )
       return;
 
-    const result = await batchUpdateEventGroupAccess(
-      groupManagement.selectedGroupId,
-      pendingChangesManager.pendingChanges,
-    );
+    await saveManager.executeSave(
+      async () => {
+        const result = await batchUpdateEventGroupAccess(
+          groupManagement.selectedGroupId,
+          pendingChangesManager.pendingChanges,
+        );
+        return result;
+      },
+      async (data) => {
+        const { successful, failed } = data;
 
-    if (result.success && result.data) {
-      const { successful, failed } = result.data;
+        // Map failed changes to display format
+        const failedChanges = failed.map(({ change, error }) => {
+          let description = "";
+          switch (change.type) {
+            case "add-user":
+              description = `Add user: ${change.email}`;
+              break;
+            case "add-user-group":
+              description = `Add user group: ${change.name}`;
+              break;
+            case "remove-user":
+              description = `Remove user: ${change.email}`;
+              break;
+            case "remove-user-group":
+              description = `Remove user group: ${change.name}`;
+              break;
+            case "update-user-role":
+              description = `Update role for: ${change.email}`;
+              break;
+            case "update-user-group-role":
+              description = `Update role for group: ${change.name}`;
+              break;
+          }
+          return { description, error };
+        });
 
-      // Map failed changes to display format
-      const failedChanges = failed.map(({ change, error }) => {
-        let description = "";
-        switch (change.type) {
-          case "add-user":
-            description = `Add user: ${change.email}`;
-            break;
-          case "add-user-group":
-            description = `Add user group: ${change.name}`;
-            break;
-          case "remove-user":
-            description = `Remove user: ${change.email}`;
-            break;
-          case "remove-user-group":
-            description = `Remove user group: ${change.name}`;
-            break;
-          case "update-user-role":
-            description = `Update role for: ${change.email}`;
-            break;
-          case "update-user-group-role":
-            description = `Update role for group: ${change.name}`;
-            break;
+        saveManager.displayResult({
+          successCount: successful.length,
+          totalCount: pendingChangesManager.pendingChanges.length,
+          failedChanges,
+        });
+
+        // Refresh data from server
+        const refreshResult = await getEventGroupAccess(
+          groupManagement.selectedGroupId,
+        );
+        if (refreshResult.success && refreshResult.data) {
+          setOriginalAccessData(refreshResult.data);
         }
-        return { description, error };
-      });
 
-      saveManager.displayResult({
-        successCount: successful.length,
-        totalCount: pendingChangesManager.pendingChanges.length,
-        failedChanges,
-      });
-
-      // Refresh data from server
-      const refreshResult = await getEventGroupAccess(
-        groupManagement.selectedGroupId,
-      );
-      if (refreshResult.success && refreshResult.data) {
-        setOriginalAccessData(refreshResult.data);
-      }
-
-      // Keep only failed changes as pending
-      const failedChangeIds = new Set(failed.map((f) => f.change.id));
-      pendingChangesManager.keepOnly((c) => failedChangeIds.has(c.id));
-    } else if (!result.success) {
-      showAlert({
-        title: "Failed to save changes",
-        description: result.error,
-        type: "error",
-      });
-    }
-  }, [
-    groupManagement.selectedGroupId,
-    pendingChangesManager,
-    saveManager,
-    showAlert,
-  ]);
+        // Keep only failed changes as pending
+        const failedChangeIds = new Set(failed.map((f) => f.change.id));
+        pendingChangesManager.keepOnly((c) => failedChangeIds.has(c.id));
+      },
+    );
+  }, [groupManagement.selectedGroupId, pendingChangesManager, saveManager]);
 
   const handleTransferOwnership = useCallback(async () => {
     if (!groupManagement.selectedGroupId || !selectedNewOwnerId) return;
