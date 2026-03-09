@@ -32,7 +32,7 @@ export function PendingChangeFooter({
             ) : (
               <Save className="mr-2 h-4 w-4" />
             )}
-            Save Changes
+            {isSaving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>

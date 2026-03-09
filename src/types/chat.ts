@@ -38,11 +38,23 @@ export type InboxGroup = {
   updated_at: string | null;
   user_group_id: string | null;
   event_id: string | null;
+  participants: unknown | null;
 };
 
 export type InboxItem = InboxDirect | InboxGroup;
 
-export const formatInboxDirect = (dbRow: InboxDirectDB): InboxDirect => ({
+export const formatInboxDirect = (
+  dbRow: Pick<
+    InboxDirectDB,
+    | "id"
+    | "partner_id"
+    | "partner_name"
+    | "partner_email"
+    | "partner_image"
+    | "last_message_at"
+    | "updated_at"
+  >,
+): InboxDirect => ({
   id: dbRow.id,
   type: "direct",
   partner_id: dbRow.partner_id,
@@ -53,7 +65,21 @@ export const formatInboxDirect = (dbRow: InboxDirectDB): InboxDirect => ({
   updated_at: dbRow.updated_at,
 });
 
-export const formatInboxGroup = (dbRow: InboxGroupDB): InboxGroup => ({
+export const formatInboxGroup = (
+  dbRow: Pick<
+    InboxGroupDB,
+    | "id"
+    | "type"
+    | "name"
+    | "description"
+    | "avatar_url"
+    | "last_message_at"
+    | "updated_at"
+    | "user_group_id"
+    | "event_id"
+    | "participants"
+  >,
+): InboxGroup => ({
   id: dbRow.id,
   type:
     (dbRow.type as "user_group" | "event_group" | "event" | "meeting") ||
@@ -65,6 +91,7 @@ export const formatInboxGroup = (dbRow: InboxGroupDB): InboxGroup => ({
   updated_at: dbRow.updated_at,
   user_group_id: dbRow.user_group_id,
   event_id: dbRow.event_id,
+  participants: dbRow.participants,
 });
 
 export type MessageWithSender = {

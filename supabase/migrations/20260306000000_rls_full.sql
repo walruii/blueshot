@@ -36,6 +36,12 @@ ALTER TABLE "public"."message" REPLICA IDENTITY FULL;
 -- Enable RLS on the message table
 ALTER TABLE "public"."message" ENABLE ROW LEVEL SECURITY;
 
+-- Drop existing policies to avoid conflicts
+DROP POLICY IF EXISTS "service_role_all_messages" ON "public"."message";
+DROP POLICY IF EXISTS "authenticated_select_messages" ON "public"."message";
+DROP POLICY IF EXISTS "authenticated_insert_messages" ON "public"."message";
+DROP POLICY IF EXISTS "authenticated_update_messages" ON "public"."message";
+
 -- Service role bypass policies (must come FIRST for policy evaluation order)
 CREATE POLICY "service_role_all_messages" ON "public"."message"
 FOR ALL TO service_role

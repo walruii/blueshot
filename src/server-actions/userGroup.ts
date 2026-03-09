@@ -19,69 +19,32 @@ export const getAccessibleUserGroups = async (): Promise<
   Result<UserGroup[]>
 > => {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await auth.api.getSession({ headers: await headers() });
 
     if (!session?.user) {
       return { success: false, error: "Invalid session" };
     }
 
-    const userId = session.user.id;
-
-    // Get groups created by the user
-    const { data: createdGroups, error: createdError } = await supabaseAdmin
-      .from("user_group")
-      .select("*")
-      .eq("created_by", userId);
-
-    if (createdError) {
-      console.error("Error fetching created user groups:", createdError);
-      return { success: false, error: "Failed to fetch user groups" };
-    }
-
-    // Get groups the user is a member of
-    const { data: membershipData, error: memberError } = await supabaseAdmin
-      .from("user_group_member")
-      .select("user_group_id")
-      .eq("user_id", userId);
-
-    if (memberError) {
-      console.error("Error fetching user group memberships:", memberError);
-      return { success: false, error: "Failed to fetch user groups" };
-    }
-
-    // Get the actual group details for member groups
-    const memberGroupIds = membershipData?.map((m) => m.user_group_id) || [];
-
-    let memberGroups: UserGroup[] = [];
-    if (memberGroupIds.length > 0) {
-      const { data: memberGroupsData, error: memberGroupsError } =
-        await supabaseAdmin
-          .from("user_group")
-          .select("*")
-          .in("id", memberGroupIds);
-
-      if (memberGroupsError) {
-        console.error("Error fetching member groups:", memberGroupsError);
-      } else {
-        memberGroups = (memberGroupsData || []).map(formatUserGroup);
-      }
-    }
-
-    // Combine and deduplicate
-    const allGroups = [
-      ...(createdGroups || []).map(formatUserGroup),
-      ...memberGroups,
-    ];
-    const uniqueGroups = allGroups.filter(
-      (group, index, self) =>
-        index === self.findIndex((g) => g.id === group.id),
+    // Single RPC call replaces all previous manual fetching and filtering
+    const { data, error } = await supabaseAdmin.rpc(
+      "get_accessible_user_groups",
+      {
+        p_user_id: session.user.id,
+      },
     );
 
-    return { success: true, data: uniqueGroups };
+    if (error) {
+      console.error("Error fetching accessible user groups:", error);
+      return { success: false, error: "Failed to fetch user groups" };
+    }
+
+    // Just map the data to your format and you're done
+    return {
+      success: true,
+      data: (data || []).map(formatUserGroup),
+    };
   } catch (err) {
-    console.error("Unexpected error in getAccessibleUserGroups:", err);
+    console.error("Unexpected error:", err);
     return { success: false, error: "Internal Server Error" };
   }
 };

@@ -47,6 +47,8 @@ import { EventGroupAccessView } from "./_components/EventGroupAccessView";
 export default function ManageEventGroupsPage() {
   const { showAlert } = useAlert();
   const { data: session } = authClient.useSession();
+  const SETTINGS_PERMISSION_MESSAGE =
+    "You can not see the setting as you dont have permissions";
 
   // Use group management hook for core group/modal state
   const groupManagement = useGroupManagement(getAccessibleEventGroups);
@@ -73,6 +75,8 @@ export default function ManageEventGroupsPage() {
 
   // Group settings modal state
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showSettingsPermissionMessage, setShowSettingsPermissionMessage] =
+    useState(false);
 
   // Load available user groups (not managed by group management hook)
   useEffect(() => {
@@ -98,13 +102,22 @@ export default function ManageEventGroupsPage() {
       const result = await getEventGroupAccess(groupManagement.selectedGroupId);
       if (result.success && result.data) {
         setOriginalAccessData(result.data);
+        setShowSettingsPermissionMessage(false);
         pendingChangesManager.discardAll(); // Reset pending changes when switching groups
       } else {
-        showAlert({
-          title: "Failed to load access",
-          description: !result.success ? result.error : "",
-          type: "error",
-        });
+        const errorMessage = !result.success ? result.error || "" : "";
+        const isAccessDenied = /access denied/i.test(errorMessage);
+
+        if (isAccessDenied) {
+          setShowSettingsPermissionMessage(true);
+        } else {
+          showAlert({
+            title: "Failed to load access",
+            description: errorMessage,
+            type: "error",
+          });
+          setShowSettingsPermissionMessage(false);
+        }
         setOriginalAccessData(null);
       }
       setLoadingAccess(false);
@@ -266,70 +279,63 @@ export default function ManageEventGroupsPage() {
     )
       return;
 
-    const result = await batchUpdateEventGroupAccess(
-      groupManagement.selectedGroupId,
-      pendingChangesManager.pendingChanges,
-    );
+    await saveManager.executeSave(
+      async () => {
+        const result = await batchUpdateEventGroupAccess(
+          groupManagement.selectedGroupId,
+          pendingChangesManager.pendingChanges,
+        );
+        return result;
+      },
+      async (data) => {
+        const { successful, failed } = data;
 
-    if (result.success && result.data) {
-      const { successful, failed } = result.data;
+        // Map failed changes to display format
+        const failedChanges = failed.map(({ change, error }) => {
+          let description = "";
+          switch (change.type) {
+            case "add-user":
+              description = `Add user: ${change.email}`;
+              break;
+            case "add-user-group":
+              description = `Add user group: ${change.name}`;
+              break;
+            case "remove-user":
+              description = `Remove user: ${change.email}`;
+              break;
+            case "remove-user-group":
+              description = `Remove user group: ${change.name}`;
+              break;
+            case "update-user-role":
+              description = `Update role for: ${change.email}`;
+              break;
+            case "update-user-group-role":
+              description = `Update role for group: ${change.name}`;
+              break;
+          }
+          return { description, error };
+        });
 
-      // Map failed changes to display format
-      const failedChanges = failed.map(({ change, error }) => {
-        let description = "";
-        switch (change.type) {
-          case "add-user":
-            description = `Add user: ${change.email}`;
-            break;
-          case "add-user-group":
-            description = `Add user group: ${change.name}`;
-            break;
-          case "remove-user":
-            description = `Remove user: ${change.email}`;
-            break;
-          case "remove-user-group":
-            description = `Remove user group: ${change.name}`;
-            break;
-          case "update-user-role":
-            description = `Update role for: ${change.email}`;
-            break;
-          case "update-user-group-role":
-            description = `Update role for group: ${change.name}`;
-            break;
+        saveManager.displayResult({
+          successCount: successful.length,
+          totalCount: pendingChangesManager.pendingChanges.length,
+          failedChanges,
+        });
+
+        // Refresh data from server
+        const refreshResult = await getEventGroupAccess(
+          groupManagement.selectedGroupId,
+        );
+        if (refreshResult.success && refreshResult.data) {
+          setOriginalAccessData(refreshResult.data);
         }
-        return { description, error };
-      });
 
-      saveManager.displayResult({
-        successCount: successful.length,
-        totalCount: pendingChangesManager.pendingChanges.length,
-        failedChanges,
-      });
-
-      // Refresh data from server
-      const refreshResult = await getEventGroupAccess(
-        groupManagement.selectedGroupId,
-      );
-      if (refreshResult.success && refreshResult.data) {
-        setOriginalAccessData(refreshResult.data);
-      }
-
-      // Keep only failed changes as pending
-      const failedChangeIds = new Set(failed.map((f) => f.change.id));
-      pendingChangesManager.keepOnly((c) => failedChangeIds.has(c.id));
-    } else if (!result.success) {
-      showAlert({
-        title: "Failed to save changes",
-        description: result.error,
-        type: "error",
-      });
-    }
-  }, [
-    groupManagement.selectedGroupId,
-    pendingChangesManager,
-    saveManager,
-    showAlert,
-  ]);
+        // Keep only failed changes as pending
+        const failedChangeIds = new Set(failed.map((f) => f.change.id));
+        pendingChangesManager.keepOnly((c) => failedChangeIds.has(c.id));
+      },
+    );
+  }, [groupManagement.selectedGroupId, pendingChangesManager, saveManager]);
 
   const handleTransferOwnership = useCallback(async () => {
     if (!groupManagement.selectedGroupId || !selectedNewOwnerId) return;
@@ -515,9 +521,10 @@ export default function ManageEventGroupsPage() {
             />
           </CardContent>
           {/* Group Settings Footer - Only show to owner */}
-          {groupManagement.selectedGroup.createdBy === session?.user?.id &&
-            groupManagement.selectedGroup.name !== "Personal" && (
-              <div className="border-t bg-muted/50 px-6 py-4">
+          {groupManagement.selectedGroup.name !== "Personal" && (
+            <div className="border-t bg-muted/50 px-6 py-4">
+              {groupManagement.selectedGroup.createdBy === session?.user?.id &&
+              !showSettingsPermissionMessage ? (
                 <Button
                   onClick={() => groupManagement.setIsGroupSettingsOpen(true)}
                   variant="outline"
@@ -527,8 +534,13 @@ export default function ManageEventGroupsPage() {
                   <Settings className="mr-2 h-4 w-4" />
                   Group Settings
                 </Button>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {SETTINGS_PERMISSION_MESSAGE}
+                </p>
+              )}
+            </div>
+          )}
         </Card>
       )}
 
