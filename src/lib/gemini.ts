@@ -63,7 +63,7 @@ Return ONLY the updated summary text. Do not include any preamble, explanation, 
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "models/gemma-3-4b-it",
       contents: prompt,
     });
 
