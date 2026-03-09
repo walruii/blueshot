@@ -91,6 +91,53 @@ export function useRealtimeInbox(userId: string) {
           }
         })
 
+        .on("broadcast", { event: "NEW_GROUP_CONVERSATION" }, async (p) => {
+          const groupName = p.payload?.groupName || "Group";
+          showAlert({
+            title: "New group conversation",
+            description: `You were added to ${groupName}`,
+            type: "info",
+          });
+
+          router.refresh();
+
+          try {
+            const { conversationId } = p.payload || {};
+            if (conversationId) {
+              const conv = await import("@/server-actions/conversations").then(
+                (mod) => mod.getGroupConversationById(conversationId),
+              );
+              if (conv?.id) {
+                const { useChatStore } = await import("@/stores/chatStore");
+                useChatStore.getState().addGroupConversation(conv);
+              }
+            }
+          } catch (err) {
+            console.error("Error handling new group conversation payload", err);
+          }
+        })
+
+        .on("broadcast", { event: "GROUP_CONVERSATION_UPDATED" }, async (p) => {
+          router.refresh();
+          try {
+            const { conversationId } = p.payload || {};
+            if (conversationId) {
+              const conv = await import("@/server-actions/conversations").then(
+                (mod) => mod.getGroupConversationById(conversationId),
+              );
+              if (conv?.id) {
+                const { useChatStore } = await import("@/stores/chatStore");
+                useChatStore.getState().addGroupConversation(conv);
+              }
+            }
+          } catch (err) {
+            console.error(
+              "Error handling group conversation update payload",
+              err,
+            );
+          }
+        })
+
         // new message event: show toast notification
         // .on("broadcast", { event: "NEW_MESSAGE" }, async (p) => {
         //   const senderName = p.payload?.senderName || "Someone";

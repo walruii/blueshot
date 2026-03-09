@@ -37,7 +37,9 @@ export type InboxGroup = {
   last_message_at: string | null;
   updated_at: string | null;
   user_group_id: string | null;
+  event_group_id: string | null;
   event_id: string | null;
+  current_user_role: string | null;
   participants: unknown | null;
 };
 
@@ -76,7 +78,9 @@ export const formatInboxGroup = (
     | "last_message_at"
     | "updated_at"
     | "user_group_id"
+    | "event_group_id"
     | "event_id"
+    | "current_user_role"
     | "participants"
   >,
 ): InboxGroup => ({
@@ -90,7 +94,9 @@ export const formatInboxGroup = (
   last_message_at: dbRow.last_message_at,
   updated_at: dbRow.updated_at,
   user_group_id: dbRow.user_group_id,
+  event_group_id: dbRow.event_group_id,
   event_id: dbRow.event_id,
+  current_user_role: dbRow.current_user_role,
   participants: dbRow.participants,
 });
 
