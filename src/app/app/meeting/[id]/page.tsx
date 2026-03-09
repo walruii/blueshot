@@ -56,7 +56,6 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       const { id: meetingId } = await params;
       setMeetingDbId(meetingId);
       const meetingResult = await getMeetingById(meetingId);
-      console.log("Meeting result:", meetingResult);
 
       if (!meetingResult.success || !meetingResult.data) {
         setLoading(false);
@@ -83,7 +82,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
   const onSuccess = async (userId: string) => {
     setUserId(userId);
     setUnauthorized(false);
-    
+
     // First, add participant to meeting (for passcode join tracking)
     const participantResult = await addParticipant(
       meetingDbId,
@@ -91,7 +90,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       false,
       false,
     );
-    
+
     if (!participantResult.success) {
       console.error("Failed to add participant:", participantResult.error);
       showAlert({
@@ -100,7 +99,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       });
       return;
     }
-    
+
     // Then fetch token for authenticated user
     const tokenResult = await createJoinToken(meetingId);
     if (!tokenResult.success) {

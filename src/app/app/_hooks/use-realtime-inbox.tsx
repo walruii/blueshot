@@ -200,8 +200,9 @@ export function useRealtimeInbox(userId: string) {
         .on("broadcast", { event: "UPDATE_ACK" }, () => router.refresh())
 
         .subscribe((status: string) => {
-          if (status === "SUBSCRIBED")
-            console.log(`Inbox listener active: ${userId}`);
+          if (status === "SUBSCRIBED") {
+            // Inbox listener active
+          }
         });
 
       if (isDisposed && activeChannel) {

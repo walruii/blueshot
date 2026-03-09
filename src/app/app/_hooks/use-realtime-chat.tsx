@@ -88,7 +88,6 @@ export function useRealtimeChat(convoId: string) {
           },
         )
         .subscribe((status) => {
-          console.log("Realtime Status:", status);
           if (status === "CHANNEL_ERROR") {
             console.error(
               "Realtime channel error. Check JWT claim mapping and message SELECT RLS for this user.",
@@ -101,8 +100,6 @@ export function useRealtimeChat(convoId: string) {
             );
             return;
           }
-
-          console.log("Supabase Realtime Channel Status:", status);
         });
     };
     realTimeSetup();

@@ -146,8 +146,6 @@ export async function notifyAffectedUsers(
         }),
       ),
     );
-
-    console.log(`Successfully notified ${userIds.length} users.`);
   } catch (err) {
     console.error("Error in notifyAffectedUsers:", err);
   }
@@ -216,10 +214,6 @@ async function notifyAccessChange(
           payload: { title },
         }),
       ),
-    );
-
-    console.log(
-      `Successfully notified ${filteredUserIds.length} users for ${action}.`,
     );
   } catch (err) {
     console.error(`Error in notifyAccessChange (${action}):`, err);

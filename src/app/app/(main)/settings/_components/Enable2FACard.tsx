@@ -74,10 +74,7 @@ export function Enable2FACard({ hasPassword }: Enable2FACardProps) {
     setLoading(true);
 
     try {
-      console.log("Enabling 2FA with password");
       const result = await authClient.twoFactor.enable({ password });
-
-      console.log("Enable 2FA result:", result);
 
       if (result.error) {
         console.error("Enable error:", result.error);
@@ -87,8 +84,6 @@ export function Enable2FACard({ hasPassword }: Enable2FACardProps) {
       }
 
       if (result.data) {
-        console.log("TOTP URI:", result.data.totpURI);
-        console.log("Backup codes:", result.data.backupCodes);
         setTotpUri(result.data.totpURI);
         setBackupCodes(result.data.backupCodes || []);
         setStep("qrcode");
@@ -116,15 +111,12 @@ export function Enable2FACard({ hasPassword }: Enable2FACardProps) {
     setLoading(true);
 
     try {
-      console.log("Verifying TOTP code:", verificationCode);
-
       await authClient.twoFactor.verifyTotp(
         {
           code: verificationCode,
         },
         {
           onSuccess: () => {
-            console.log("Verification successful!");
             setStep("complete");
             setLoading(false);
 

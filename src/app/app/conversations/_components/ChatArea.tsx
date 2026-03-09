@@ -111,7 +111,7 @@ export default function ChatArea({
     : groupName || "Group";
 
   const handleOpenSettings = () => {
-    if (isDirect) return;
+    if (isDirect || !canManageSettings) return;
     setSettingsName(groupName || "Group");
     setSettingsDescription(groupDescription || "");
     setSettingsAvatarUrl(groupAvatarUrl || "");
@@ -121,11 +121,12 @@ export default function ChatArea({
 
   const canManageSettings =
     !isDirect &&
-    (conversation.current_user_role === "admin" ||
+    (conversation.current_user_can_manage === true ||
+      conversation.current_user_role === "admin" ||
       conversation.current_user_role === "owner");
 
   const handleSaveSettings = async () => {
-    if (isDirect || !conversation.id) return;
+    if (isDirect || !canManageSettings || !conversation.id) return;
 
     const nextName = settingsName.trim();
     if (!nextName) {
@@ -197,6 +198,7 @@ export default function ChatArea({
         <MessageList
           messages={messages}
           currentUserId={session?.user?.id || ""}
+          isGroupChat={!isDirect}
           isLoadingOlder={isLoadingOlder}
           hasMoreBefore={hasMoreBefore}
           isInitialized={isInitialized}

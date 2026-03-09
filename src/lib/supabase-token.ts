@@ -26,6 +26,5 @@ export async function getSupabaseToken() {
     .setIssuedAt()
     .setExpirationTime("1h")
     .sign(secret);
-  console.log(token);
   return token;
 }

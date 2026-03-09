@@ -74,7 +74,6 @@ function SignInForm() {
             }
           },
           onError: (ctx) => {
-            console.log("Passkey onError callback triggered", ctx);
             const error = ctx.error;
 
             // Better Auth standardizes the "User Cancelled" error here
@@ -83,9 +82,7 @@ function SignInForm() {
               error.code === "NOT_ALLOWED" ||
               error.message.includes("not allowed")
             ) {
-              console.log(
-                "User cancelled the prompt. No need to show a scary error message.",
-              );
+              // User cancelled the prompt. No need to show a scary error message.
               // Just stop loading, don't set an error message
             } else {
               console.error("Actual Passkey Error:", error);
