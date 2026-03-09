@@ -1,11 +1,12 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ParticipantView from "./ParticipantView";
 import { Users } from "lucide-react";
 import {
   addParticipant,
   getMeetingByRoomId,
   recordParticipantLeave,
+  getExternalParticipantStatus,
 } from "@/server-actions/meeting";
 import { isMeetingDebug } from "@/lib/debug";
 
@@ -15,11 +16,17 @@ interface VideoGridProps {
   meetingId: string;
 }
 
+interface ExternalParticipants {
+  [userId: string]: boolean;
+}
+
 export default function VideoGrid({ meetingId }: VideoGridProps) {
   const meetingHook = useMeeting();
   const participants = meetingHook?.participants ?? new Map();
   const meeting = meetingHook?.meeting;
   const meetingDbIdRef = useRef<string | null>(null);
+  const [externalParticipants, setExternalParticipants] =
+    useState<ExternalParticipants>({});
 
   // provide mock participants map when debugging if none exist
   if (isMeetingDebug() && participants.size === 0) {
@@ -52,6 +59,7 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
         participant.id,
         participant.micOn || false,
         participant.webcamOn || false,
+        false, // regular join (has event access)
       );
 
       // TODO:  Record join event
@@ -80,6 +88,37 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
   // Convert participants Map to array
   const participantIds = Array.from(participants.keys()) as string[];
 
+  // Fetch external participant status
+  useEffect(() => {
+    const fetchExternalStatus = async () => {
+      if (!meetingDbIdRef.current || participantIds.length === 0) {
+        return;
+      }
+
+      try {
+        const result = await getExternalParticipantStatus(
+          meetingDbIdRef.current,
+          participantIds,
+        );
+
+        if (result.success && result.data) {
+          setExternalParticipants(result.data);
+        } else if (!result.success) {
+          console.error(
+            "Failed to fetch external participant status:",
+            result.error,
+          );
+        }
+      } catch (error) {
+        console.error("Error fetching external participant status:", error);
+      }
+    };
+
+    if (meetingDbIdRef.current) {
+      fetchExternalStatus();
+    }
+  }, [participantIds.join(","), meetingDbIdRef.current]);
+
   if (participantIds.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -96,7 +135,11 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
     <div className="h-full w-full p-4 overflow-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
         {participantIds.map((participantId) => (
-          <ParticipantView key={participantId} participantId={participantId} />
+          <ParticipantView
+            key={participantId}
+            participantId={participantId}
+            isExternal={externalParticipants[participantId] || false}
+          />
         ))}
       </div>
     </div>

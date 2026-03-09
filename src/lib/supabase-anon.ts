@@ -34,6 +34,5 @@ export const getSupabaseAnonClient = async () => {
     },
   });
 
-  console.log("Supabase client initialized");
   return supabase;
 };

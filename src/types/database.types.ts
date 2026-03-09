@@ -185,6 +185,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           description: string | null
+          event_group_id: string | null
           event_id: string | null
           id: string
           last_message_at: string | null
@@ -197,6 +198,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           description?: string | null
+          event_group_id?: string | null
           event_id?: string | null
           id?: string
           last_message_at?: string | null
@@ -209,6 +211,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           description?: string | null
+          event_group_id?: string | null
           event_id?: string | null
           id?: string
           last_message_at?: string | null
@@ -218,6 +221,13 @@ export type Database = {
           user_group_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "conversation_event_group_id_fkey"
+            columns: ["event_group_id"]
+            isOneToOne: false
+            referencedRelation: "event_group"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversations_event_id_fkey"
             columns: ["event_id"]
@@ -1246,8 +1256,11 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string | null
+          current_user_can_manage: boolean | null
           current_user_id: string | null
+          current_user_role: string | null
           description: string | null
+          event_group_id: string | null
           event_id: string | null
           id: string | null
           last_message_at: string | null
@@ -1258,6 +1271,13 @@ export type Database = {
           user_group_id: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "conversation_event_group_id_fkey"
+            columns: ["event_group_id"]
+            isOneToOne: false
+            referencedRelation: "event_group"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "conversation_participants_user_id_fkey"
             columns: ["current_user_id"]

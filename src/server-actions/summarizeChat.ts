@@ -86,9 +86,6 @@ export async function summarizeChatAction(
 
       // If summary was updated less than 60 seconds ago, return cached version
       if (secondsSinceUpdate < 60) {
-        console.log(
-          `[summarizeChat] Cache hit: summary updated ${secondsSinceUpdate.toFixed(1)}s ago`,
-        );
         return {
           success: true,
           data: {
@@ -108,17 +105,10 @@ export async function summarizeChatAction(
       existingSummaryData?.last_message_id,
     );
 
-    console.log(
-      `[summarizeChat] Fetched ${messages.length} new messages, last_summary_id: ${existingSummaryData?.last_message_id || "none"}`,
-    );
-
     // Edge case: No new messages to summarize
     if (messages.length === 0) {
       if (existingSummaryData) {
         // Return existing summary
-        console.log(
-          "[summarizeChat] No new messages, returning cached summary",
-        );
         return {
           success: true,
           data: {
@@ -143,10 +133,6 @@ export async function summarizeChatAction(
       messages,
     );
 
-    console.log(
-      `[summarizeChat] Generated summary (length: ${summaryText.length} chars)`,
-    );
-
     // 7. Update or insert summary to database
     const lastMessageId = messages[messages.length - 1].id;
     const updatedAt = new Date().toISOString();
@@ -162,14 +148,6 @@ export async function summarizeChatAction(
 
     if (existingSummaryData) {
       // Update existing summary
-      console.log("[summarizeChat] Updating existing summary for record:", {
-        id: existingSummaryData.id,
-        user_id: userId,
-        conversation_id: request.type === "conversation" ? request.id : "null",
-        meeting_id: request.type === "meeting" ? request.id : "null",
-        messageCount: messages.length,
-      });
-
       const result = await supabaseAdmin
         .from("chat_summaries")
         .update(summaryPayload)
@@ -180,13 +158,6 @@ export async function summarizeChatAction(
       isUpdate = true;
     } else {
       // Insert new summary
-      console.log("[summarizeChat] Inserting new summary for:", {
-        user_id: userId,
-        conversation_id: request.type === "conversation" ? request.id : "null",
-        meeting_id: request.type === "meeting" ? request.id : "null",
-        messageCount: messages.length,
-      });
-
       const result = await supabaseAdmin
         .from("chat_summaries")
         .insert({
@@ -212,11 +183,6 @@ export async function summarizeChatAction(
         error: `Failed to save summary to database: ${dbError.message}`,
       };
     }
-
-    console.log("[summarizeChat] Database operation successful:", {
-      operation: isUpdate ? "update" : "insert",
-      newLastMessageId: lastMessageId,
-    });
 
     // 8. Return success response
     return {
@@ -390,15 +356,8 @@ async function fetchMessages(
         (msg) => msg.id.toLowerCase() === normalizedLastId,
       );
 
-      console.log(
-        `[fetchMessages] Searching for lastMessageId: ${lastMessageId}, found at index: ${lastMessageIndex}`,
-      );
-
       if (lastMessageIndex !== -1) {
         const newMessages = allMessages.slice(lastMessageIndex + 1);
-        console.log(
-          `[fetchMessages] Returning ${newMessages.length} messages after index ${lastMessageIndex}`,
-        );
         return newMessages;
       } else {
         // If last message not found, return all messages as fallback

@@ -119,7 +119,6 @@ export const sendMessage = async (args: {
     if (!content) return { success: false, error: "Message is empty" };
     if (!args.id) return { success: false, error: "Message id is required" };
 
-    console.log("Attempting to send message with content:", args);
     const { data, error } = await supabaseAdmin
       .from("message")
       .insert({
@@ -260,7 +259,6 @@ export const sendMessageMeeting = async (args: {
     if (!content) return { success: false, error: "Message is empty" };
     if (!args.id) return { success: false, error: "Message id is required" };
 
-    console.log("Attempting to send message with content:", args);
     const { data, error } = await supabaseAdmin
       .from("message")
       .insert({

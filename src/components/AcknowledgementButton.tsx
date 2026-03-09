@@ -29,7 +29,6 @@ export default function AcknowledgementButton({
       }
       setIsLoading(false);
     } catch (err) {
-      console.log(err);
       showAlert({
         title: "Something went wrong",
         description: "Try again Later.",

@@ -10,6 +10,18 @@ import { authClient } from "@/lib/auth-client";
 import LoadingChatArea from "./LoadingChatArea";
 import { useConversation } from "../_hooks/use-conversation";
 import SummaryButton from "@/components/SummaryButton";
+import { Settings, Loader2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { updateGroupConversationSettings } from "@/server-actions/conversations";
+import { useChatStore } from "@/stores/chatStore";
 
 export default function ChatArea({
   conversation,
@@ -29,7 +41,24 @@ export default function ChatArea({
 
   const { data: session } = authClient.useSession();
   const [input, setInput] = useState("");
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
   const shouldStickToBottomRef = useRef(true);
+
+  const [groupName, setGroupName] = useState(
+    conversation.type === "direct" ? "" : conversation.name || "Group",
+  );
+  const [groupAvatarUrl, setGroupAvatarUrl] = useState(
+    conversation.type === "direct" ? "" : conversation.avatar_url || "",
+  );
+  const [groupDescription, setGroupDescription] = useState(
+    conversation.type === "direct" ? "" : conversation.description || "",
+  );
+  const [settingsName, setSettingsName] = useState(groupName);
+  const [settingsDescription, setSettingsDescription] =
+    useState(groupDescription);
+  const [settingsAvatarUrl, setSettingsAvatarUrl] = useState(groupAvatarUrl);
 
   const handleFormSubmit = (e: React.SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -51,6 +80,19 @@ export default function ChatArea({
     shouldStickToBottomRef.current = true;
   }, [id]);
 
+  useEffect(() => {
+    if (conversation.type === "direct") return;
+    const nextName = conversation.name || "Group";
+    const nextDescription = conversation.description || "";
+    const nextAvatar = conversation.avatar_url || "";
+    setGroupName(nextName);
+    setGroupDescription(nextDescription);
+    setGroupAvatarUrl(nextAvatar);
+    setSettingsName(nextName);
+    setSettingsDescription(nextDescription);
+    setSettingsAvatarUrl(nextAvatar);
+  }, [conversation]);
+
   // auto-scroll only if user is already near bottom
   useEffect(() => {
     const el = scrollContainerRef.current;
@@ -63,10 +105,61 @@ export default function ChatArea({
   const isDirect = conversation.type === "direct";
   const image = isDirect
     ? conversation.partner_image || undefined
-    : conversation.avatar_url || undefined;
+    : groupAvatarUrl || undefined;
   const name = isDirect
     ? conversation.partner_name || conversation.partner_email || "Unknown"
-    : conversation.name || "Group";
+    : groupName || "Group";
+
+  const handleOpenSettings = () => {
+    if (isDirect || !canManageSettings) return;
+    setSettingsName(groupName || "Group");
+    setSettingsDescription(groupDescription || "");
+    setSettingsAvatarUrl(groupAvatarUrl || "");
+    setSettingsError(null);
+    setIsSettingsOpen(true);
+  };
+
+  const canManageSettings =
+    !isDirect &&
+    (conversation.current_user_can_manage === true ||
+      conversation.current_user_role === "admin" ||
+      conversation.current_user_role === "owner");
+
+  const handleSaveSettings = async () => {
+    if (isDirect || !canManageSettings || !conversation.id) return;
+
+    const nextName = settingsName.trim();
+    if (!nextName) {
+      setSettingsError("Group name is required");
+      return;
+    }
+
+    setIsSavingSettings(true);
+    setSettingsError(null);
+    try {
+      const result = await updateGroupConversationSettings({
+        conversationId: conversation.id,
+        name: nextName,
+        description: settingsDescription.trim() || null,
+        avatarUrl: settingsAvatarUrl.trim() || null,
+      });
+
+      if (!result.success || !result.data) {
+        setSettingsError(
+          result.success ? "Failed to update group" : result.error,
+        );
+        return;
+      }
+
+      setGroupName(result.data.name || nextName);
+      setGroupDescription(result.data.description || "");
+      setGroupAvatarUrl(result.data.avatar_url || "");
+      useChatStore.getState().addGroupConversation(result.data);
+      setIsSettingsOpen(false);
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   if (!conversation.id) {
     return <LoadingChatArea />;
@@ -81,6 +174,19 @@ export default function ChatArea({
           <AvatarFallback>{name[0]?.toUpperCase() ?? "?"}</AvatarFallback>
         </Avatar>
         <span className="font-semibold">{name}</span>
+        {canManageSettings && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="ml-auto"
+            onClick={handleOpenSettings}
+            title="Group chat settings"
+          >
+            <Settings className="h-4 w-4" />
+            <span className="sr-only">Group chat settings</span>
+          </Button>
+        )}
       </div>
       {/* Messages */}
       <div
@@ -92,6 +198,7 @@ export default function ChatArea({
         <MessageList
           messages={messages}
           currentUserId={session?.user?.id || ""}
+          isGroupChat={!isDirect}
           isLoadingOlder={isLoadingOlder}
           hasMoreBefore={hasMoreBefore}
           isInitialized={isInitialized}
@@ -116,6 +223,85 @@ export default function ChatArea({
           Send
         </Button>
       </form>
+
+      {!isDirect && (
+        <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Group Chat Settings</DialogTitle>
+              <DialogDescription>
+                Update chat-specific group name and avatar.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-2">
+              <div className="grid gap-2">
+                <Label htmlFor="group-chat-name">Group Name</Label>
+                <Input
+                  id="group-chat-name"
+                  value={settingsName}
+                  onChange={(e) => setSettingsName(e.target.value)}
+                  placeholder="Group name"
+                  disabled={isSavingSettings}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="group-chat-description">Description</Label>
+                <Input
+                  id="group-chat-description"
+                  value={settingsDescription}
+                  onChange={(e) => setSettingsDescription(e.target.value)}
+                  placeholder="Optional description"
+                  disabled={isSavingSettings}
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="group-chat-avatar">Avatar URL</Label>
+                <Input
+                  id="group-chat-avatar"
+                  value={settingsAvatarUrl}
+                  onChange={(e) => setSettingsAvatarUrl(e.target.value)}
+                  placeholder="https://..."
+                  disabled={isSavingSettings}
+                />
+              </div>
+
+              {settingsError && (
+                <p className="text-xs font-medium text-destructive">
+                  {settingsError}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsSettingsOpen(false)}
+                disabled={isSavingSettings}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handleSaveSettings}
+                disabled={isSavingSettings}
+              >
+                {isSavingSettings ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </main>
   );
 }
