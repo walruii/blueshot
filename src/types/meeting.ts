@@ -23,6 +23,7 @@ export interface MeetingParticipant {
   is_moderator: boolean;
   mic_enabled_at_join: boolean;
   camera_enabled_at_join: boolean;
+  joined_via_passcode: boolean;
   created_at: string;
   user?: {
     name: string;

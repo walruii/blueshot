@@ -13,6 +13,7 @@ import { createRoom } from "./videosdk";
  * @param userId - The participant user ID (required - registered users only)
  * @param micEnabled - Whether microphone was enabled at join
  * @param cameraEnabled - Whether camera was enabled at join
+ * @param joinedViaPasscode - Whether the participant joined using passcode (external user)
  * @returns Result with participant record or error
  */
 export const addParticipant = async (
@@ -20,6 +21,7 @@ export const addParticipant = async (
   userId: string,
   micEnabled: boolean = false,
   cameraEnabled: boolean = false,
+  joinedViaPasscode: boolean = false,
 ): Promise<Result<MeetingParticipant>> => {
   try {
     // Check if participant is already in the meeting (NULL left_at means still active)
@@ -47,6 +49,7 @@ export const addParticipant = async (
         user_id: userId,
         mic_enabled_at_join: micEnabled,
         camera_enabled_at_join: cameraEnabled,
+        joined_via_passcode: joinedViaPasscode,
       })
       .select()
       .single();
@@ -543,15 +546,36 @@ export const getExternalParticipantStatus = async (
       };
     }
 
-    // Create a set of user IDs with access
-    const usersWithAccess = new Set(accessList?.map((a) => a.user_id) || []);
+    // Get all participants who joined via passcode (check joined_via_passcode flag)
+    const { data: meetingParticipants, error: participantsError } =
+      await supabaseAdmin
+        .from("meeting_participant")
+        .select("user_id")
+        .eq("meeting_id", meeting.id)
+        .eq("joined_via_passcode", true)
+        .is("left_at", null); // Only active participants
 
-    // Mark participants as external if they don't have access
+    if (participantsError) {
+      console.error("Failed to get meeting participants:", participantsError);
+      return {
+        success: false,
+        error: "Failed to fetch meeting participants",
+      };
+    }
+
+    // Create a set of users who joined via passcode
+    const passcodeJoinedUsers = new Set(
+      meetingParticipants?.map((p) => p.user_id) || [],
+    );
+
+    // Mark participants as external ONLY if they joined via passcode
+    // (We don't need to check event access since passcode-joined users
+    // by definition don't have event access - that's why they needed the passcode)
     const externalStatus: { [userId: string]: boolean } = {};
     participantIds.forEach((participantId) => {
       // Skip local user indicator
       if (!participantId.includes("(")) {
-        externalStatus[participantId] = !usersWithAccess.has(participantId);
+        externalStatus[participantId] = passcodeJoinedUsers.has(participantId);
       }
     });
 

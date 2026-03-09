@@ -129,6 +129,7 @@ export default function PreJoinScreen({
         userId,
         isMicOn,
         isCameraOn,
+        false, // regular join (has event access)
       );
       if (!participantResult.success) {
         console.error("Failed to add participant:", participantResult.error);

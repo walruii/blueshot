@@ -89,6 +89,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
       userId,
       false,
       false,
+      true, // joined via passcode
     );
 
     if (!participantResult.success) {

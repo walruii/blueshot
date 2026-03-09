@@ -9,10 +9,12 @@ import { cn } from "@/lib/utils";
 
 interface ParticipantViewProps {
   participantId: string;
+  isExternal?: boolean;
 }
 
 export default function ParticipantView({
   participantId,
+  isExternal = false,
 }: ParticipantViewProps) {
   const micRef = useRef<HTMLAudioElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -26,9 +28,6 @@ export default function ParticipantView({
     displayName,
     isLocal,
   } = useParticipant(participantId);
-
-  // Check if this is an external participant (guest)
-  const isExternalParticipant = participantId.startsWith("guest_");
 
   // Attach video stream to video element
   useEffect(() => {
@@ -112,7 +111,7 @@ export default function ParticipantView({
             >
               {displayName || "Unknown"}
             </Badge>
-            {isExternalParticipant && !isLocal && (
+            {isExternal && !isLocal && (
               <Badge
                 variant="secondary"
                 className="bg-amber-500/40 backdrop-blur-sm text-amber-200 border-0"
