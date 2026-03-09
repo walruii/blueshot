@@ -47,6 +47,8 @@ import { EventGroupAccessView } from "./_components/EventGroupAccessView";
 export default function ManageEventGroupsPage() {
   const { showAlert } = useAlert();
   const { data: session } = authClient.useSession();
+  const SETTINGS_PERMISSION_MESSAGE =
+    "You can not see the setting as you dont have permissions";
 
   // Use group management hook for core group/modal state
   const groupManagement = useGroupManagement(getAccessibleEventGroups);
@@ -73,6 +75,8 @@ export default function ManageEventGroupsPage() {
 
   // Group settings modal state
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showSettingsPermissionMessage, setShowSettingsPermissionMessage] =
+    useState(false);
 
   // Load available user groups (not managed by group management hook)
   useEffect(() => {
@@ -98,13 +102,22 @@ export default function ManageEventGroupsPage() {
       const result = await getEventGroupAccess(groupManagement.selectedGroupId);
       if (result.success && result.data) {
         setOriginalAccessData(result.data);
+        setShowSettingsPermissionMessage(false);
         pendingChangesManager.discardAll(); // Reset pending changes when switching groups
       } else {
-        showAlert({
-          title: "Failed to load access",
-          description: !result.success ? result.error : "",
-          type: "error",
-        });
+        const errorMessage = !result.success ? result.error || "" : "";
+        const isAccessDenied = /access denied/i.test(errorMessage);
+
+        if (isAccessDenied) {
+          setShowSettingsPermissionMessage(true);
+        } else {
+          showAlert({
+            title: "Failed to load access",
+            description: errorMessage,
+            type: "error",
+          });
+          setShowSettingsPermissionMessage(false);
+        }
         setOriginalAccessData(null);
       }
       setLoadingAccess(false);
@@ -508,9 +521,10 @@ export default function ManageEventGroupsPage() {
             />
           </CardContent>
           {/* Group Settings Footer - Only show to owner */}
-          {groupManagement.selectedGroup.createdBy === session?.user?.id &&
-            groupManagement.selectedGroup.name !== "Personal" && (
-              <div className="border-t bg-muted/50 px-6 py-4">
+          {groupManagement.selectedGroup.name !== "Personal" && (
+            <div className="border-t bg-muted/50 px-6 py-4">
+              {groupManagement.selectedGroup.createdBy === session?.user?.id &&
+              !showSettingsPermissionMessage ? (
                 <Button
                   onClick={() => groupManagement.setIsGroupSettingsOpen(true)}
                   variant="outline"
@@ -520,8 +534,13 @@ export default function ManageEventGroupsPage() {
                   <Settings className="mr-2 h-4 w-4" />
                   Group Settings
                 </Button>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {SETTINGS_PERMISSION_MESSAGE}
+                </p>
+              )}
+            </div>
+          )}
         </Card>
       )}
 

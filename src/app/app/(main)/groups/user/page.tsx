@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAlert } from "@/components/AlertProvider";
-import { UserGroup } from "@/types/userGroup";
 import {
   getAccessibleUserGroups,
   getUserGroupMembers,
@@ -49,6 +48,8 @@ interface Member {
 export default function ManageUserGroupsPage() {
   const { showAlert } = useAlert();
   const { data: session } = authClient.useSession();
+  const SETTINGS_PERMISSION_MESSAGE =
+    "You can not see the setting as you dont have permissions";
 
   // Initialize group management hook
   const groupManagement = useGroupManagement(getAccessibleUserGroups);
@@ -79,6 +80,8 @@ export default function ManageUserGroupsPage() {
 
   // Delete operation state
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showSettingsPermissionMessage, setShowSettingsPermissionMessage] =
+    useState(false);
 
   // Compute effective state (original + pending changes)
   const computeEffectiveState = useCallback(
@@ -165,13 +168,22 @@ export default function ManageUserGroupsPage() {
       const result = await getUserGroupMembers(selectedGroupId);
       if (result.success && result.data) {
         setOriginalMembers(result.data);
+        setShowSettingsPermissionMessage(false);
         discardAll(); // Reset pending changes when switching groups
       } else {
-        showAlert({
-          title: "Failed to load members",
-          description: !result.success ? result.error : "",
-          type: "error",
-        });
+        const errorMessage = !result.success ? result.error || "" : "";
+        const isAccessDenied = /access denied/i.test(errorMessage);
+
+        if (isAccessDenied) {
+          setShowSettingsPermissionMessage(true);
+        } else {
+          showAlert({
+            title: "Failed to load members",
+            description: errorMessage,
+            type: "error",
+          });
+          setShowSettingsPermissionMessage(false);
+        }
       }
       setLoadingMembers(false);
     }
@@ -376,9 +388,10 @@ export default function ManageUserGroupsPage() {
             />
           </CardContent>
           {/* Group Settings Footer - Only show to owner */}
-          {selectedGroup.createdBy === session?.user?.id &&
-            selectedGroup.name !== "Personal" && (
-              <div className="border-t bg-muted/50 px-6 py-4">
+          {selectedGroup.name !== "Personal" && (
+            <div className="border-t bg-muted/50 px-6 py-4">
+              {selectedGroup.createdBy === session?.user?.id &&
+              !showSettingsPermissionMessage ? (
                 <Button
                   onClick={() => setIsGroupSettingsOpen(true)}
                   variant="outline"
@@ -388,8 +401,13 @@ export default function ManageUserGroupsPage() {
                   <Settings className="mr-2 h-4 w-4" />
                   Group Settings
                 </Button>
-              </div>
-            )}
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {SETTINGS_PERMISSION_MESSAGE}
+                </p>
+              )}
+            </div>
+          )}
         </Card>
       )}
 

@@ -29,66 +29,33 @@ export const getAccessibleEventGroups = async (): Promise<
   Result<EventGroup[]>
 > => {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
+    const session = await auth.api.getSession({ headers: await headers() });
 
     if (!session?.user) {
       return { success: false, error: "Invalid session" };
     }
 
     const userId = session.user.id;
-
-    // Get groups created by the user
-    const { data: createdGroups, error: createdError } = await supabaseAdmin
-      .from("event_group")
-      .select("*")
-      .eq("created_by", userId);
-
-    if (createdError) {
-      console.error("Error fetching created groups:", createdError);
-      return { success: false, error: "Failed to fetch event groups" };
-    }
-
-    // Get groups the user has access to via event_group_access
-    const { data: accessGroups, error: accessError } = await supabaseAdmin
-      .from("event_group_access")
-      .select("event_group_id")
-      .eq("user_id", userId);
-
-    if (accessError) {
-      console.error("Error fetching access groups:", accessError);
-      return { success: false, error: "Failed to fetch event groups" };
-    }
-
-    // Get the actual group details for access groups
-    const accessGroupIds = accessGroups?.map((a) => a.event_group_id) || [];
-
-    let sharedGroups: EventGroup[] = [];
-    if (accessGroupIds.length > 0) {
-      const { data: sharedGroupsData, error: sharedError } = await supabaseAdmin
-        .from("event_group")
-        .select("*")
-        .in("id", accessGroupIds);
-
-      if (sharedError) {
-        console.error("Error fetching shared groups:", sharedError);
-      } else {
-        sharedGroups = (sharedGroupsData || []).map(formatEventGroup);
-      }
-    }
-
-    // Combine and deduplicate
-    const allGroups = [
-      ...(createdGroups || []).map(formatEventGroup),
-      ...sharedGroups,
-    ];
-    const uniqueGroups = allGroups.filter(
-      (group, index, self) =>
-        index === self.findIndex((g) => g.id === group.id),
+    const { data: uniqueGroups, error } = await supabaseAdmin.rpc(
+      "get_accessible_event_groups",
+      { p_user_id: userId },
     );
 
-    return { success: true, data: uniqueGroups };
+    if (error) {
+      console.error("Error fetching accessible user groups:", error);
+      return {
+        success: false,
+        error: "Failed to fetch accessible user groups",
+      };
+    }
+    if (!uniqueGroups || uniqueGroups.length === 0) {
+      return {
+        success: true,
+        data: [],
+      };
+    }
+
+    return { success: true, data: uniqueGroups.map(formatEventGroup) };
   } catch (err) {
     console.error("Unexpected error in getAccessibleEventGroups:", err);
     return { success: false, error: "Internal Server Error" };

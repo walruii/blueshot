@@ -1307,6 +1307,36 @@ export type Database = {
         Returns: boolean
       }
       current_user_id: { Args: never; Returns: string }
+      get_accessible_event_groups: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "event_group"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_accessible_user_groups: {
+        Args: { p_user_id: string }
+        Returns: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "user_group"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_active_events: {
         Args: { requesting_user_id: string }
         Returns: {
