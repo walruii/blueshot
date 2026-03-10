@@ -23,7 +23,7 @@ export default function MeetingContentWithDevices({
   userId,
   meetingDbId,
 }: MeetingContentWithDevicesProps) {
-  const { enableWebcam, unmuteMic } = useMeeting();
+  const { enableWebcam, unmuteMic, leave } = useMeeting();
 
   // Enable devices after joining based on prejoin settings
   useEffect(() => {
@@ -68,6 +68,7 @@ export default function MeetingContentWithDevices({
       <div className="border-t border-neutral-800 bg-neutral-950 shrink-0">
         <ControlBar
           userId={userId}
+          roomId={meetingId}
           meetingDbId={meetingDbId}
           sidebarSetOpen={setIsOpen}
         />
