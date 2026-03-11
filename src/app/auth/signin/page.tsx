@@ -17,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CheckCircle } from "lucide-react";
+import Image from "next/image";
 
 function SignInForm() {
   const [email, setEmail] = useState("");
@@ -178,9 +179,13 @@ function SignInForm() {
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-background px-4">
-      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8 md:mb-12">
-        Blueshot
-      </h1>
+      <div className="flex gap-2 mb-8 md:mb-12">
+        <Image src="/blueshot.svg" alt="Blueshot" width={60} height={60} />
+        <h1 className="text-3xl md:text-4xl font-bold text-blue-600">
+          Blue
+          <span className="text-white">shot</span>
+        </h1>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Sign In</CardTitle>
@@ -270,7 +275,7 @@ function SignInForm() {
             Don&apos;t have an account?{" "}
             <Link
               href="/auth/register"
-              className="text-primary hover:underline"
+              className="text-blue-600 hover:underline"
             >
               Register
             </Link>

@@ -3,16 +3,17 @@ import { Zap } from "lucide-react";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
+import Image from "next/image";
 
 export default async function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <nav className="border-b border-border/40 backdrop-blur-sm sticky top-0 z-50 bg-background/80">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="size-8 rounded-lg bg-primary flex items-center justify-center">
-            <Zap className="size-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold">Blueshot</span>
+          <Image src="/blueshot.svg" alt="Blueshot" width={50} height={50} />
+          <h1 className="text-2xl font-bold text-blue-600">
+            Blue<span className="text-white">shot</span>
+          </h1>
         </div>
         <div className="flex items-center gap-3">
           {isLoggedIn ? (
