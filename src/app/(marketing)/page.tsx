@@ -15,10 +15,12 @@ export default async function Page() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar isLoggedIn={isLoggedIn} />
-      <Hero isLoggedIn={isLoggedIn} />
-      <Features />
-      <HowItWorks />
-      <CTA isLoggedIn={isLoggedIn} />
+      <main>
+        <Hero isLoggedIn={isLoggedIn} />
+        <Features />
+        <HowItWorks />
+        <CTA isLoggedIn={isLoggedIn} />
+      </main>
       <Footer />
     </div>
   );
