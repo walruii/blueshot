@@ -17,6 +17,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import Image from "next/image";
 
 function RegisterForm() {
   const [email, setEmail] = useState("");
@@ -93,9 +94,13 @@ function RegisterForm() {
 
   return (
     <div className="flex flex-col justify-center items-center min-h-screen bg-background px-4">
-      <h1 className="text-3xl md:text-4xl font-bold text-primary mb-8 md:mb-12">
-        Blueshot
-      </h1>
+      <div className="flex gap-2 mb-8 md:mb-12">
+        <Image src="/blueshot.svg" alt="Blueshot" width={60} height={60} />
+        <h1 className="text-3xl md:text-4xl font-bold text-blue-600">
+          Blue
+          <span className="text-white">shot</span>
+        </h1>
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl">Create Account</CardTitle>
@@ -177,7 +182,7 @@ function RegisterForm() {
         <CardFooter className="justify-center">
           <p className="text-muted-foreground text-sm">
             Already have an account?{" "}
-            <Link href="/auth/signin" className="text-primary hover:underline">
+            <Link href="/auth/signin" className="text-blue-600 hover:underline">
               Sign in
             </Link>
           </p>
