@@ -1,3 +1,4 @@
+"use client";
 import { dateToTimeString } from "@/utils/dateUtil";
 import Link from "next/link";
 import UpcomingTag from "./UpcomingTag";
