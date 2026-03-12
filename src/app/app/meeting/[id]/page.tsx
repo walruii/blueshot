@@ -34,15 +34,20 @@ const MeetingContainer = dynamic(
 
 interface MeetingPageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ passcode?: string }>;
 }
 
-export default function MeetingPage({ params }: MeetingPageProps) {
+export default function MeetingPage({
+  params,
+  searchParams,
+}: MeetingPageProps) {
   const [loading, setLoading] = useState(true);
   const [unauthorized, setUnauthorized] = useState(false);
   const [username, setUsername] = useState<string>("Anonymous");
   const [userId, setUserId] = useState<string>("");
   const [meetingId, setMeetingId] = useState<string>("");
   const [meetingDbId, setMeetingDbId] = useState<string>("");
+  const [prefillPasscode, setPrefillPasscode] = useState<string>("");
   const [token, setToken] = useState<string>("");
   const { showAlert } = useAlert();
 
@@ -53,6 +58,8 @@ export default function MeetingPage({ params }: MeetingPageProps) {
         setUsername(session.data.user.name || "Anonymous");
         setUserId(session.data.user.id);
       }
+      const { passcode: passcodeParam } = await searchParams;
+      if (passcodeParam) setPrefillPasscode(passcodeParam);
       const { id: meetingId } = await params;
       setMeetingDbId(meetingId);
       const meetingResult = await getMeetingById(meetingId);
@@ -134,6 +141,7 @@ export default function MeetingPage({ params }: MeetingPageProps) {
         meetingId={meetingDbId}
         onSuccess={onSuccess}
         onError={onError}
+        initialPasscode={prefillPasscode}
       />
     );
   }

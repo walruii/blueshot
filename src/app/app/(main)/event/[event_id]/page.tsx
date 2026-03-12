@@ -1,5 +1,5 @@
 import { getEvent } from "@/server-actions/event";
-import { dateToTimeString } from "@/utils/dateUtil";
+import TimeDisplay from "@/components/TimeDisplay";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import Link from "next/link";
@@ -121,7 +121,9 @@ async function EventPage({ params }: { params: { event_id: string } }) {
                   <label className="text-muted-foreground text-sm font-medium block mb-2">
                     From
                   </label>
-                  <p className="text-lg">{dateToTimeString(event.from)}</p>
+                  <p className="text-lg">
+                    <TimeDisplay date={event.from} />
+                  </p>
                 </div>
                 {event.type === "default" ? (
                   <div>
@@ -129,7 +131,7 @@ async function EventPage({ params }: { params: { event_id: string } }) {
                       To
                     </label>
                     <p className="text-lg">
-                      {event.to ? dateToTimeString(event.to) : "N/A"}
+                      {event.to ? <TimeDisplay date={event.to} /> : "N/A"}
                     </p>
                   </div>
                 ) : (
@@ -147,10 +149,11 @@ async function EventPage({ params }: { params: { event_id: string } }) {
               {/* Meeting Link */}
               {event.eventMeetingId && <MeetingLink event={event} />}
               {/* Passcode Display for admins/owners */}
-              {event.eventMeetingPasscode && (
+              {event.eventMeetingPasscode && event.eventMeetingId && (
                 <PasscodeDisplay
                   passcode={event.eventMeetingPasscode}
                   isAdmin={permissions.canManageAccess}
+                  meetingId={event.eventMeetingId}
                 />
               )}
             </div>

@@ -12,14 +12,21 @@ interface PasscodeEntryScreenProps {
   meetingId: string;
   onSuccess: (userId: string) => void;
   onError?: (error: string) => void;
+  initialPasscode?: string;
 }
 
 export default function PasscodeEntryScreen({
   meetingId,
   onSuccess,
   onError,
+  initialPasscode = "",
 }: PasscodeEntryScreenProps) {
-  const [passcode, setPasscode] = useState("");
+  const [passcode, setPasscode] = useState(
+    initialPasscode
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, "")
+      .slice(0, 6),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
