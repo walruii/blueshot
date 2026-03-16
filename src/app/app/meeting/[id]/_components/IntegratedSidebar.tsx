@@ -95,13 +95,9 @@ export default function IntegratedSidebar({
           className="flex-1 m-0 p-0 min-h-0 flex flex-col"
         >
           <TranscriptTab
-            meetingDbId={meetingDbId}
-            roomId={roomId}
             canControlTranscription={canControlTranscription}
             transcriptionRecording={transcriptionRecording}
-            setTranscriptionRecording={setTranscriptionRecording}
             transcriptionLive={transcriptionLive}
-            setTranscriptionLive={setTranscriptionLive}
             startRecordingTranscription={startRecordingTranscription}
             stopRecordingTranscription={stopRecordingTranscription}
             startLiveTranscription={startLiveTranscription}
