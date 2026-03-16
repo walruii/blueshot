@@ -228,12 +228,6 @@ function AddEvent() {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Go Back
               </Button>
-              <Button
-                onClick={handleAddEvent}
-                disabled={!isFormValid || isLoading}
-              >
-                {isLoading ? "Adding Event..." : "Add Event"}
-              </Button>
             </div>
 
             {/* Form Card */}
@@ -308,6 +302,14 @@ function AddEvent() {
           </>
         )}
       </div>
+
+      <Button
+        className="w-full mt-5"
+        onClick={handleAddEvent}
+        disabled={!isFormValid || isLoading}
+      >
+        {isLoading ? "Adding Event..." : "Add Event"}
+      </Button>
 
       {/* Create Event Group Modal */}
       {session?.user?.id && (

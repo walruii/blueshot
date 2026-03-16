@@ -451,7 +451,7 @@ export default function ManageEventGroupsPage() {
           onValueChange={groupManagement.setSelectedGroupId}
           disabled={groupManagement.groups.length === 0}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue
               placeholder={
                 groupManagement.groups.length === 0

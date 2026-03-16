@@ -97,7 +97,7 @@ export default function Sidebar({
   // identical to what the server produced; once mounted we can switch to
   // mobile if necessary.
   if (!mounted) {
-    return <DesktopSidebar {...sharedProps} />;
+    return null;
   }
 
   return isWide ? (

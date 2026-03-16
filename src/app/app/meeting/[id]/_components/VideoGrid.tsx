@@ -46,7 +46,6 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
     fetchMeetingDbId();
   }, [meetingId]);
 
-  // Track participant join/leave events
   useEffect(() => {
     if (!meeting || isMeetingDebug()) return;
 
@@ -61,8 +60,6 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
         participant.webcamOn || false,
         false, // regular join (has event access)
       );
-
-      // TODO:  Record join event
     };
 
     const handleParticipantLeft = async (participant: any) => {
@@ -70,8 +67,6 @@ export default function VideoGrid({ meetingId }: VideoGridProps) {
 
       // Record participant leave
       await recordParticipantLeave(meetingDbIdRef.current, participant.id);
-
-      // TODO:  Record leave event
     };
 
     // Subscribe to meeting participant events

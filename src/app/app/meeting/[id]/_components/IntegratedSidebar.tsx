@@ -2,17 +2,40 @@
 import { MessageSquare, FileText, Sparkles, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChatTab from "./ChatTab";
-import TranscriptTab from "./TranscriptTab";
-import SmartNotesTab from "./SmartNotesTab";
 import ParticipantsTab from "./ParticipantsTab";
 import { isMeetingDebug } from "@/lib/debug";
-
 import { useMeeting } from "@/lib/videosdkWrapper";
+import TranscriptTab from "./TranscriptTab";
+import AiTab from "./summerizeTab";
 
 export default function IntegratedSidebar({
   meetingDbId,
+  roomId,
+  canControlTranscription,
+  transcriptionRecording,
+  setTranscriptionRecording,
+  transcriptionLive,
+  setTranscriptionLive,
+  startRecordingTranscription,
+  stopRecordingTranscription,
+  startLiveTranscription,
+  stopLiveTranscription,
+  transcriptionRecordLoading,
+  transcriptionLiveLoading,
 }: {
   meetingDbId: string;
+  roomId: string;
+  canControlTranscription: boolean;
+  transcriptionRecording: boolean;
+  setTranscriptionRecording: React.Dispatch<React.SetStateAction<boolean>>;
+  transcriptionLive: boolean;
+  setTranscriptionLive: React.Dispatch<React.SetStateAction<boolean>>;
+  startRecordingTranscription: () => Promise<void>;
+  stopRecordingTranscription: () => Promise<void>;
+  startLiveTranscription: () => Promise<void>;
+  stopLiveTranscription: () => Promise<void>;
+  transcriptionRecordLoading: boolean;
+  transcriptionLiveLoading: boolean;
 }) {
   const { participants } = useMeeting();
 
@@ -71,7 +94,21 @@ export default function IntegratedSidebar({
           value="transcript"
           className="flex-1 m-0 p-0 min-h-0 flex flex-col"
         >
-          <TranscriptTab meetingDbId={meetingDbId} />
+          <TranscriptTab
+            meetingDbId={meetingDbId}
+            roomId={roomId}
+            canControlTranscription={canControlTranscription}
+            transcriptionRecording={transcriptionRecording}
+            setTranscriptionRecording={setTranscriptionRecording}
+            transcriptionLive={transcriptionLive}
+            setTranscriptionLive={setTranscriptionLive}
+            startRecordingTranscription={startRecordingTranscription}
+            stopRecordingTranscription={stopRecordingTranscription}
+            startLiveTranscription={startLiveTranscription}
+            stopLiveTranscription={stopLiveTranscription}
+            transcriptionRecordLoading={transcriptionRecordLoading}
+            transcriptionLiveLoading={transcriptionLiveLoading}
+          />
         </TabsContent>
 
         {/* Smart Notes Tab */}
@@ -79,7 +116,7 @@ export default function IntegratedSidebar({
           value="notes"
           className="flex-1 m-0 p-0 min-h-0 flex flex-col"
         >
-          <SmartNotesTab meetingDbId={meetingDbId} />
+          <AiTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Participants Tab */}

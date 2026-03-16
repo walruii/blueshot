@@ -349,7 +349,7 @@ export default function ManageUserGroupsPage() {
           onValueChange={setSelectedGroupId}
           disabled={groups.length === 0}
         >
-          <SelectTrigger>
+          <SelectTrigger className="w-full">
             <SelectValue
               placeholder={
                 groups.length === 0
