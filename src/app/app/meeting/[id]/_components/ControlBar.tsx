@@ -1,14 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
-import {
-  Mic,
-  MicOff,
-  Video,
-  VideoOff,
-  PhoneOff,
-  Menu,
-  Captions,
-} from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { recordParticipantLeave } from "@/server-actions/meeting";
 import { isMeetingDebug } from "@/lib/debug";
@@ -40,12 +32,14 @@ export default function ControlBar({
   };
 
   const handleLeave = async () => {
+    leave();
+
     if (!isMeetingDebug() && meetingDbId) {
       // Record participant leave
       await recordParticipantLeave(meetingDbId, userId);
       router.push("/app"); // redirect only in non-debug
+      return;
     }
-    leave();
   };
 
   return (

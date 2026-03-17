@@ -7,35 +7,14 @@ import { isMeetingDebug } from "@/lib/debug";
 import { useMeeting } from "@/lib/videosdkWrapper";
 import TranscriptTab from "./TranscriptTab";
 import AiTab from "./summerizeTab";
+import type { UseMeetingTranscriptionResult } from "../_hooks/useMeetingTranscription";
 
 export default function IntegratedSidebar({
   meetingDbId,
-  roomId,
-  canControlTranscription,
-  transcriptionRecording,
-  setTranscriptionRecording,
-  transcriptionLive,
-  setTranscriptionLive,
-  startRecordingTranscription,
-  stopRecordingTranscription,
-  startLiveTranscription,
-  stopLiveTranscription,
-  transcriptionRecordLoading,
-  transcriptionLiveLoading,
+  transcription,
 }: {
   meetingDbId: string;
-  roomId: string;
-  canControlTranscription: boolean;
-  transcriptionRecording: boolean;
-  setTranscriptionRecording: React.Dispatch<React.SetStateAction<boolean>>;
-  transcriptionLive: boolean;
-  setTranscriptionLive: React.Dispatch<React.SetStateAction<boolean>>;
-  startRecordingTranscription: () => Promise<void>;
-  stopRecordingTranscription: () => Promise<void>;
-  startLiveTranscription: () => Promise<void>;
-  stopLiveTranscription: () => Promise<void>;
-  transcriptionRecordLoading: boolean;
-  transcriptionLiveLoading: boolean;
+  transcription: UseMeetingTranscriptionResult;
 }) {
   const { participants } = useMeeting();
 
@@ -95,15 +74,16 @@ export default function IntegratedSidebar({
           className="flex-1 m-0 p-0 min-h-0 flex flex-col"
         >
           <TranscriptTab
-            canControlTranscription={canControlTranscription}
-            transcriptionRecording={transcriptionRecording}
-            transcriptionLive={transcriptionLive}
-            startRecordingTranscription={startRecordingTranscription}
-            stopRecordingTranscription={stopRecordingTranscription}
-            startLiveTranscription={startLiveTranscription}
-            stopLiveTranscription={stopLiveTranscription}
-            transcriptionRecordLoading={transcriptionRecordLoading}
-            transcriptionLiveLoading={transcriptionLiveLoading}
+            hasTranscriptionControl={transcription.hasTranscriptionControl}
+            isTranscriptionLive={transcription.isTranscriptionLive}
+            isActionPending={transcription.isActionPending}
+            transcriptionStatus={transcription.transcriptionStatus}
+            activeSessionId={transcription.activeSessionId}
+            errorMessage={transcription.errorMessage}
+            logs={transcription.logs}
+            startLiveTranscription={transcription.startLiveTranscription}
+            stopLiveTranscription={transcription.stopLiveTranscription}
+            clearLogs={transcription.clearLogs}
           />
         </TabsContent>
 

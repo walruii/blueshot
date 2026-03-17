@@ -9,9 +9,7 @@ import {
   getMeetingByRoomId,
   recordParticipantLeave,
 } from "@/server-actions/meeting";
-import useTranscriptions from "../_hooks/use-transcriptions";
-import { Captions } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import useMeetingTranscription from "../_hooks/useMeetingTranscription";
 
 export interface MeetingContentWithDevicesProps {
   deviceSettings: { cameraOn: boolean; micOn: boolean };
@@ -27,21 +25,10 @@ export default function MeetingContentWithDevices({
   meetingDbId,
 }: MeetingContentWithDevicesProps) {
   const { enableWebcam, unmuteMic } = useMeeting();
-  const {
-    transcriptionText,
-    setTranscriptionText,
-    isLiveTranscriptionEnabled,
-    setIsLiveTranscriptionEnabled,
-    hasTranscriptionControl,
-    isTranscriptionRecording,
-    setIsTranscriptionRecording,
-    isTranscriptionLive,
-    setIsTranscriptionLive,
-    startRecordingTranscription,
-    stopRecordingTranscription,
-    startLiveTranscription,
-    stopLiveTranscription,
-  } = useTranscriptions({ roomId: meetingDbId });
+  const transcription = useMeetingTranscription({
+    roomId: meetingId,
+    meetingDbId,
+  });
 
   // Enable devices after joining based on prejoin settings
   useEffect(() => {
@@ -72,27 +59,6 @@ export default function MeetingContentWithDevices({
 
   return (
     <>
-      {/* Transcription Display */}
-      {isTranscriptionLive && (
-        <div className="fixed bottom-32 left-4 right-4 md:left-1/4 md:right-1/4 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-4 max-h-60 overflow-y-auto z-20">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Captions className="h-4 w-4" />
-              Live Transcription
-            </h3>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsTranscriptionLive(false)}
-            >
-              Hide
-            </Button>
-          </div>
-          <div className="text-sm whitespace-pre-wrap text-muted-foreground">
-            {transcriptionText}
-          </div>
-        </div>
-      )}
       <div className="flex flex-col h-screen bg-black text-white overflow-hidden">
         <div className="flex-1 flex overflow-hidden">
           <div
@@ -107,18 +73,7 @@ export default function MeetingContentWithDevices({
           >
             <IntegratedSidebar
               meetingDbId={meetingDbId}
-              roomId={meetingId}
-              canControlTranscription={hasTranscriptionControl}
-              transcriptionRecording={isTranscriptionRecording}
-              setTranscriptionRecording={setIsTranscriptionRecording}
-              transcriptionLive={isTranscriptionLive}
-              setTranscriptionLive={setIsTranscriptionLive}
-              startRecordingTranscription={startRecordingTranscription}
-              stopRecordingTranscription={stopRecordingTranscription}
-              startLiveTranscription={startLiveTranscription}
-              stopLiveTranscription={stopLiveTranscription}
-              transcriptionRecordLoading={isTranscriptionRecording}
-              transcriptionLiveLoading={isTranscriptionLive}
+              transcription={transcription}
             />
           </div>
         </div>

@@ -301,15 +301,15 @@ function AddEvent() {
             </Card>
           </>
         )}
-      </div>
 
-      <Button
-        className="w-full mt-5"
-        onClick={handleAddEvent}
-        disabled={!isFormValid || isLoading}
-      >
-        {isLoading ? "Adding Event..." : "Add Event"}
-      </Button>
+        <Button
+          className="w-full mt-5"
+          onClick={handleAddEvent}
+          disabled={!isFormValid || isLoading}
+        >
+          {isLoading ? "Adding Event..." : "Add Event"}
+        </Button>
+      </div>
 
       {/* Create Event Group Modal */}
       {session?.user?.id && (
