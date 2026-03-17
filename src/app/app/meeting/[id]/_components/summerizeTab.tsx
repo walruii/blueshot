@@ -3,20 +3,34 @@ import { useState } from "react";
 import { Loader2, Sparkles } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { summarizeMeetingContent } from "@/server-actions/meeting-transcriptions";
 
 export default function AiTab({ meetingDbId }: { meetingDbId: string }) {
   const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const handleSummarize = async () => {
     setIsSummarizing(true);
-    // TODO: Implement AI summarization API call
-    await new Promise((resolve) => setTimeout(resolve, 2000)); // Demo delay
-    setIsSummarizing(false);
+    setErrorMessage(null);
+
+    try {
+      const result = await summarizeMeetingContent(meetingDbId);
+      if (!result.success) {
+        setErrorMessage(result.error ?? "Failed to summarize meeting");
+        return;
+      }
+
+      setSummary(result.data?.summary ?? "No summary generated.");
+    } finally {
+      setIsSummarizing(false);
+    }
   };
+
   return (
     <ScrollArea className="h-full p-4">
       <div className="space-y-3">
         <h3 className="text-sm font-bold mb-5">Actions</h3>
-        {/* Summarize Button */}
         <Button
           variant="secondary"
           size="lg"
@@ -36,6 +50,21 @@ export default function AiTab({ meetingDbId }: { meetingDbId: string }) {
             </>
           )}
         </Button>
+
+        {errorMessage && (
+          <p className="text-xs text-red-400">Error: {errorMessage}</p>
+        )}
+
+        {summary && (
+          <div className="rounded-md border border-border bg-muted/30 p-3">
+            <h4 className="text-xs font-semibold text-muted-foreground mb-2">
+              Meeting Summary
+            </h4>
+            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+              {summary}
+            </p>
+          </div>
+        )}
       </div>
     </ScrollArea>
   );

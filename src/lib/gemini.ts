@@ -2,6 +2,18 @@ import "server-only";
 import { GoogleGenAI } from "@google/genai";
 import { MessageWithSender } from "@/types/chatSummary";
 
+export interface MeetingSummaryChatMessage {
+  senderName: string;
+  content: string;
+  at: string;
+}
+
+export interface MeetingSummaryTranscriptSegment {
+  participantName: string;
+  text: string;
+  at: string;
+}
+
 /**
  * Initialize the Google Generative AI client
  * @throws Error if GEMINI_API_KEY is not configured
@@ -105,6 +117,100 @@ Return ONLY the updated summary text. Do not include any preamble, explanation, 
 
     throw new Error(
       "An unexpected error occurred while generating the summary",
+    );
+  }
+}
+
+/**
+ * Generate a meeting summary from both typed chat and spoken transcript text.
+ */
+export async function generateMeetingSummary(
+  chatMessages: MeetingSummaryChatMessage[],
+  transcriptSegments: MeetingSummaryTranscriptSegment[],
+): Promise<string> {
+  if (chatMessages.length === 0 && transcriptSegments.length === 0) {
+    throw new Error("No meeting content found to summarize");
+  }
+
+  const ai = initGemini();
+
+  const formattedChat =
+    chatMessages.length > 0
+      ? chatMessages
+          .map((message) => {
+            return `[${message.at}] ${message.senderName}: ${message.content}`;
+          })
+          .join("\n")
+      : "(No typed chat messages)";
+
+  const formattedTranscript =
+    transcriptSegments.length > 0
+      ? transcriptSegments
+          .map((segment) => {
+            return `[${segment.at}] ${segment.participantName}: ${segment.text}`;
+          })
+          .join("\n")
+      : "(No spoken transcript segments)";
+
+  const prompt = `You are generating a concise but useful meeting summary.
+
+The meeting has two sources of content:
+- Typed Chat: text messages sent in meeting chat
+- Spoken Transcript: speech-to-text transcript from participants
+
+Typed Chat Messages:
+${formattedChat}
+
+Spoken Transcript Segments:
+${formattedTranscript}
+
+Write a summary that blends both sources into one coherent meeting narrative.
+Include:
+- Main topics discussed
+- Decisions made
+- Action items and owners if clear
+- Open questions or blockers
+
+Return only the summary text in plain Markdown. No preamble.`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "models/gemma-3-4b-it",
+      contents: prompt,
+    });
+
+    if (!response.text || typeof response.text !== "string") {
+      throw new Error("No valid response received from Gemini API");
+    }
+
+    const summaryText = response.text.trim();
+    if (!summaryText) {
+      throw new Error("Generated summary is empty");
+    }
+
+    return summaryText;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message.includes("429") || error.message.includes("quota")) {
+        throw new Error(
+          "Rate limit exceeded. Please try again in a few moments.",
+        );
+      }
+
+      if (
+        error.message.includes("fetch") ||
+        error.message.includes("network")
+      ) {
+        throw new Error(
+          "Network error while connecting to Gemini API. Please check your connection.",
+        );
+      }
+
+      throw new Error(`Failed to generate meeting summary: ${error.message}`);
+    }
+
+    throw new Error(
+      "An unexpected error occurred while generating the meeting summary",
     );
   }
 }

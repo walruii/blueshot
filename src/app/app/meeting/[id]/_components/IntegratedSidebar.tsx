@@ -77,8 +77,6 @@ export default function IntegratedSidebar({
             hasTranscriptionControl={transcription.hasTranscriptionControl}
             isTranscriptionLive={transcription.isTranscriptionLive}
             isActionPending={transcription.isActionPending}
-            transcriptionStatus={transcription.transcriptionStatus}
-            activeSessionId={transcription.activeSessionId}
             errorMessage={transcription.errorMessage}
             logs={transcription.logs}
             startLiveTranscription={transcription.startLiveTranscription}

@@ -4,8 +4,10 @@ import { isMeetingDebug } from "@/lib/debug";
 import { useMeeting, useTranscription } from "@/lib/videosdkWrapper";
 import {
   fetchTranscriptionText,
+  getMeetingTranscripts,
   getTranscription,
   getTranscriptionControlAccess,
+  saveTranscriptSegment,
 } from "@/server-actions/meeting-transcriptions";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -66,10 +68,16 @@ const normalizeStatus = (status: string | undefined): string => {
   return status.toUpperCase();
 };
 
-const isFinalTranscript = (type: string | undefined): boolean => {
+const isPartialTranscript = (type: string | undefined): boolean => {
   if (!type) return false;
   const normalized = type.toLowerCase();
-  return normalized === "final" || normalized === "final_transcript";
+  return normalized.includes("partial") || normalized.includes("interim");
+};
+
+const isFinalTranscript = (type: string | undefined): boolean => {
+  // VideoSDK event types vary across SDK/runtime paths.
+  // Keep "final sentence mode" by dropping only explicit partial/interim chunks.
+  return !isPartialTranscript(type);
 };
 
 const isAlreadyStartingOrStarted = (message: string | undefined): boolean => {
@@ -79,6 +87,12 @@ const isAlreadyStartingOrStarted = (message: string | undefined): boolean => {
     normalized.includes("already starting") ||
     normalized.includes("already started")
   );
+};
+
+const isNotStarted = (message: string | undefined): boolean => {
+  if (!message) return false;
+  const normalized = message.toLowerCase();
+  return normalized.includes("not started");
 };
 
 const getWebhookBaseUrl = (): string => {
@@ -123,6 +137,7 @@ export default function useMeetingTranscription({
   const localNoTextWarningRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+  const localNoTextWarningShownRef = useRef<boolean>(false);
   const localParticipantIdRef = useRef<string | null>(null);
   const storageKey = useMemo(
     () => `meeting-transcription-state:${roomId}`,
@@ -135,28 +150,30 @@ export default function useMeetingTranscription({
       setTranscriptionStatus(nextStatus);
       setErrorMessage(null);
 
-      if (data.id) {
-        setActiveSessionId(data.id);
-      }
-
       if (
         nextStatus === "TRANSCRIPTION_STARTED" ||
         nextStatus === "TRANSCRIPTION_STARTING"
       ) {
+        if (data.id) {
+          setActiveSessionId(data.id);
+        }
         setIsTranscriptionLive(true);
-      } else if (
-        nextStatus === "TRANSCRIPTION_STOPPED" ||
-        nextStatus === "TRANSCRIPTION_STOPPING"
-      ) {
+      } else if (nextStatus === "TRANSCRIPTION_STOPPING") {
         setIsTranscriptionLive(false);
+      } else if (nextStatus === "TRANSCRIPTION_STOPPED") {
+        setIsTranscriptionLive(false);
+        // Clear stale session id so fallback poll doesn't restart on old session.
+        setActiveSessionId(null);
       }
 
       if (typeof window !== "undefined") {
+        const sessionId =
+          nextStatus === "TRANSCRIPTION_STOPPED" ? null : (data.id ?? null);
         window.sessionStorage.setItem(
           storageKey,
           JSON.stringify({
             status: nextStatus,
-            sessionId: data.id ?? null,
+            sessionId,
             updatedAt: Date.now(),
           }),
         );
@@ -167,60 +184,83 @@ export default function useMeetingTranscription({
     [storageKey],
   );
 
-  const addTranscriptEntry = useCallback((data: TranscriptionTextEvent) => {
-    const dedupeKey = `${data.participantId}:${data.timestamp}:${data.type}:${data.text}`;
-    const now = Date.now();
-
-    for (const [key, ts] of recentEventKeysRef.current.entries()) {
-      if (now - ts > DUPLICATE_EVENT_WINDOW_MS) {
-        recentEventKeysRef.current.delete(key);
+  const addTranscriptEntry = useCallback(
+    (data: TranscriptionTextEvent) => {
+      const isFinal = isFinalTranscript(data.type);
+      if (!isFinal) {
+        return;
       }
-    }
 
-    if (recentEventKeysRef.current.has(dedupeKey)) {
-      return;
-    }
-    recentEventKeysRef.current.set(dedupeKey, now);
+      const dedupeKey = `${data.participantId}:${data.timestamp}:${data.type}:${data.text}`;
+      const now = Date.now();
 
-    const localParticipantId = localParticipantIdRef.current;
-    if (localParticipantId && data.participantId === localParticipantId) {
-      if (localNoTextWarningRef.current) {
-        clearTimeout(localNoTextWarningRef.current);
-        localNoTextWarningRef.current = null;
+      for (const [key, ts] of recentEventKeysRef.current.entries()) {
+        if (now - ts > DUPLICATE_EVENT_WINDOW_MS) {
+          recentEventKeysRef.current.delete(key);
+        }
       }
-    }
 
-    const entry: TranscriptionLogEntry = {
-      id: `${data.timestamp}-${data.participantId}-${Math.random().toString(36).slice(2, 8)}`,
-      participantId: data.participantId,
-      participantName: data.participantName,
-      text: data.text,
-      timestamp: data.timestamp,
-      type: data.type,
-      isFinal: isFinalTranscript(data.type),
-    };
+      if (recentEventKeysRef.current.has(dedupeKey)) {
+        return;
+      }
+      recentEventKeysRef.current.set(dedupeKey, now);
 
-    console.log(
-      "[Transcription] text:",
-      `${entry.participantName}: ${entry.text}`,
-      "type:",
-      entry.type,
-      "raw:",
-      data,
-    );
+      const localParticipantId = localParticipantIdRef.current;
+      if (localParticipantId && data.participantId === localParticipantId) {
+        if (localNoTextWarningRef.current) {
+          clearTimeout(localNoTextWarningRef.current);
+          localNoTextWarningRef.current = null;
+        }
+        localNoTextWarningShownRef.current = false;
+      }
 
-    if (noTextTimeoutRef.current) {
-      clearTimeout(noTextTimeoutRef.current);
-      noTextTimeoutRef.current = null;
-    }
+      const entry: TranscriptionLogEntry = {
+        id: `${data.timestamp}-${data.participantId}-${Math.random().toString(36).slice(2, 8)}`,
+        participantId: data.participantId,
+        participantName: data.participantName || "Unknown speaker",
+        text: data.text,
+        timestamp: data.timestamp,
+        type: data.type,
+        isFinal,
+      };
 
-    setLogs((prev) => {
-      const next = [...prev, entry];
-      return next.length > MAX_TRANSCRIPT_ENTRIES
-        ? next.slice(next.length - MAX_TRANSCRIPT_ENTRIES)
-        : next;
-    });
-  }, []);
+      console.log(
+        "[Transcription] text:",
+        `${entry.participantName}: ${entry.text}`,
+        "type:",
+        entry.type,
+        "raw:",
+        data,
+      );
+
+      if (noTextTimeoutRef.current) {
+        clearTimeout(noTextTimeoutRef.current);
+        noTextTimeoutRef.current = null;
+      }
+
+      setLogs((prev) => {
+        const next = [...prev, entry];
+        return next.length > MAX_TRANSCRIPT_ENTRIES
+          ? next.slice(next.length - MAX_TRANSCRIPT_ENTRIES)
+          : next;
+      });
+
+      void saveTranscriptSegment(
+        meetingDbId,
+        entry.participantName,
+        entry.text,
+        new Date(entry.timestamp).toISOString(),
+      ).then((result) => {
+        if (!result.success) {
+          console.warn(
+            "[Transcription] failed to persist transcript segment:",
+            result.error,
+          );
+        }
+      });
+    },
+    [meetingDbId],
+  );
 
   const { startTranscription, stopTranscription } = useTranscription({
     onTranscriptionStateChanged: setStatusFromEvent,
@@ -259,17 +299,60 @@ export default function useMeetingTranscription({
   }, [storageKey]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const hydrateTranscriptHistory = async () => {
+      if (!meetingDbId || isMeetingDebug()) {
+        return;
+      }
+
+      const result = await getMeetingTranscripts(meetingDbId);
+      if (cancelled) {
+        return;
+      }
+
+      if (!result.success) {
+        if (!cancelled) {
+          console.warn(
+            "[Transcription] failed to load transcript history:",
+            result.error,
+          );
+        }
+        return;
+      }
+
+      const transcriptSegments = result.data ?? [];
+
+      const mappedLogs: TranscriptionLogEntry[] = transcriptSegments.map(
+        (segment) => ({
+          id: segment.id,
+          participantId: segment.participantName,
+          participantName: segment.participantName,
+          text: segment.text,
+          timestamp: new Date(segment.spokenAt).getTime(),
+          type: "final",
+          isFinal: true,
+        }),
+      );
+
+      setLogs(
+        mappedLogs.length > MAX_TRANSCRIPT_ENTRIES
+          ? mappedLogs.slice(mappedLogs.length - MAX_TRANSCRIPT_ENTRIES)
+          : mappedLogs,
+      );
+    };
+
+    void hydrateTranscriptHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meetingDbId]);
+
+  useEffect(() => {
     if (!meeting || isMeetingDebug()) return;
 
     localParticipantIdRef.current = meetingHook?.localParticipant?.id ?? null;
-
-    const handleState = (data: TranscriptionStateEvent) => {
-      setStatusFromEvent(data);
-    };
-
-    const handleText = (data: TranscriptionTextEvent) => {
-      addTranscriptEntry(data);
-    };
 
     const handleMeetingLeft = () => {
       setIsTranscriptionLive(false);
@@ -284,6 +367,19 @@ export default function useMeetingTranscription({
         // Rejoin path: transcription is already active in the room.
         setTranscriptionStatus("TRANSCRIPTION_STARTING");
         setIsTranscriptionLive(true);
+        setErrorMessage(null);
+        return;
+      }
+
+      if (isNotStarted(error?.message)) {
+        // Backend says nothing is active anymore; sync local state to stopped.
+        setTranscriptionStatus("TRANSCRIPTION_STOPPED");
+        setIsTranscriptionLive(false);
+        setActiveSessionId(null);
+        if (noTextTimeoutRef.current) {
+          clearTimeout(noTextTimeoutRef.current);
+          noTextTimeoutRef.current = null;
+        }
         setErrorMessage(null);
         return;
       }
@@ -308,6 +404,11 @@ export default function useMeetingTranscription({
       }
 
       localNoTextWarningRef.current = setTimeout(() => {
+        if (localNoTextWarningShownRef.current) {
+          return;
+        }
+
+        localNoTextWarningShownRef.current = true;
         setErrorMessage(
           "Local participant is detected as active speaker, but local transcription text is not emitted. Remote participants may still receive your transcript depending on SDK behavior.",
         );
@@ -317,16 +418,12 @@ export default function useMeetingTranscription({
       }, 4000);
     };
 
-    meeting.on("transcription-state-changed", handleState);
-    meeting.on("transcription-text", handleText);
     meeting.on("meeting-left", handleMeetingLeft);
     meeting.on("error", handleError);
     meeting.on("speaker-changed", handleSpeakerChanged);
     console.log("[Transcription] direct meeting listeners attached");
 
     return () => {
-      meeting.off("transcription-state-changed", handleState);
-      meeting.off("transcription-text", handleText);
       meeting.off("meeting-left", handleMeetingLeft);
       meeting.off("error", handleError);
       meeting.off("speaker-changed", handleSpeakerChanged);
@@ -334,14 +431,10 @@ export default function useMeetingTranscription({
         clearTimeout(localNoTextWarningRef.current);
         localNoTextWarningRef.current = null;
       }
+      localNoTextWarningShownRef.current = false;
       console.log("[Transcription] direct meeting listeners detached");
     };
-  }, [
-    addTranscriptEntry,
-    meeting,
-    meetingHook?.localParticipant?.id,
-    setStatusFromEvent,
-  ]);
+  }, [meeting, meetingHook?.localParticipant?.id]);
 
   useEffect(() => {
     if (
@@ -386,6 +479,19 @@ export default function useMeetingTranscription({
         end: latest.end,
         hasTxt: Boolean(latest.transcriptionFilePaths?.txt),
       });
+
+      if (latest.status === "failed") {
+        console.warn(
+          "[Transcription] session reported failed, syncing to stopped state",
+        );
+        setTranscriptionStatus("TRANSCRIPTION_STOPPED");
+        setIsTranscriptionLive(false);
+        setActiveSessionId(null);
+        setErrorMessage(
+          "Transcription session failed to start. Wait a moment, then try starting again.",
+        );
+        return;
+      }
 
       const txtUrl = latest.transcriptionFilePaths?.txt;
       if (!txtUrl || txtUrl === lastFetchedTxtUrlRef.current) {
@@ -603,7 +709,12 @@ export default function useMeetingTranscription({
       return;
     }
 
-    if (isActionPending || !isTranscriptionLive) {
+    if (
+      isActionPending ||
+      !isTranscriptionLive ||
+      transcriptionStatus === "TRANSCRIPTION_STARTING" ||
+      transcriptionStatus === "TRANSCRIPTION_STOPPING"
+    ) {
       return;
     }
 
@@ -613,12 +724,21 @@ export default function useMeetingTranscription({
     try {
       stopTranscription();
       setTranscriptionStatus("TRANSCRIPTION_STOPPING");
-      setIsTranscriptionLive(false);
+      // Keep live=true until STOPPED arrives to avoid start/stop race loops.
       if (noTextTimeoutRef.current) {
         clearTimeout(noTextTimeoutRef.current);
         noTextTimeoutRef.current = null;
       }
     } catch (error) {
+      const caughtMessage = error instanceof Error ? error.message : undefined;
+      if (isNotStarted(caughtMessage)) {
+        setTranscriptionStatus("TRANSCRIPTION_STOPPED");
+        setIsTranscriptionLive(false);
+        setActiveSessionId(null);
+        setErrorMessage(null);
+        return;
+      }
+
       const message =
         error instanceof Error ? error.message : "Failed to stop transcription";
       setErrorMessage(message);
@@ -626,7 +746,13 @@ export default function useMeetingTranscription({
     } finally {
       setIsActionPending(false);
     }
-  }, [isActionPending, isTranscriptionLive, roomId, stopTranscription]);
+  }, [
+    isActionPending,
+    isTranscriptionLive,
+    roomId,
+    stopTranscription,
+    transcriptionStatus,
+  ]);
 
   useEffect(() => {
     return () => {
