@@ -1,8 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Zap } from "lucide-react";
 import Link from "next/link";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import Image from "next/image";
 
 export default async function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
@@ -22,9 +19,6 @@ export default async function Navbar({ isLoggedIn }: { isLoggedIn: boolean }) {
             </Button>
           ) : (
             <>
-              <Button variant="ghost" asChild>
-                <Link href="/auth/signin">Sign In</Link>
-              </Button>
               <Button asChild>
                 <Link href="/auth/register">Get Started</Link>
               </Button>

@@ -29,6 +29,10 @@ function loadSdk() {
         localMicOn: false,
         localWebcamOn: false,
       }),
+      useTranscription: () => ({
+        startTranscription: () => {},
+        stopTranscription: () => {},
+      }),
       usePubSub: () => ({ publish: () => {} }),
       useParticipant: () => ({
         webcamStream: null,
@@ -74,4 +78,9 @@ export function usePubSub(...args: any[]) {
 export function useParticipant(...args: any[]) {
   const s = ensureSdk();
   return s.useParticipant(...args);
+}
+
+export function useTranscription(...args: any[]) {
+  const s = ensureSdk();
+  return s.useTranscription(...args);
 }

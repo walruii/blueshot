@@ -9,6 +9,7 @@ import {
   getMeetingByRoomId,
   recordParticipantLeave,
 } from "@/server-actions/meeting";
+import useMeetingTranscription from "../_hooks/useMeetingTranscription";
 
 export interface MeetingContentWithDevicesProps {
   deviceSettings: { cameraOn: boolean; micOn: boolean };
@@ -23,7 +24,11 @@ export default function MeetingContentWithDevices({
   userId,
   meetingDbId,
 }: MeetingContentWithDevicesProps) {
-  const { enableWebcam, unmuteMic, leave } = useMeeting();
+  const { enableWebcam, unmuteMic } = useMeeting();
+  const transcription = useMeetingTranscription({
+    roomId: meetingId,
+    meetingDbId,
+  });
 
   // Enable devices after joining based on prejoin settings
   useEffect(() => {
@@ -50,29 +55,37 @@ export default function MeetingContentWithDevices({
     };
   }, [meetingId, userId]);
 
-  const [isOpen, setIsOpen] = useState(true);
+  const [sidebarIsOpen, setSidebarIsOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-screen bg-black text-white overflow-hidden">
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden relative">
-          <VideoGrid meetingId={meetingId} />
+    <>
+      <div className="flex flex-col h-screen bg-black text-white overflow-hidden">
+        <div className="flex-1 flex overflow-hidden">
+          <div
+            className={`flex-1 overflow-hidden relative
+          ${sidebarIsOpen ? "hidden sm:flex" : "w-full"}`}
+          >
+            <VideoGrid meetingId={meetingId} />
+          </div>
+          <div
+            className="flex flex-col w-full sm:w-80 h-full min-h-0 border-l border-neutral-800 bg-card"
+            hidden={!sidebarIsOpen}
+          >
+            <IntegratedSidebar
+              meetingDbId={meetingDbId}
+              transcription={transcription}
+            />
+          </div>
         </div>
-        <div
-          className="flex flex-col w-80 h-full min-h-0 border-l border-neutral-800 bg-card"
-          hidden={!isOpen}
-        >
-          <IntegratedSidebar meetingDbId={meetingDbId} />
+        <div className="border-t border-neutral-800 bg-neutral-950 shrink-0">
+          <ControlBar
+            userId={userId}
+            roomId={meetingId}
+            meetingDbId={meetingDbId}
+            sidebarSetOpen={setSidebarIsOpen}
+          />
         </div>
       </div>
-      <div className="border-t border-neutral-800 bg-neutral-950 shrink-0">
-        <ControlBar
-          userId={userId}
-          roomId={meetingId}
-          meetingDbId={meetingDbId}
-          sidebarSetOpen={setIsOpen}
-        />
-      </div>
-    </div>
+    </>
   );
 }

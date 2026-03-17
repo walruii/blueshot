@@ -45,21 +45,18 @@ export default function MobileSidebar(props: SidebarContentProps) {
             </div>
           </div>
         </div>
-
-        <SheetContent
-          side="left"
-          className="w-full h-full p-0"
-          showCloseButton={false}
-        >
-          {/* ensure dialog has accessible title */}
-          <SheetTitle className="sr-only">Conversations sidebar</SheetTitle>
-          <SidebarContent
-            {...props}
-            onSelectDirect={handleSelectDirect}
-            onSelectGroup={handleSelectGroup}
-            onClose={() => setOpen(false)}
-          />
-        </SheetContent>
+        {open && (
+          <div className="fixed bg-black w-full h-full p-0 z-50">
+            {/* ensure dialog has accessible title */}
+            <SheetTitle className="sr-only">Conversations sidebar</SheetTitle>
+            <SidebarContent
+              {...props}
+              onSelectDirect={handleSelectDirect}
+              onSelectGroup={handleSelectGroup}
+              onClose={() => setOpen(false)}
+            />
+          </div>
+        )}
       </Sheet>
     </>
   );

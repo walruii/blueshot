@@ -128,7 +128,7 @@ export default function NewConversation() {
       <DialogTrigger asChild>
         <Button
           variant="ghost"
-          className="h-8 w-auto px-3 justify-center flex items-center"
+          className="h-10 w-full px-3 justify-center flex items-center"
         >
           <Plus className="h-5 w-5 mr-2" />
           New Conversation

@@ -101,7 +101,7 @@ export default function SummaryButton({
         onClick={handleSummarize}
         disabled={isLoading}
         variant="outline"
-        size="sm"
+        size="lg"
         className="gap-1.5"
       >
         <Sparkles className="size-3.5" />

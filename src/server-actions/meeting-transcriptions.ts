@@ -1,6 +1,11 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import {
+  generateMeetingSummary,
+  type MeetingSummaryChatMessage,
+  type MeetingSummaryTranscriptSegment,
+} from "@/lib/gemini";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { Result } from "@/types/returnType";
 import { headers } from "next/headers";
@@ -43,6 +48,13 @@ interface TranscriptionListResponse {
     start?: string;
     end?: string;
   }>;
+}
+
+interface PersistedTranscriptSegment {
+  id: string;
+  participantName: string;
+  text: string;
+  spokenAt: string;
 }
 
 const assertCanManageTranscriptions = async (
@@ -117,6 +129,62 @@ const getAuthUserId = async (): Promise<Result<string>> => {
   return {
     success: true,
     data: session.user.id,
+  };
+};
+
+const assertCanAccessMeeting = async (
+  userId: string,
+  meetingDbId: string,
+): Promise<Result<true>> => {
+  const { data, error } = await supabaseAdmin.rpc("can_access_meeting", {
+    p_meeting_id: meetingDbId,
+    p_user_id: userId,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: "Failed to verify meeting access",
+    };
+  }
+
+  if (!data) {
+    return {
+      success: false,
+      error: "You do not have access to this meeting",
+    };
+  }
+
+  return {
+    success: true,
+    data: true,
+  };
+};
+
+const fetchMeetingTranscriptSegmentsInternal = async (
+  meetingDbId: string,
+): Promise<Result<PersistedTranscriptSegment[]>> => {
+  const { data, error } = await supabaseAdmin
+    .from("meeting_transcript_segment")
+    .select("id, participant_name, text, spoken_at")
+    .eq("meeting_id", meetingDbId)
+    .order("spoken_at", { ascending: true });
+
+  if (error) {
+    return {
+      success: false,
+      error: "Failed to load meeting transcript segments",
+    };
+  }
+
+  return {
+    success: true,
+    data: data.map((segment) => ({
+      id: segment.id,
+      participantName: segment.participant_name,
+      text: segment.text,
+      spokenAt: segment.spoken_at,
+    })),
   };
 };
 
@@ -494,6 +562,192 @@ export const fetchTranscriptionText = async (
     return {
       success: false,
       error: "Failed to fetch transcription text from CDN",
+    };
+  }
+};
+
+export const saveTranscriptSegment = async (
+  meetingDbId: string,
+  participantName: string,
+  text: string,
+  spokenAt: string,
+): Promise<Result<{ id: string }>> => {
+  try {
+    if (!meetingDbId || !participantName || !text || !spokenAt) {
+      return {
+        success: false,
+        error: "meetingDbId, participantName, text, and spokenAt are required",
+      };
+    }
+
+    const authResult = await getAuthUserId();
+    if (!authResult.success || !authResult.data) {
+      return {
+        success: false,
+        error: authResult.success ? "Unauthorized" : authResult.error,
+      };
+    }
+
+    const accessResult = await assertCanAccessMeeting(
+      authResult.data,
+      meetingDbId,
+    );
+    if (!accessResult.success) {
+      return accessResult;
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("meeting_transcript_segment")
+      .insert({
+        meeting_id: meetingDbId,
+        participant_name: participantName,
+        text,
+        spoken_at: spokenAt,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      return {
+        success: false,
+        error: "Failed to save transcript segment",
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        id: data.id,
+      },
+    };
+  } catch (err) {
+    console.error("Unexpected error in saveTranscriptSegment:", err);
+    return {
+      success: false,
+      error: "Failed to save transcript segment",
+    };
+  }
+};
+
+export const getMeetingTranscripts = async (
+  meetingDbId: string,
+): Promise<Result<PersistedTranscriptSegment[]>> => {
+  try {
+    if (!meetingDbId) {
+      return {
+        success: false,
+        error: "meetingDbId is required",
+      };
+    }
+
+    const authResult = await getAuthUserId();
+    if (!authResult.success || !authResult.data) {
+      return {
+        success: false,
+        error: authResult.success ? "Unauthorized" : authResult.error,
+      };
+    }
+
+    const accessResult = await assertCanAccessMeeting(
+      authResult.data,
+      meetingDbId,
+    );
+    if (!accessResult.success) {
+      return accessResult;
+    }
+
+    return fetchMeetingTranscriptSegmentsInternal(meetingDbId);
+  } catch (err) {
+    console.error("Unexpected error in getMeetingTranscripts:", err);
+    return {
+      success: false,
+      error: "Failed to fetch meeting transcripts",
+    };
+  }
+};
+
+export const summarizeMeetingContent = async (
+  meetingDbId: string,
+): Promise<Result<{ summary: string }>> => {
+  try {
+    if (!meetingDbId) {
+      return {
+        success: false,
+        error: "meetingDbId is required",
+      };
+    }
+
+    const authResult = await getAuthUserId();
+    if (!authResult.success || !authResult.data) {
+      return {
+        success: false,
+        error: authResult.success ? "Unauthorized" : authResult.error,
+      };
+    }
+
+    const accessResult = await assertCanAccessMeeting(
+      authResult.data,
+      meetingDbId,
+    );
+    if (!accessResult.success) {
+      return accessResult;
+    }
+
+    const { data: messages, error: messagesError } = await supabaseAdmin
+      .from("message")
+      .select("content, created_at, deleted_at, user!inner(name, email)")
+      .eq("meeting_id", meetingDbId)
+      .order("created_at", { ascending: true });
+
+    if (messagesError) {
+      return {
+        success: false,
+        error: "Failed to fetch meeting chat",
+      };
+    }
+
+    const transcriptResult =
+      await fetchMeetingTranscriptSegmentsInternal(meetingDbId);
+    if (!transcriptResult.success) {
+      return {
+        success: false,
+        error: transcriptResult.error ?? "Failed to load transcript segments",
+      };
+    }
+
+    const transcriptSegmentsData = transcriptResult.data ?? [];
+
+    const chatMessages: MeetingSummaryChatMessage[] = messages.map(
+      (message) => ({
+        senderName: message.user.name ?? message.user.email ?? "Unknown User",
+        content: message.deleted_at ? "[Message deleted]" : message.content,
+        at: new Date(message.created_at).toLocaleTimeString(),
+      }),
+    );
+
+    const transcriptSegments: MeetingSummaryTranscriptSegment[] =
+      transcriptSegmentsData.map((segment) => ({
+        participantName: segment.participantName,
+        text: segment.text,
+        at: new Date(segment.spokenAt).toLocaleTimeString(),
+      }));
+
+    const summary = await generateMeetingSummary(
+      chatMessages,
+      transcriptSegments,
+    );
+
+    return {
+      success: true,
+      data: {
+        summary,
+      },
+    };
+  } catch (err) {
+    console.error("Unexpected error in summarizeMeetingContent:", err);
+    return {
+      success: false,
+      error: "Failed to summarize meeting content",
     };
   }
 };

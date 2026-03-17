@@ -69,12 +69,12 @@ export default function PasscodeDisplay({
 
   return (
     <div className="mt-6 p-4 bg-muted/50 rounded-lg border border-muted-foreground/20">
-      <div className="flex items-center justify-between gap-3">
-        <div>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+        <div className="text-center md:text-left">
           <label className="text-muted-foreground text-sm font-medium block mb-2">
             Guest Passcode
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-center md:justify-start">
             <div className="font-mono text-lg font-bold tracking-wider bg-background px-4 py-2 rounded min-w-40">
               {isVisible ? (
                 <span>{passcode}</span>

@@ -2,17 +2,19 @@
 import { MessageSquare, FileText, Sparkles, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChatTab from "./ChatTab";
-import TranscriptTab from "./TranscriptTab";
-import SmartNotesTab from "./SmartNotesTab";
 import ParticipantsTab from "./ParticipantsTab";
 import { isMeetingDebug } from "@/lib/debug";
-
 import { useMeeting } from "@/lib/videosdkWrapper";
+import TranscriptTab from "./TranscriptTab";
+import AiTab from "./summerizeTab";
+import type { UseMeetingTranscriptionResult } from "../_hooks/useMeetingTranscription";
 
 export default function IntegratedSidebar({
   meetingDbId,
+  transcription,
 }: {
   meetingDbId: string;
+  transcription: UseMeetingTranscriptionResult;
 }) {
   const { participants } = useMeeting();
 
@@ -71,7 +73,16 @@ export default function IntegratedSidebar({
           value="transcript"
           className="flex-1 m-0 p-0 min-h-0 flex flex-col"
         >
-          <TranscriptTab meetingDbId={meetingDbId} />
+          <TranscriptTab
+            hasTranscriptionControl={transcription.hasTranscriptionControl}
+            isTranscriptionLive={transcription.isTranscriptionLive}
+            isActionPending={transcription.isActionPending}
+            errorMessage={transcription.errorMessage}
+            logs={transcription.logs}
+            startLiveTranscription={transcription.startLiveTranscription}
+            stopLiveTranscription={transcription.stopLiveTranscription}
+            clearLogs={transcription.clearLogs}
+          />
         </TabsContent>
 
         {/* Smart Notes Tab */}
@@ -79,7 +90,7 @@ export default function IntegratedSidebar({
           value="notes"
           className="flex-1 m-0 p-0 min-h-0 flex flex-col"
         >
-          <SmartNotesTab meetingDbId={meetingDbId} />
+          <AiTab meetingDbId={meetingDbId} />
         </TabsContent>
 
         {/* Participants Tab */}

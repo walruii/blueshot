@@ -168,7 +168,7 @@ export default function ChatArea({
   return (
     <main className="flex-1 flex flex-col min-h-0">
       {/* Chat header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border bg-card">
+      <div className="flex items-center gap-3 p-4 border-b border-border bg-card z-0">
         <Avatar>
           {image && <AvatarImage src={image || ""} alt={name} />}
           <AvatarFallback>{name[0]?.toUpperCase() ?? "?"}</AvatarFallback>
@@ -205,7 +205,7 @@ export default function ChatArea({
         />
       </div>
       {/* AI Summary Button */}
-      <div className="px-4 pt-2 shrink-0">
+      <div className="px-4 pt-2 shrink-0 mb-2">
         <SummaryButton conversationId={id} />
       </div>
       {/* Input */}
