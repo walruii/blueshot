@@ -75,7 +75,7 @@ Return ONLY the updated summary text. Do not include any preamble, explanation, 
 
   try {
     const response = await ai.models.generateContent({
-      model: "models/gemma-3-4b-it",
+      model: "models/gemini-2.5-flash-lite",
       contents: prompt,
     });
 
@@ -175,7 +175,7 @@ Return only the summary text in plain Markdown. No preamble.`;
 
   try {
     const response = await ai.models.generateContent({
-      model: "models/gemma-3-4b-it",
+      model: "models/gemini-2.5-flash",
       contents: prompt,
     });
 
